@@ -133,17 +133,6 @@ client.on('interactionCreate', async interaction => {
             const handlers = {
                 'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
                 'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
-                'close_ticket': () => handleTicketClose(interaction)
-            };
-
-            const handler = handlers[interaction.customId];
-            if (handler) await handler();
-        }
-
-        if (interaction.isButton()) {
-            const handlers = {
-                'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
-                'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
                 'claim_ticket': () => handleTicketClaim(interaction),
                 'unclaim_ticket': () => handleTicketUnclaim(interaction),
                 'close_ticket': () => handleTicketClose(interaction)

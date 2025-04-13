@@ -103,5 +103,19 @@ export const db = {
             delete data[channelId];
             await writeTicketActions(data);
         }
+    },
+
+    async getTicketCounter(guildId) {
+        const data = await readData();
+        return data[guildId]?.ticketCounter || { counter: 0 };
+    },
+
+    async updateTicketCounter(guildId, counter) {
+        const data = await readData();
+        data[guildId] = {
+            ...data[guildId],
+            ticketCounter: { counter }
+        };
+        await writeData(data);
     }
 };

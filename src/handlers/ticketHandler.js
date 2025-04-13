@@ -31,7 +31,20 @@ const TICKET_DEFAULTS = {
     title: '🎫 Support Tickets',
     description: 'Click the buttons below to create a support ticket',
     color: '#5865F2',
-    enableClaiming: true
+    enableClaiming: true,
+    thumbnail: null,
+    footer: 'SnusTalk Support System',
+    generalButtonLabel: 'General Support',
+    managementButtonLabel: 'Management Support',
+    generalButtonEmoji: '📝',
+    managementButtonEmoji: '👑',
+    maxTicketsPerUser: 1,
+    closeConfirmation: true,
+    autoCloseHours: 0, // disabled
+    buttonStyle: {
+        general: ButtonStyle.Primary,
+        management: ButtonStyle.Secondary
+    }
 };
 
 async function canManageTicket(member, ticketType) {
@@ -41,6 +54,13 @@ async function canManageTicket(member, ticketType) {
     const moderatorRoleId = settings?.moderatorRoleId || process.env[`${ticketType}_ROLE_ID`];
 
     return member.roles.cache.has(moderatorRoleId);
+}
+
+async function getNextTicketNumber(guild) {
+    const ticketData = await db.getTicketCounter(guild.id);
+    const nextNumber = (ticketData?.counter || 0) + 1;
+    await db.updateTicketCounter(guild.id, nextNumber);
+    return nextNumber.toString().padStart(4, '0');
 }
 
 async function logTicketAction(guild, channelId, action) {
@@ -97,36 +117,37 @@ export async function handleTicketCreate(interaction, type) {
     try {
         const guild = interaction.guild;
         const member = await guild.members.fetch(interaction.user.id);
+        const settings = await db.getTicketSettings(guild.id) || TICKET_DEFAULTS;
 
-        const existingTicket = guild.channels.cache.find(
-            channel => channel.name === `ticket-${member.user.username.toLowerCase()}`
+        const userTickets = guild.channels.cache.filter(
+            channel => channel.name.startsWith('ticket-') &&
+                channel.name.includes(member.user.username.toLowerCase())
         );
 
-        if (existingTicket) {
-            await interaction.reply({
-                content: `You already have an open ticket: ${existingTicket}. Please close it before creating a new one.`,
+        if (userTickets.size >= settings.maxTicketsPerUser) {
+            return await interaction.reply({
+                content: `You can only have ${settings.maxTicketsPerUser} open ticket(s) at a time.`,
                 flags: MessageFlags.Ephemeral
             });
-            return;
         }
 
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply({ flags: 64 });
 
         const ticketType = ticketTypes[type];
+        const ticketNumber = await getNextTicketNumber(guild);
+        const channelName = `ticket-${ticketNumber}-${member.user.username.toLowerCase()}`;
 
         if (!ticketType.roleId) {
             throw new Error(`Role ID not configured for ticket type: ${type}`);
         }
 
-        let supportRole = await guild.roles.fetch(ticketType.roleId);
+        const supportRole = await guild.roles.fetch(ticketType.roleId);
         if (!supportRole) {
             throw new Error(`Support role with ID ${ticketType.roleId} does not exist in the server.`);
         }
 
         const category = await guild.channels.fetch(process.env.TICKET_CATEGORY_ID);
         if (!category) throw new Error('Ticket category not found');
-
-        const channelName = `ticket-${member.user.username.toLowerCase()}`;
 
         const ticketChannel = await guild.channels.create({
             name: channelName,
@@ -158,12 +179,28 @@ export async function handleTicketCreate(interaction, type) {
         });
 
         const embed = new EmbedBuilder()
-            .setTitle(`${ticketType.label} Ticket`)
-            .setDescription(`Support will be with you shortly.\nUser: ${interaction.user.toString()}`)
+            .setTitle(`${ticketType.label} Ticket #${ticketNumber}`)
+            .setDescription([
+                `Support will be with you shortly.`,
+                ``,
+                `**User:** ${interaction.user.toString()}`,
+                `**Type:** ${ticketType.label}`,
+                `**Created:** ${new Date().toLocaleString()}`,
+                ``,
+                `Please describe your issue in detail and wait for a staff member to assist you.`
+            ].join('\n'))
             .setColor(ticketType.color)
             .setTimestamp();
 
-        const row = new ActionRowBuilder()
+        if (settings.thumbnail) {
+            embed.setThumbnail(settings.thumbnail);
+        }
+
+        if (settings.footer) {
+            embed.setFooter({ text: settings.footer });
+        }
+
+        const actionRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('claim_ticket')
@@ -177,11 +214,33 @@ export async function handleTicketCreate(interaction, type) {
                     .setEmoji('✖️')
             );
 
-        await ticketChannel.send({
+        const message = await ticketChannel.send({
             content: `<@&${supportRole.id}> - New ticket from ${interaction.user.toString()}`,
             embeds: [embed],
-            components: [row]
+            components: [actionRow]
         });
+
+        await message.pin();
+
+        if (settings.autoCloseHours > 0) {
+            setTimeout(async () => {
+                const channel = await guild.channels.fetch(ticketChannel.id).catch(() => null);
+                if (channel) {
+                    const lastMessage = (await channel.messages.fetch({ limit: 1 })).first();
+                    const hoursSinceLastMessage = (Date.now() - lastMessage.createdTimestamp) / (1000 * 60 * 60);
+
+                    if (hoursSinceLastMessage >= settings.autoCloseHours) {
+                        await handleTicketClose({
+                            channel,
+                            guild,
+                            user: client.user,
+                            reply: () => { },
+                            deferred: false
+                        }, true);
+                    }
+                }
+            }, settings.autoCloseHours * 60 * 60 * 1000);
+        }
 
         await logTicketAction(
             guild,
@@ -197,15 +256,18 @@ export async function handleTicketCreate(interaction, type) {
     } catch (error) {
         console.error('Error creating ticket:', error);
 
-        const response = {
-            content: 'There was an error creating your ticket.',
-            flags: MessageFlags.Ephemeral
-        };
+        const errorMessage = 'There was an error creating your ticket.';
 
         if (interaction.deferred) {
-            await interaction.editReply(response);
+            await interaction.editReply({
+                content: errorMessage,
+                flags: MessageFlags.Ephemeral
+            });
         } else if (!interaction.replied) {
-            await interaction.reply(response);
+            await interaction.reply({
+                content: errorMessage,
+                flags: MessageFlags.Ephemeral
+            });
         }
     }
 }

@@ -18,24 +18,37 @@ const slashCommands = [
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption(option =>
             option.setName('title')
-                .setDescription('Title for the ticket panel')
-                .setRequired(false))
+                .setDescription('Title for the ticket panel'))
         .addStringOption(option =>
             option.setName('description')
-                .setDescription('Description for the ticket panel')
-                .setRequired(false))
+                .setDescription('Description for the ticket panel'))
         .addRoleOption(option =>
             option.setName('moderator_role')
-                .setDescription('Role for ticket moderators')
-                .setRequired(false))
+                .setDescription('Role for ticket moderators'))
         .addStringOption(option =>
             option.setName('color')
-                .setDescription('Color for the embed (hex code)')
-                .setRequired(false))
+                .setDescription('Color for the embed (hex code)'))
+        .addStringOption(option =>
+            option.setName('thumbnail')
+                .setDescription('URL for the embed thumbnail'))
+        .addStringOption(option =>
+            option.setName('footer')
+                .setDescription('Footer text for the embed'))
+        .addIntegerOption(option =>
+            option.setName('max_tickets')
+                .setDescription('Maximum tickets per user')
+                .setMinValue(1)
+                .setMaxValue(5))
+        .addIntegerOption(option =>
+            option.setName('auto_close')
+                .setDescription('Auto-close tickets after X hours of inactivity (0 to disable)')
+                .setMinValue(0))
         .addBooleanOption(option =>
             option.setName('enable_claiming')
-                .setDescription('Enable ticket claiming system')
-                .setRequired(false)),
+                .setDescription('Enable ticket claiming system'))
+        .addBooleanOption(option =>
+            option.setName('close_confirmation')
+                .setDescription('Require confirmation when closing tickets')),
 
     new SlashCommandBuilder()
         .setName('resend-verify')
