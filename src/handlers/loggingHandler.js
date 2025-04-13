@@ -174,7 +174,7 @@ class LogHandler {
       case "CREATE":
         embed.setTitle("📝 Channel Created").addFields(
           { name: "Name", value: data.channel.name, inline: true },
-          { name: "Type", value: data.channel.type, inline: true },
+          { name: "Type", value: data.channel.type.toString(), inline: true }, // Convert to string
           {
             name: "Category",
             value: data.channel.parent?.name || "None",
@@ -182,7 +182,7 @@ class LogHandler {
           },
           {
             name: "Position",
-            value: data.channel.position.toString(),
+            value: data.channel.position.toString(), // Convert to string
             inline: true,
           },
         );
@@ -191,7 +191,7 @@ class LogHandler {
       case "DELETE":
         embed.setTitle("🗑️ Channel Deleted").addFields(
           { name: "Name", value: data.channel.name, inline: true },
-          { name: "Type", value: data.channel.type, inline: true },
+          { name: "Type", value: data.channel.type.toString(), inline: true }, // Convert to string
           {
             name: "Category",
             value: data.channel.parent?.name || "None",
