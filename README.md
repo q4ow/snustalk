@@ -141,6 +141,7 @@ Both slash commands and prefix commands are available:
 - `/nickname <user> <name>` - Changes a user's nickname
 - `/ping` - Shows the bot's latency
 - `/avatar [user]` - Shows user's avatar
+- `/help` - Displays all commands and their usage
 
 #### Prefix Commands
 All slash commands are also available as prefix commands using `$`:
@@ -155,6 +156,7 @@ All slash commands are also available as prefix commands using `$`:
 - `$nickname @user <name>` - Changes a user's nickname
 - `$ping` - Shows the bot's latency
 - `$avatar [@user]` - Shows user's avatar
+- `$help` - Displays all commands and their usage
 
 > **Note**: Slash commands provide better permission handling and parameter validation. They are the recommended way to interact with the bot.
 
