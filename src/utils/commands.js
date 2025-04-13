@@ -27,7 +27,7 @@ import {
   removeWarning,
 } from "../handlers/moderationHandler.js";
 
-export const BOT_PREFIX = process.env.BOT_PREFIX || "$";
+const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
 const slashCommands = [
   new SlashCommandBuilder()
@@ -215,9 +215,6 @@ const slashCommands = [
         ),
     ),
   new SlashCommandBuilder()
-    .setName("help")
-    .setDescription("Shows all available commands"),
-  new SlashCommandBuilder()
     .setName("warn")
     .setDescription("Warn a user")
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
@@ -351,6 +348,10 @@ const slashCommands = [
         .setDescription("The ID of the warning to remove")
         .setRequired(true),
     ),
+
+  new SlashCommandBuilder()
+    .setName("help")
+    .setDescription("Shows all available commands"),
 ];
 
 export const commands = {
@@ -617,47 +618,6 @@ export const commands = {
       }
     },
   },
-
-  help: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message) {
-      const commandGroups = {
-        "🛡️ Moderation": ["purge", "lock", "unlock", "nickname"],
-        "🎫 Tickets": ["setup-tickets"],
-        "🔧 Utility": ["userinfo", "serverinfo", "avatar", "ping", "help"],
-        "📝 Notes": ["note"],
-        "⚙️ System": ["resend-verify", "welcome"],
-      };
-
-      const helpEmbed = new EmbedBuilder()
-        .setTitle("Command Help")
-        .setColor("#2F3136")
-        .setDescription(
-          `Use \`${BOT_PREFIX}command\` or \`/command\` to execute a command.`,
-        )
-        .setTimestamp();
-
-      for (const [category, cmds] of Object.entries(commandGroups)) {
-        const commandList = cmds
-          .map((cmdName) => {
-            const slashCmd = slashCommands.find((cmd) => cmd.name === cmdName);
-            return `\`${cmdName}\` - ${slashCmd ? slashCmd.description : "No description available"}`;
-          })
-          .join("\n");
-
-        helpEmbed.addFields({ name: category, value: commandList });
-      }
-
-      helpEmbed.addFields({
-        name: "📌 Note",
-        value: "Some commands may require special permissions to use.",
-      });
-
-      await message.reply({ embeds: [helpEmbed] });
-    },
-    errorMessage: "❌ Could not display help menu.",
-  },
 };
 
 export async function handleCommand(message, commands) {
@@ -667,7 +627,9 @@ export async function handleCommand(message, commands) {
   const commandName = args[0];
   const command = commands[commandName];
 
-  if (!command) return false;
+  if (!command) {
+    return false;
+  }
 
   try {
     if (command.permissions) {
@@ -684,7 +646,9 @@ export async function handleCommand(message, commands) {
       }
     }
 
-    await command.execute(message, args.slice(1));
+    if (command.execute) {
+      await command.execute(message, args.slice(1));
+    }
 
     if (command.deleteAfter) {
       await message.delete().catch((err) => {
@@ -964,43 +928,6 @@ export async function handleSlashCommand(interaction) {
             flags: 64,
           });
         }
-        break;
-      case "help":
-        const commandGroups = {
-          "🛡️ Moderation": ["purge", "lock", "unlock", "nickname"],
-          "🎫 Tickets": ["setup-tickets"],
-          "🔧 Utility": ["userinfo", "serverinfo", "avatar", "ping", "help"],
-          "📝 Notes": ["note"],
-          "⚙️ System": ["resend-verify", "welcome"],
-        };
-
-        const helpEmbed = new EmbedBuilder()
-          .setTitle("Command Help")
-          .setColor("#2F3136")
-          .setDescription(
-            `Use \`${BOT_PREFIX}command\` or \`/command\` to execute a command.`,
-          )
-          .setTimestamp();
-
-        for (const [category, cmds] of Object.entries(commandGroups)) {
-          const commandList = cmds
-            .map((cmdName) => {
-              const slashCmd = slashCommands.find(
-                (cmd) => cmd.name === cmdName,
-              );
-              return `\`${cmdName}\` - ${slashCmd ? slashCmd.description : "No description available"}`;
-            })
-            .join("\n");
-
-          helpEmbed.addFields({ name: category, value: commandList });
-        }
-
-        helpEmbed.addFields({
-          name: "📌 Note",
-          value: "Some commands may require special permissions to use.",
-        });
-
-        await interaction.reply({ embeds: [helpEmbed] });
         break;
 
       case "warn":
