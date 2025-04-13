@@ -37,21 +37,6 @@ const LOG_TYPES = {
     channelEnv: "SERVER_LOGS_CHANNEL_ID",
     emoji: "🖥️",
   },
-  USER: {
-    color: "#1abc9c",
-    channelEnv: "USER_LOGS_CHANNEL_ID",
-    emoji: "👤",
-  },
-  INVITE: {
-    color: "#8e44ad",
-    channelEnv: "INVITE_LOGS_CHANNEL_ID",
-    emoji: "📨",
-  },
-  THREAD: {
-    color: "#2980b9",
-    channelEnv: "THREAD_LOGS_CHANNEL_ID",
-    emoji: "🧵",
-  },
 };
 
 class LogHandler {

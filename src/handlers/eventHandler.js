@@ -28,19 +28,32 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("guildMemberUpdate", (oldMember, newMember) => {
-    console.log("Member update event triggered");
     if (oldMember.nickname !== newMember.nickname) {
-      console.log("Nickname change detected");
-      logger
-        .createLog("MEMBER", {
-          action: "NICKNAME",
-          member: newMember,
-          oldNick: oldMember.nickname,
-          newNick: newMember.nickname,
-        })
-        .catch((error) => {
-          console.error("Error creating nickname change log:", error);
-        });
+      logger.createLog("MEMBER", {
+        action: "NICKNAME",
+        member: newMember,
+        oldNick: oldMember.nickname,
+        newNick: newMember.nickname,
+      });
+    }
+  });
+
+  client.on("userUpdate", (oldUser, newUser) => {
+    if (oldUser.username !== newUser.username) {
+      logger.createLog("MEMBER", {
+        action: "USERNAME",
+        user: newUser,
+        oldUsername: oldUser.username,
+        newUsername: newUser.username,
+      });
+    }
+    if (oldUser.avatar !== newUser.avatar) {
+      logger.createLog("MEMBER", {
+        action: "AVATAR",
+        user: newUser,
+        oldAvatar: oldUser.displayAvatarURL(),
+        newAvatar: newUser.displayAvatarURL(),
+      });
     }
   });
 
@@ -89,52 +102,76 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("channelCreate", (channel) => {
-    logger.createLog("SERVER", {
-      action: "CHANNEL_CREATE",
+    logger.createLog("CHANNEL", {
+      action: "CREATE",
       channel,
     });
   });
 
   client.on("channelDelete", (channel) => {
-    logger.createLog("SERVER", {
-      action: "CHANNEL_DELETE",
+    logger.createLog("CHANNEL", {
+      action: "DELETE",
       channel,
     });
   });
 
-  client.on("emojiCreate", (emoji) => {
-    logger.createLog("SERVER", {
-      action: "EMOJI_UPDATE",
-      type: "Created",
-      emoji,
+  client.on("channelUpdate", (oldChannel, newChannel) => {
+    logger.createLog("CHANNEL", {
+      action: "UPDATE",
+      oldChannel,
+      newChannel,
     });
   });
 
-  client.on("emojiDelete", (emoji) => {
-    logger.createLog("SERVER", {
-      action: "EMOJI_UPDATE",
-      type: "Deleted",
-      emoji,
+  client.on("threadCreate", async (thread) => {
+    const creator = (await thread.fetchOwner()).user;
+    logger.createLog("CHANNEL", {
+      action: "THREAD_CREATE",
+      thread,
+      creator,
     });
+  });
+
+  client.on("threadDelete", (thread) => {
+    logger.createLog("CHANNEL", {
+      action: "THREAD_DELETE",
+      thread,
+    });
+  });
+
+  client.on("threadUpdate", async (oldThread, newThread) => {
+    if (oldThread.archived !== newThread.archived) {
+      const auditLogs = await newThread.guild.fetchAuditLogs({
+        type: AuditLogEvent.ThreadUpdate,
+        limit: 1,
+      });
+      const executor = auditLogs.entries.first()?.executor;
+
+      logger.createLog("CHANNEL", {
+        action: "THREAD_UPDATE",
+        thread: newThread,
+        archived: newThread.archived,
+        executor,
+      });
+    }
   });
 
   client.on("roleCreate", (role) => {
     logger.createLog("ROLE", {
-      action: "ROLE_CREATE",
+      action: "CREATE",
       role,
     });
   });
 
   client.on("roleDelete", (role) => {
     logger.createLog("ROLE", {
-      action: "ROLE_DELETE",
+      action: "DELETE",
       role,
     });
   });
 
   client.on("roleUpdate", (oldRole, newRole) => {
     const changes = {};
-
     if (oldRole.name !== newRole.name) {
       changes.name = { old: oldRole.name, new: newRole.name };
     }
@@ -150,68 +187,38 @@ export function setupLoggingEvents(client) {
 
     if (Object.keys(changes).length > 0) {
       logger.createLog("ROLE", {
-        action: "ROLE_UPDATE",
+        action: "UPDATE",
         role: newRole,
         changes,
       });
     }
   });
 
-  client.on("threadCreate", async (thread) => {
-    const creator = (await thread.fetchOwner()).user;
-    logger.createLog("THREAD", {
-      action: "CREATE",
-      thread,
-      creator,
+  client.on("emojiCreate", (emoji) => {
+    logger.createLog("SERVER", {
+      action: "EMOJI_CREATE",
+      emoji,
     });
   });
 
-  client.on("threadDelete", (thread) => {
-    logger.createLog("THREAD", {
-      action: "DELETE",
-      thread,
+  client.on("emojiDelete", (emoji) => {
+    logger.createLog("SERVER", {
+      action: "EMOJI_DELETE",
+      emoji,
     });
   });
 
-  client.on("threadUpdate", async (oldThread, newThread) => {
-    if (oldThread.archived !== newThread.archived) {
-      const auditLogs = await newThread.guild.fetchAuditLogs({
-        type: AuditLogEvent.ThreadUpdate,
-        limit: 1,
-      });
-      const executor = auditLogs.entries.first()?.executor;
-
-      logger.createLog("THREAD", {
-        action: "ARCHIVE",
-        thread: newThread,
-        archived: newThread.archived,
-        executor,
-      });
-    }
-  });
-
-  client.on("userUpdate", (oldUser, newUser) => {
-    if (oldUser.username !== newUser.username) {
-      logger.createLog("USER", {
-        action: "USERNAME_CHANGE",
-        user: newUser,
-        oldUsername: oldUser.username,
-        newUsername: newUser.username,
-      });
-    }
-    if (oldUser.avatar !== newUser.avatar) {
-      logger.createLog("USER", {
-        action: "AVATAR_CHANGE",
-        user: newUser,
-        oldAvatar: oldUser.displayAvatarURL(),
-        newAvatar: newUser.displayAvatarURL(),
-      });
-    }
+  client.on("emojiUpdate", (oldEmoji, newEmoji) => {
+    logger.createLog("SERVER", {
+      action: "EMOJI_UPDATE",
+      oldEmoji,
+      newEmoji,
+    });
   });
 
   client.on("inviteCreate", (invite) => {
-    logger.createLog("INVITE", {
-      action: "CREATE",
+    logger.createLog("SERVER", {
+      action: "INVITE_CREATE",
       creator: invite.inviter,
       channel: invite.channel,
       code: invite.code,
@@ -221,8 +228,8 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("inviteDelete", (invite) => {
-    logger.createLog("INVITE", {
-      action: "DELETE",
+    logger.createLog("SERVER", {
+      action: "INVITE_DELETE",
       code: invite.code,
       creator: invite.inviter,
       uses: invite.uses,
