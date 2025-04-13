@@ -102,13 +102,20 @@ export async function handleVerification(reaction, user) {
         });
       } catch (error) {
         console.error("Could not send DM to user:", error);
-      }
+        const sentMessage = await reaction.message.channel.send({
+          content: `<@${user.id}>`,
+          embeds: embeds,
+          components: components,
+        });
 
-      await reaction.message.channel.send({
-        content: `<@${user.id}>`,
-        embeds: embeds,
-        components: components,
-      });
+        setTimeout(() => {
+          sentMessage
+            .delete()
+            .catch((error) =>
+              console.error("Could not delete verification message:", error),
+            );
+        }, 30000);
+      }
     } catch (error) {
       console.error("Could not send embeds:", error);
     }
