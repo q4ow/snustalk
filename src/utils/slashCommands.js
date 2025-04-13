@@ -13,6 +13,18 @@ export const slashCommands = [
         .setName("description")
         .setDescription("Description for the ticket panel"),
     )
+    .addStringOption((option) =>
+      option
+        .setName("description_line2")
+        .setDescription("Second line of the description (optional)")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("description_line3")
+        .setDescription("Third line of the description (optional)")
+        .setRequired(false),
+    )
     .addRoleOption((option) =>
       option
         .setName("moderator_role")

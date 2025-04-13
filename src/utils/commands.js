@@ -289,6 +289,8 @@ export async function handleSlashCommand(interaction) {
       case "setup-tickets":
         const title = interaction.options.getString("title");
         const description = interaction.options.getString("description");
+        const description2 = interaction.options.getString("description_line2");
+        const description3 = interaction.options.getString("description_line3");
         const moderatorRole = interaction.options.getRole("moderator_role");
         const color = interaction.options.getString("color");
         const enableClaiming =
@@ -297,6 +299,8 @@ export async function handleSlashCommand(interaction) {
         const options = {
           ...(title && { title }),
           ...(description && { description }),
+          ...(description2 && { description_line2: description2 }),
+          ...(description3 && { description_line3: description3 }),
           ...(moderatorRole && { moderatorRoleId: moderatorRole.id }),
           ...(color && { color }),
           ...(enableClaiming !== null && { enableClaiming }),

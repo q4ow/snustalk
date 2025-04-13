@@ -93,9 +93,27 @@ export async function setupTicketSystem(channel, options = {}) {
 
   await db.saveTicketSettings(channel.guild.id, settings);
 
+  let description = settings.description || TICKET_DEFAULTS.description;
+
+  description = description.replace(/\\n/g, "\n");
+
+  const descriptionLines = [
+    description,
+    settings.description_line2,
+    settings.description_line3,
+  ].filter(Boolean);
+
   const embed = new EmbedBuilder()
     .setTitle(settings.title)
-    .setDescription(settings.description)
+    .setDescription(
+      [
+        ...descriptionLines,
+        "",
+        "Please select the appropriate category below:",
+        "• General Support - For general questions and issues",
+        "• Management Support - For business inquiries and management issues",
+      ].join("\n"),
+    )
     .setColor(settings.color)
     .setTimestamp();
 
