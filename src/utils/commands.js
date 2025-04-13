@@ -6,7 +6,8 @@ import {
     REST,
     Routes,
     SlashCommandBuilder,
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    EmbedBuilder
 } from 'discord.js';
 
 export const BOT_PREFIX = process.env.BOT_PREFIX || '$';
@@ -69,7 +70,53 @@ const slashCommands = [
                 .setDescription('Number of messages to purge')
                 .setRequired(true)
                 .setMinValue(1)
-                .setMaxValue(100))
+                .setMaxValue(100)),
+    new SlashCommandBuilder()
+        .setName('userinfo')
+        .setDescription('Shows information about a user')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('The user to get info about')
+                .setRequired(false)),
+
+    new SlashCommandBuilder()
+        .setName('serverinfo')
+        .setDescription('Shows information about the server'),
+
+    new SlashCommandBuilder()
+        .setName('lock')
+        .setDescription('Locks a channel')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('The channel to lock')
+                .setRequired(false)),
+
+    new SlashCommandBuilder()
+        .setName('unlock')
+        .setDescription('Unlocks a channel')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('The channel to unlock')
+                .setRequired(false)),
+
+    new SlashCommandBuilder()
+        .setName('nickname')
+        .setDescription('Change a user\'s nickname')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames)
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('The user to change nickname')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('nickname')
+                .setDescription('The new nickname')
+                .setRequired(true)),
+
+    new SlashCommandBuilder()
+        .setName('ping')
+        .setDescription('Shows the bot\'s latency'),
 ];
 
 export const commands = {
@@ -115,6 +162,116 @@ export const commands = {
             await handlePurge(message, [amount]);
         },
         errorMessage: '❌ An error occurred while purging messages.'
+    },
+    'userinfo': {
+        permissions: [],
+        deleteAfter: false,
+        async execute(message) {
+            const mentionedUser = message.mentions.users.first() || message.author;
+            const member = await message.guild.members.fetch(mentionedUser.id);
+
+            const userEmbed = new EmbedBuilder()
+                .setTitle(`User Information - ${mentionedUser.tag}`)
+                .setThumbnail(mentionedUser.displayAvatarURL({ dynamic: true }))
+                .setColor('#2F3136')
+                .addFields(
+                    { name: 'User ID', value: mentionedUser.id, inline: true },
+                    { name: 'Account Created', value: `<t:${Math.floor(mentionedUser.createdTimestamp / 1000)}:R>`, inline: true },
+                    { name: 'Joined Server', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true },
+                    {
+                        name: 'Roles', value: member.roles.cache.size > 1 ?
+                            member.roles.cache.filter(r => r.id !== message.guild.id).map(r => r).join(', ') :
+                            'No roles'
+                    }
+                )
+                .setTimestamp();
+
+            await message.reply({ embeds: [userEmbed] });
+        },
+        errorMessage: '❌ Could not fetch user information.'
+    },
+
+    'serverinfo': {
+        permissions: [],
+        deleteAfter: false,
+        async execute(message) {
+            const guild = message.guild;
+            const owner = await guild.fetchOwner();
+
+            const serverEmbed = new EmbedBuilder()
+                .setTitle(`Server Information - ${guild.name}`)
+                .setThumbnail(guild.iconURL({ dynamic: true }))
+                .setColor('#2F3136')
+                .addFields(
+                    { name: 'Owner', value: owner.user.tag, inline: true },
+                    { name: 'Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+                    { name: 'Members', value: `${guild.memberCount}`, inline: true },
+                    { name: 'Channels', value: `${guild.channels.cache.size}`, inline: true },
+                    { name: 'Roles', value: `${guild.roles.cache.size}`, inline: true },
+                    { name: 'Boost Level', value: `${guild.premiumTier}`, inline: true },
+                    { name: 'Boosts', value: `${guild.premiumSubscriptionCount || 0}`, inline: true }
+                )
+                .setTimestamp();
+
+            await message.reply({ embeds: [serverEmbed] });
+        },
+        errorMessage: '❌ Could not fetch server information.'
+    },
+
+    'lock': {
+        permissions: ['ManageChannels'],
+        deleteAfter: false,
+        async execute(message) {
+            const channel = message.mentions.channels.first() || message.channel;
+            await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                SendMessages: false
+            });
+            await message.reply(`🔒 ${channel} has been locked.`);
+        },
+        errorMessage: '❌ Could not lock the channel.'
+    },
+
+    'unlock': {
+        permissions: ['ManageChannels'],
+        deleteAfter: false,
+        async execute(message) {
+            const channel = message.mentions.channels.first() || message.channel;
+            await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                SendMessages: null
+            });
+            await message.reply(`🔓 ${channel} has been unlocked.`);
+        },
+        errorMessage: '❌ Could not unlock the channel.'
+    },
+
+    'nickname': {
+        permissions: ['ManageNicknames'],
+        deleteAfter: false,
+        async execute(message) {
+            const args = message.content.split(' ').slice(1);
+            const targetUser = message.mentions.members.first();
+            if (!targetUser) return message.reply('❌ Please mention a user to change their nickname.');
+
+            const newNickname = args.slice(1).join(' ');
+            if (!newNickname) return message.reply('❌ Please provide a new nickname.');
+
+            await targetUser.setNickname(newNickname);
+            await message.reply(`✅ Changed ${targetUser.user.tag}'s nickname to \`${newNickname}\``);
+        },
+        errorMessage: '❌ Could not change the nickname.'
+    },
+
+    'ping': {
+        permissions: [],
+        deleteAfter: false,
+        async execute(message) {
+            const sent = await message.reply('Pinging...');
+            const roundtrip = sent.createdTimestamp - message.createdTimestamp;
+            const wsHeartbeat = message.client.ws.ping;
+
+            await sent.edit(`🏓 Pong!\n> Roundtrip: ${roundtrip}ms\n> Websocket: ${wsHeartbeat}ms`);
+        },
+        errorMessage: '❌ Could not check ping.'
     }
 };
 
@@ -206,6 +363,99 @@ export async function handleSlashCommand(interaction) {
                 const amount = interaction.options.getInteger('amount');
                 await handlePurge(interaction, [amount]);
                 await interaction.reply({ content: `✅ Purged ${amount} messages!`, flags: 64 });
+                break;
+
+            case 'userinfo':
+                const user = interaction.options.getUser('user') || interaction.user;
+                const member = await interaction.guild.members.fetch(user.id);
+
+                const userEmbed = new EmbedBuilder()
+                    .setTitle(`User Information - ${user.tag}`)
+                    .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+                    .setColor('#2F3136')
+                    .addFields(
+                        { name: 'User ID', value: user.id, inline: true },
+                        { name: 'Account Created', value: `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`, inline: true },
+                        { name: 'Joined Server', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true },
+                        {
+                            name: 'Roles', value: member.roles.cache.size > 1 ?
+                                member.roles.cache.filter(r => r.id !== interaction.guild.id).map(r => r).join(', ') :
+                                'No roles'
+                        }
+                    )
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [userEmbed] });
+                break;
+
+            case 'serverinfo':
+                const guild = interaction.guild;
+                const owner = await guild.fetchOwner();
+
+                const serverEmbed = new EmbedBuilder()
+                    .setTitle(`Server Information - ${guild.name}`)
+                    .setThumbnail(guild.iconURL({ dynamic: true }))
+                    .setColor('#2F3136')
+                    .addFields(
+                        { name: 'Owner', value: owner.user.tag, inline: true },
+                        { name: 'Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+                        { name: 'Members', value: `${guild.memberCount}`, inline: true },
+                        { name: 'Channels', value: `${guild.channels.cache.size}`, inline: true },
+                        { name: 'Roles', value: `${guild.roles.cache.size}`, inline: true },
+                        { name: 'Boost Level', value: `${guild.premiumTier}`, inline: true },
+                        { name: 'Boosts', value: `${guild.premiumSubscriptionCount || 0}`, inline: true }
+                    )
+                    .setTimestamp();
+
+                await interaction.reply({ embeds: [serverEmbed] });
+                break;
+
+            case 'lock':
+                const lockChannel = interaction.options.getChannel('channel') || interaction.channel;
+                await lockChannel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+                    SendMessages: false
+                });
+                await interaction.reply(`🔒 ${lockChannel} has been locked.`);
+                break;
+
+            case 'unlock':
+                const unlockChannel = interaction.options.getChannel('channel') || interaction.channel;
+                await unlockChannel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+                    SendMessages: null
+                });
+                await interaction.reply(`🔓 ${unlockChannel} has been unlocked.`);
+                break;
+
+            case 'nickname':
+                const targetUser = interaction.options.getUser('user');
+                const newNickname = interaction.options.getString('nickname');
+                const targetMember = await interaction.guild.members.fetch(targetUser.id);
+
+                try {
+                    await targetMember.setNickname(newNickname);
+                    await interaction.reply({
+                        content: `✅ Changed ${targetUser.tag}'s nickname to \`${newNickname}\``,
+                        flags: 64
+                    });
+                } catch (error) {
+                    await interaction.reply({
+                        content: '❌ Could not change nickname. User might have higher permissions.',
+                        flags: 64
+                    });
+                }
+                break;
+
+            case 'ping':
+                const sent = await interaction.reply({
+                    content: 'Pinging...',
+                    fetchReply: true
+                });
+                const roundtrip = sent.createdTimestamp - interaction.createdTimestamp;
+                const wsHeartbeat = interaction.client.ws.ping;
+
+                await interaction.editReply({
+                    content: `🏓 Pong!\n> Roundtrip: ${roundtrip}ms\n> Websocket: ${wsHeartbeat}ms`
+                });
                 break;
         }
     } catch (error) {
