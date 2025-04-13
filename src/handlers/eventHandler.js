@@ -50,19 +50,27 @@ export function setupLoggingEvents(client) {
 
   client.on("userUpdate", (oldUser, newUser) => {
     if (oldUser.username !== newUser.username) {
-      logger.createLog("MEMBER", {
-        action: "USERNAME",
+      logger.createLog("USER", {
+        action: "USERNAME_CHANGE",
         user: newUser,
         oldUsername: oldUser.username,
         newUsername: newUser.username,
       });
     }
     if (oldUser.avatar !== newUser.avatar) {
-      logger.createLog("MEMBER", {
-        action: "AVATAR",
+      logger.createLog("USER", {
+        action: "AVATAR_CHANGE",
         user: newUser,
         oldAvatar: oldUser.displayAvatarURL(),
         newAvatar: newUser.displayAvatarURL(),
+      });
+    }
+    if (oldUser.discriminator !== newUser.discriminator) {
+      logger.createLog("USER", {
+        action: "DISCRIMINATOR_CHANGE",
+        user: newUser,
+        oldDiscriminator: oldUser.discriminator,
+        newDiscriminator: newUser.discriminator,
       });
     }
   });
@@ -173,25 +181,47 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("channelUpdate", (oldChannel, newChannel) => {
-    logger.createLog("CHANNEL", {
-      action: "UPDATE",
-      oldChannel,
-      newChannel,
-    });
+    const changes = [];
+
+    if (oldChannel.name !== newChannel.name) {
+      changes.push(`Name: ${oldChannel.name} → ${newChannel.name}`);
+    }
+    if (oldChannel.topic !== newChannel.topic) {
+      changes.push(
+        `Topic: ${oldChannel.topic || "None"} → ${newChannel.topic || "None"}`,
+      );
+    }
+    if (oldChannel.nsfw !== newChannel.nsfw) {
+      changes.push(`NSFW: ${oldChannel.nsfw} → ${newChannel.nsfw}`);
+    }
+    if (oldChannel.rateLimitPerUser !== newChannel.rateLimitPerUser) {
+      changes.push(
+        `Slowmode: ${formatDuration(oldChannel.rateLimitPerUser * 1000)} → ${formatDuration(newChannel.rateLimitPerUser * 1000)}`,
+      );
+    }
+
+    if (changes.length > 0) {
+      logger.createLog("CHANNEL", {
+        action: "UPDATE",
+        oldChannel,
+        newChannel,
+        changes,
+      });
+    }
   });
 
   client.on("threadCreate", async (thread) => {
-    const creator = (await thread.fetchOwner()).user;
-    logger.createLog("CHANNEL", {
-      action: "THREAD_CREATE",
+    const creator = (await thread.fetchOwner())?.user;
+    logger.createLog("THREAD", {
+      action: "CREATE",
       thread,
       creator,
     });
   });
 
   client.on("threadDelete", (thread) => {
-    logger.createLog("CHANNEL", {
-      action: "THREAD_DELETE",
+    logger.createLog("THREAD", {
+      action: "DELETE",
       thread,
     });
   });
@@ -204,8 +234,8 @@ export function setupLoggingEvents(client) {
       });
       const executor = auditLogs.entries.first()?.executor;
 
-      logger.createLog("CHANNEL", {
-        action: "THREAD_UPDATE",
+      logger.createLog("THREAD", {
+        action: "ARCHIVE",
         thread: newThread,
         archived: newThread.archived,
         executor,
@@ -274,8 +304,8 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("inviteCreate", (invite) => {
-    logger.createLog("SERVER", {
-      action: "INVITE_CREATE",
+    logger.createLog("INVITE", {
+      action: "CREATE",
       creator: invite.inviter,
       channel: invite.channel,
       code: invite.code,
@@ -285,8 +315,8 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("inviteDelete", (invite) => {
-    logger.createLog("SERVER", {
-      action: "INVITE_DELETE",
+    logger.createLog("INVITE", {
+      action: "DELETE",
       code: invite.code,
       creator: invite.inviter,
       uses: invite.uses,

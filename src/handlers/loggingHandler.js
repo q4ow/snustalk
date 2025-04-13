@@ -37,6 +37,21 @@ const LOG_TYPES = {
     channelEnv: "SERVER_LOGS_CHANNEL_ID",
     emoji: "🖥️",
   },
+  USER: {
+    color: "#1abc9c",
+    channelEnv: "USER_LOGS_CHANNEL_ID",
+    emoji: "👤",
+  },
+  INVITE: {
+    color: "#8e44ad",
+    channelEnv: "INVITE_LOGS_CHANNEL_ID",
+    emoji: "📨",
+  },
+  THREAD: {
+    color: "#2c3e50",
+    channelEnv: "THREAD_LOGS_CHANNEL_ID",
+    emoji: "🧵",
+  },
 };
 
 class LogHandler {
@@ -105,6 +120,15 @@ class LogHandler {
         case "SERVER":
           this.formatServerLog(embed, data);
           break;
+        case "USER":
+          this.formatUserLog(embed, data);
+          break;
+        case "INVITE":
+          this.formatInviteLog(embed, data);
+          break;
+        case "THREAD":
+          this.formatThreadLog(embed, data);
+          break;
         default:
           console.warn(`Unknown log type: ${type}`);
           return;
@@ -127,36 +151,32 @@ class LogHandler {
   formatChannelLog(embed, data) {
     switch (data.action) {
       case "CREATE":
-        embed
-          .setTitle("📝 Channel Created")
-          .addFields(
-            { name: "Name", value: data.channel.name, inline: true },
-            { name: "Type", value: data.channel.type, inline: true },
-            {
-              name: "Category",
-              value: data.channel.parent?.name || "None",
-              inline: true,
-            },
-            {
-              name: "Position",
-              value: data.channel.position.toString(),
-              inline: true,
-            },
-          );
+        embed.setTitle("📝 Channel Created").addFields(
+          { name: "Name", value: data.channel.name, inline: true },
+          { name: "Type", value: data.channel.type, inline: true },
+          {
+            name: "Category",
+            value: data.channel.parent?.name || "None",
+            inline: true,
+          },
+          {
+            name: "Position",
+            value: data.channel.position.toString(),
+            inline: true,
+          },
+        );
         break;
 
       case "DELETE":
-        embed
-          .setTitle("🗑️ Channel Deleted")
-          .addFields(
-            { name: "Name", value: data.channel.name, inline: true },
-            { name: "Type", value: data.channel.type, inline: true },
-            {
-              name: "Category",
-              value: data.channel.parent?.name || "None",
-              inline: true,
-            },
-          );
+        embed.setTitle("🗑️ Channel Deleted").addFields(
+          { name: "Name", value: data.channel.name, inline: true },
+          { name: "Type", value: data.channel.type, inline: true },
+          {
+            name: "Category",
+            value: data.channel.parent?.name || "None",
+            inline: true,
+          },
+        );
         break;
 
       case "UPDATE":
@@ -189,46 +209,40 @@ class LogHandler {
           );
         }
 
-        embed
-          .setTitle("📝 Channel Updated")
-          .addFields(
-            {
-              name: "Channel",
-              value: data.newChannel.toString(),
-              inline: true,
-            },
-            {
-              name: "Changes",
-              value: changes.join("\n") || "No notable changes",
-            },
-          );
+        embed.setTitle("📝 Channel Updated").addFields(
+          {
+            name: "Channel",
+            value: data.newChannel.toString(),
+            inline: true,
+          },
+          {
+            name: "Changes",
+            value: changes.join("\n") || "No notable changes",
+          },
+        );
         break;
 
       case "THREAD_CREATE":
-        embed
-          .setTitle("🧵 Thread Created")
-          .addFields(
-            { name: "Name", value: data.thread.name, inline: true },
-            { name: "Creator", value: `${data.creator}`, inline: true },
-            {
-              name: "Parent Channel",
-              value: `${data.thread.parent}`,
-              inline: true,
-            },
-          );
+        embed.setTitle("🧵 Thread Created").addFields(
+          { name: "Name", value: data.thread.name, inline: true },
+          { name: "Creator", value: `${data.creator}`, inline: true },
+          {
+            name: "Parent Channel",
+            value: `${data.thread.parent}`,
+            inline: true,
+          },
+        );
         break;
 
       case "THREAD_DELETE":
-        embed
-          .setTitle("🧵 Thread Deleted")
-          .addFields(
-            { name: "Name", value: data.thread.name, inline: true },
-            {
-              name: "Parent Channel",
-              value: `${data.thread.parent}`,
-              inline: true,
-            },
-          );
+        embed.setTitle("🧵 Thread Deleted").addFields(
+          { name: "Name", value: data.thread.name, inline: true },
+          {
+            name: "Parent Channel",
+            value: `${data.thread.parent}`,
+            inline: true,
+          },
+        );
         break;
 
       case "THREAD_UPDATE":
@@ -497,22 +511,20 @@ class LogHandler {
   formatRoleLog(embed, data) {
     switch (data.action) {
       case "ROLE_CREATE":
-        embed
-          .setTitle("✨ Role Created")
-          .addFields(
-            { name: "Name", value: data.role.name, inline: true },
-            { name: "Color", value: data.role.hexColor, inline: true },
-            {
-              name: "Hoisted",
-              value: data.role.hoist ? "Yes" : "No",
-              inline: true,
-            },
-            {
-              name: "Mentionable",
-              value: data.role.mentionable ? "Yes" : "No",
-              inline: true,
-            },
-          );
+        embed.setTitle("✨ Role Created").addFields(
+          { name: "Name", value: data.role.name, inline: true },
+          { name: "Color", value: data.role.hexColor, inline: true },
+          {
+            name: "Hoisted",
+            value: data.role.hoist ? "Yes" : "No",
+            inline: true,
+          },
+          {
+            name: "Mentionable",
+            value: data.role.mentionable ? "Yes" : "No",
+            inline: true,
+          },
+        );
         break;
 
       case "ROLE_DELETE":
