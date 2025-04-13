@@ -212,8 +212,6 @@ export async function registerSlashCommands(client) {
             Routes.applicationCommands(client.user.id),
             { body: slashCommands.map(command => command.toJSON()) }
         );
-
-        console.log('Successfully registered slash commands!');
     } catch (error) {
         console.error('Error registering slash commands:', error);
     }
