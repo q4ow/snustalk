@@ -756,6 +756,76 @@ export async function handleSlashCommand(interaction) {
 
         await startApplication(interaction);
         break;
+
+      case "embed":
+        const embedChannel = interaction.options.getChannel("channel");
+        const embedTitle = interaction.options.getString("title");
+        const embedDesc = interaction.options
+          .getString("description")
+          ?.replace(/\\n/g, "\n");
+        const embedColor = interaction.options.getString("color");
+        const embedThumb = interaction.options.getString("thumbnail");
+        const embedImage = interaction.options.getString("image");
+        const embedAuthor = interaction.options.getString("author");
+        const embedAuthorIcon = interaction.options.getString("author_icon");
+        const embedFooter = interaction.options.getString("footer");
+        const embedFooterIcon = interaction.options.getString("footer_icon");
+        const embedFields = interaction.options.getString("fields");
+        const embedTimestamp = interaction.options.getString("timestamp");
+
+        const embed = new EmbedBuilder();
+
+        if (embedTitle) embed.setTitle(embedTitle);
+        if (embedDesc) embed.setDescription(embedDesc);
+        if (embedColor)
+          embed.setColor(
+            embedColor.startsWith("#") ? embedColor : `#${embedColor}`,
+          );
+        if (embedThumb) embed.setThumbnail(embedThumb);
+        if (embedImage) embed.setImage(embedImage);
+        if (embedAuthor)
+          embed.setAuthor({
+            name: embedAuthor,
+            iconURL: embedAuthorIcon,
+          });
+        if (embedFooter)
+          embed.setFooter({
+            text: embedFooter,
+            iconURL: embedFooterIcon,
+          });
+        if (embedTimestamp === "yes") embed.setTimestamp();
+
+        if (embedFields) {
+          const fieldArray = embedFields
+            .split(",")
+            .map((field) => field.trim());
+          for (const field of fieldArray) {
+            const [name, value, inline] = field.split("|").map((f) => f.trim());
+            if (name && value) {
+              embed.addFields({
+                name,
+                value,
+                inline: inline === "true",
+              });
+            }
+          }
+        }
+
+        try {
+          await embedChannel.send({ embeds: [embed] });
+          await interaction.reply({
+            content: `✅ Embed sent successfully in ${embedChannel}`,
+            flags: 64,
+          });
+        } catch (error) {
+          console.error("Error sending embed:", error);
+          await interaction.reply({
+            content:
+              "❌ Failed to send embed. Make sure all URLs are valid and I have permission to send messages in that channel.",
+            flags: 64,
+          });
+        }
+        break;
     }
   } catch (error) {
     console.error(

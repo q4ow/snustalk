@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ChannelType,
+} from "discord.js";
 
 export const slashCommands = [
   new SlashCommandBuilder()
@@ -350,5 +354,77 @@ export const slashCommands = [
           { name: "Helper", value: "helper" },
           { name: "Trial Staff", value: "trial" },
         ),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("embed")
+    .setDescription("Create and send a custom embed")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("Channel to send the embed in")
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText),
+    )
+    .addStringOption((option) =>
+      option.setName("title").setDescription("Embed title").setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("description")
+        .setDescription("Embed description (use \\n for new lines)")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("color")
+        .setDescription("Embed color (hex code)")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("thumbnail")
+        .setDescription("Thumbnail URL")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("image")
+        .setDescription("Large image URL")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option.setName("author").setDescription("Author name").setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("author_icon")
+        .setDescription("Author icon URL")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option.setName("footer").setDescription("Footer text").setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("footer_icon")
+        .setDescription("Footer icon URL")
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("fields")
+        .setDescription(
+          "Fields (format: name1|value1|inline,name2|value2|inline)",
+        )
+        .setRequired(false),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("timestamp")
+        .setDescription("Add timestamp? (yes/no)")
+        .setRequired(false)
+        .addChoices({ name: "Yes", value: "yes" }, { name: "No", value: "no" }),
     ),
 ];
