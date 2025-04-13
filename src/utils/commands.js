@@ -2,11 +2,7 @@ import { setupTicketSystem } from "../handlers/ticketHandler.js";
 import { handleVerification } from "../handlers/verificationHandler.js";
 import { handleWelcome } from "../handlers/welcomeHandler.js";
 import { handlePurge } from "../handlers/purgeHandler.js";
-import {
-  REST,
-  Routes,
-  EmbedBuilder,
-} from "discord.js";
+import { REST, Routes, EmbedBuilder } from "discord.js";
 import {
   addNote,
   deleteNote,
@@ -30,7 +26,10 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { createNotesEmbed } from "../embeds/notesEmbed.js";
 import { slashCommands } from "./slashCommands.js";
-import { startApplication, handleApplicationButton } from "../handlers/applicationHandler.js";
+import {
+  startApplication,
+  handleApplicationButton,
+} from "../handlers/applicationHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -56,7 +55,9 @@ export const commands = {
         emoji: { name: "✅" },
       };
       await handleVerification(mockReaction, message.author);
-      await message.reply("✅ Verification messages have been sent to your DMs.");
+      await message.reply(
+        "✅ Verification messages have been sent to your DMs.",
+      );
     },
     errorMessage: "❌ An error occurred while sending verification embeds.",
   },
@@ -278,7 +279,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -419,7 +420,8 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "avatar":
-        const avatarUser = interaction.options.getUser("user") || interaction.user;
+        const avatarUser =
+          interaction.options.getUser("user") || interaction.user;
         const avatarEmbed = createAvatarEmbed(avatarUser);
         await interaction.reply({ embeds: [avatarEmbed] });
         break;
@@ -731,11 +733,14 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "apply":
-        const appChannel = await interaction.guild.channels.fetch(process.env.APPLICATIONS_CHANNEL_ID);
+        const appChannel = await interaction.guild.channels.fetch(
+          process.env.APPLICATIONS_CHANNEL_ID,
+        );
         if (!appChannel) {
           await interaction.reply({
-            content: "❌ Applications channel not found. Please contact an administrator.",
-            flags: 64
+            content:
+              "❌ Applications channel not found. Please contact an administrator.",
+            flags: 64,
           });
           return;
         }
@@ -743,7 +748,7 @@ export async function handleSlashCommand(interaction) {
         if (interaction.channel.id !== process.env.APPLICATIONS_CHANNEL_ID) {
           await interaction.reply({
             content: `❌ Please use this command in ${appChannel}`,
-            flags: 64
+            flags: 64,
           });
           return;
         }

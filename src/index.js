@@ -21,7 +21,10 @@ import {
   handleSlashCommand,
 } from "./utils/commands.js";
 import { startStatsTracker } from "./handlers/statsHandler.js";
-import { handleApplicationResponse, handleApplicationButton } from "./handlers/applicationHandler.js";
+import {
+  handleApplicationResponse,
+  handleApplicationButton,
+} from "./handlers/applicationHandler.js";
 
 dotenv.config();
 
@@ -34,6 +37,7 @@ const requiredEnvVars = [
   "UNVERIFIED_ROLE_ID",
   "TICKET_CATEGORY_ID",
   "MANAGEMENT_ROLE_ID",
+  "MODERATOR_ROLE_ID",
   "STAFF_ROLE_ID",
   "TICKET_LOGS_CHANNEL_ID",
   "EZ_HOST_KEY",
@@ -162,13 +166,17 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       const handlers = {
         create_general_ticket: () => handleTicketCreate(interaction, "GENERAL"),
-        create_management_ticket: () => handleTicketCreate(interaction, "MANAGEMENT"),
+        create_management_ticket: () =>
+          handleTicketCreate(interaction, "MANAGEMENT"),
         claim_ticket: () => handleTicketClaim(interaction),
         unclaim_ticket: () => handleTicketUnclaim(interaction),
         close_ticket: () => handleTicketClose(interaction),
       };
 
-      if (interaction.customId.startsWith('accept_app_') || interaction.customId.startsWith('deny_app_')) {
+      if (
+        interaction.customId.startsWith("accept_app_") ||
+        interaction.customId.startsWith("deny_app_")
+      ) {
         await handleApplicationButton(interaction);
         return;
       }
@@ -178,18 +186,19 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.isModalSubmit()) {
-      if (interaction.customId.includes('_app_modal_')) {
+      if (interaction.customId.includes("_app_modal_")) {
         return;
       }
     }
-
   } catch (error) {
     console.error("❌ Error handling interaction:", error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: "An error occurred while processing your request.",
-        flags: 64,
-      }).catch(() => { });
+      await interaction
+        .reply({
+          content: "An error occurred while processing your request.",
+          flags: 64,
+        })
+        .catch(() => {});
     }
   }
 });

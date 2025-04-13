@@ -1,6 +1,10 @@
 import { EmbedBuilder } from "discord.js";
 import { db } from "../utils/database.js";
-import { formatDuration, MOD_ACTIONS, getActionColor } from "../utils/moderation.js";
+import {
+  formatDuration,
+  MOD_ACTIONS,
+  getActionColor,
+} from "../utils/moderation.js";
 
 export async function warnUser(guild, moderator, target, reason) {
   if (!reason) reason = "No reason provided";
