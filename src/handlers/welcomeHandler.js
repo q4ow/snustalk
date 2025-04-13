@@ -33,13 +33,16 @@ export async function handleWelcome(member) {
     const welcomeEmbed = new EmbedBuilder()
       .setTitle("Welcome to the Server!")
       .setDescription(
-        `Welcome ${member} to **${guild.name}**\nYou are our ${memberCount}${getSuffix(memberCount)} member`,
+        `Welcome ${member} (**${member.user.username}**) to **${guild.name}**\nYou are our ${memberCount}${getSuffix(memberCount)} member`,
       )
       .setColor("#00ff00")
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
       .setTimestamp();
 
-    await welcomeChannel.send({ embeds: [welcomeEmbed] });
+    await welcomeChannel.send({
+      content: `Hey ${member}!`,
+      embeds: [welcomeEmbed]
+    });
   } catch (error) {
     console.error("Error in welcome handler:", error);
   }
