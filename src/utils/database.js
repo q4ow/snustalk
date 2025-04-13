@@ -1,219 +1,234 @@
-import fs from "fs/promises";
-import path from "path";
+import pkg from 'pg';
+const { Pool } = pkg;
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const DB_PATH = path.join(process.cwd(), "data");
-const TICKETS_FILE = path.join(DB_PATH, "tickets.json");
-const TICKET_ACTIONS_FILE = path.join(DB_PATH, "ticket_actions.json");
-const NOTES_FILE = path.join(DB_PATH, "notes.json");
-const MOD_ACTIONS_FILE = path.join(DB_PATH, "mod_actions.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-async function readModActions() {
+const pool = new Pool({
+  user: process.env.DB_USER || 'keiran',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'snustalk',
+  password: process.env.DB_PASSWORD || 'clara',
+  port: parseInt(process.env.DB_PORT || '5432'),
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
+const initDb = async () => {
+  let client;
   try {
-    await ensureDirectory();
-    const data = await fs.readFile(MOD_ACTIONS_FILE, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return {};
+    client = await pool.connect();
+    console.log('✅ Connected to PostgreSQL database');
+
+    const sqlPath = path.join(__dirname, 'sql', 'session-table.sql');
+    if (!fs.existsSync(sqlPath)) {
+      throw new Error(`SQL file not found at ${sqlPath}`);
+    }
+
+    const sqlContent = fs.readFileSync(sqlPath, 'utf8');
+    await client.query(sqlContent);
+    console.log('✅ Database tables initialized');
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    if (error.code === '28000') {
+      console.error(`
+Database connection failed. Please check:
+1. PostgreSQL is running
+2. User '${process.env.DB_USER}' exists
+3. Password is correct
+4. Database '${process.env.DB_NAME}' exists
+5. User has proper permissions
+
+Try running these commands as postgres superuser:
+CREATE DATABASE snustalk;
+CREATE USER keiran WITH PASSWORD 'clara';
+GRANT ALL PRIVILEGES ON DATABASE snustalk TO keiran;
+\\c snustalk
+GRANT ALL ON SCHEMA public TO keiran;
+`);
+    }
+    throw error;
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
-}
+};
 
-async function writeModActions(data) {
-  await ensureDirectory();
-  await fs.writeFile(MOD_ACTIONS_FILE, JSON.stringify(data, null, 2));
-}
-
-async function ensureDirectory() {
-  try {
-    await fs.access(DB_PATH);
-  } catch {
-    await fs.mkdir(DB_PATH, { recursive: true });
-  }
-}
-
-async function readData() {
-  try {
-    await ensureDirectory();
-    const data = await fs.readFile(TICKETS_FILE, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeData(data) {
-  await ensureDirectory();
-  await fs.writeFile(TICKETS_FILE, JSON.stringify(data, null, 2));
-}
-
-async function readTicketActions() {
-  try {
-    await ensureDirectory();
-    const data = await fs.readFile(TICKET_ACTIONS_FILE, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeTicketActions(data) {
-  await ensureDirectory();
-  await fs.writeFile(TICKET_ACTIONS_FILE, JSON.stringify(data, null, 2));
-}
-
-async function readNotes() {
-  try {
-    await ensureDirectory();
-    const data = await fs.readFile(NOTES_FILE, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
-
-async function writeNotes(data) {
-  await ensureDirectory();
-  await fs.writeFile(NOTES_FILE, JSON.stringify(data, null, 2));
-}
+await initDb().catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
+});
 
 export const db = {
   async saveTicketSettings(guildId, settings) {
-    const data = await readData();
-    data[guildId] = {
-      ...data[guildId],
-      ticketSettings: settings,
-    };
-    await writeData(data);
+    await pool.query(
+      'INSERT INTO guild_settings (guild_id, ticket_settings) VALUES ($1, $2) ON CONFLICT (guild_id) DO UPDATE SET ticket_settings = $2',
+      [guildId, settings]
+    );
   },
 
   async getTicketSettings(guildId) {
-    const data = await readData();
-    return data[guildId]?.ticketSettings;
+    const result = await pool.query(
+      'SELECT ticket_settings FROM guild_settings WHERE guild_id = $1',
+      [guildId]
+    );
+    return result.rows[0]?.ticket_settings;
   },
 
   async saveTicketClaim(channelId, moderatorId) {
-    const data = await readData();
-    data.claims = data.claims || {};
-    data.claims[channelId] = moderatorId;
-    await writeData(data);
+    await pool.query(
+      'INSERT INTO ticket_claims (channel_id, moderator_id) VALUES ($1, $2) ON CONFLICT (channel_id) DO UPDATE SET moderator_id = $2',
+      [channelId, moderatorId]
+    );
   },
 
   async removeTicketClaim(channelId) {
-    const data = await readData();
-    if (data.claims) {
-      delete data.claims[channelId];
-      await writeData(data);
-    }
+    await pool.query('DELETE FROM ticket_claims WHERE channel_id = $1', [channelId]);
   },
 
   async getTicketClaim(channelId) {
-    const data = await readData();
-    return data.claims?.[channelId];
+    const result = await pool.query(
+      'SELECT moderator_id FROM ticket_claims WHERE channel_id = $1',
+      [channelId]
+    );
+    return result.rows[0]?.moderator_id;
   },
 
   async addTicketAction(channelId, action) {
-    const data = await readTicketActions();
-    if (!data[channelId]) {
-      data[channelId] = [];
-    }
-
-    data[channelId].push({
-      action,
-      timestamp: new Date().toLocaleString(),
-    });
-
-    await writeTicketActions(data);
+    await pool.query(
+      'INSERT INTO ticket_actions (channel_id, action) VALUES ($1, $2)',
+      [channelId, action]
+    );
   },
 
   async getTicketActions(channelId) {
-    const data = await readTicketActions();
-    return data[channelId] || [];
+    const result = await pool.query(
+      'SELECT action, timestamp FROM ticket_actions WHERE channel_id = $1 ORDER BY timestamp',
+      [channelId]
+    );
+    return result.rows.map(row => ({
+      action: row.action,
+      timestamp: row.timestamp.toLocaleString()
+    }));
   },
 
   async clearTicketActions(channelId) {
-    const data = await readTicketActions();
-    if (data[channelId]) {
-      delete data[channelId];
-      await writeTicketActions(data);
-    }
+    await pool.query('DELETE FROM ticket_actions WHERE channel_id = $1', [channelId]);
   },
 
   async getTicketCounter(guildId) {
-    const data = await readData();
-    return data[guildId]?.ticketCounter || { counter: 0 };
+    const result = await pool.query(
+      'SELECT ticket_counter FROM guild_settings WHERE guild_id = $1',
+      [guildId]
+    );
+    return result.rows[0]?.ticket_counter || { counter: 0 };
   },
 
   async updateTicketCounter(guildId, counter) {
-    const data = await readData();
-    data[guildId] = {
-      ...data[guildId],
-      ticketCounter: { counter },
-    };
-    await writeData(data);
+    await pool.query(
+      'INSERT INTO guild_settings (guild_id, ticket_counter) VALUES ($1, $2) ON CONFLICT (guild_id) DO UPDATE SET ticket_counter = $2',
+      [guildId, { counter }]
+    );
   },
 
   async getUserNotes(userId) {
-    const data = await readNotes();
-    return data[userId] || [];
+    const result = await pool.query(
+      'SELECT notes FROM user_notes WHERE user_id = $1',
+      [userId]
+    );
+    return result.rows[0]?.notes || [];
   },
 
   async addUserNote(userId, note) {
-    const data = await readNotes();
-    if (!data[userId]) data[userId] = [];
-    data[userId].push(note);
-    await writeNotes(data);
+    await pool.query(
+      'INSERT INTO user_notes (user_id, notes) VALUES ($1, ARRAY[$2]) ON CONFLICT (user_id) DO UPDATE SET notes = array_append(user_notes.notes, $2)',
+      [userId, note]
+    );
     return true;
   },
 
   async deleteUserNote(userId, noteId) {
-    const data = await readNotes();
-    if (!data[userId]) return false;
-
-    const index = data[userId].findIndex((note) => note.id === noteId);
-    if (index === -1) return false;
-
-    data[userId].splice(index, 1);
-    await writeNotes(data);
-    return true;
+    const result = await pool.query(
+      'UPDATE user_notes SET notes = array_remove(notes, $2) WHERE user_id = $1 RETURNING *',
+      [userId, noteId]
+    );
+    return result.rowCount > 0;
   },
 
   async editUserNote(userId, noteId, newContent) {
-    const data = await readNotes();
-    if (!data[userId]) return false;
-
-    const note = data[userId].find((note) => note.id === noteId);
-    if (!note) return false;
-
-    note.content = newContent;
-    note.edited = new Date().toISOString();
-    await writeNotes(data);
-    return true;
+    const result = await pool.query(
+      `UPDATE user_notes 
+       SET notes = array_replace(notes, 
+         (SELECT unnest(notes) WHERE (notes->>'id')::text = $2), 
+         jsonb_build_object('id', $2, 'content', $3, 'edited', $4)
+       )
+       WHERE user_id = $1`,
+      [userId, noteId, newContent, new Date().toISOString()]
+    );
+    return result.rowCount > 0;
   },
 
   async addModAction(guildId, action) {
-    const data = await readModActions();
-    if (!data[guildId]) data[guildId] = [];
-    data[guildId].push(action);
-    await writeModActions(data);
+    await pool.query(
+      'INSERT INTO mod_actions (guild_id, action) VALUES ($1, $2)',
+      [guildId, action]
+    );
     return true;
   },
 
   async getModActions(guildId) {
-    const data = await readModActions();
-    return data[guildId] || [];
+    const result = await pool.query(
+      'SELECT action FROM mod_actions WHERE guild_id = $1',
+      [guildId]
+    );
+    return result.rows.map(row => row.action);
   },
 
   async removeModAction(guildId, actionId, type) {
-    const data = await readModActions();
-    if (!data[guildId]) return false;
-
-    const index = data[guildId].findIndex(
-      (action) => action.id === actionId && action.type === type,
+    const result = await pool.query(
+      'DELETE FROM mod_actions WHERE guild_id = $1 AND action->>.id = $2 AND action->>.type = $3',
+      [guildId, actionId, type]
     );
-
-    if (index === -1) return false;
-
-    data[guildId].splice(index, 1);
-    await writeModActions(data);
-    return true;
+    return result.rowCount > 0;
   },
+
+  // New OAuth-related functions
+  async createUser(userData) {
+    const result = await pool.query(
+      `INSERT INTO users (discord_id, username, email, avatar, access_token, refresh_token)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (discord_id) 
+       DO UPDATE SET
+         username = $2,
+         email = $3,
+         avatar = $4,
+         access_token = $5,
+         refresh_token = $6
+       RETURNING *`,
+      [
+        userData.id,
+        userData.username,
+        userData.email,
+        userData.avatar,
+        userData.accessToken,
+        userData.refreshToken
+      ]
+    );
+    return result.rows[0];
+  },
+
+  async getUserById(discordId) {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE discord_id = $1',
+      [discordId]
+    );
+    return result.rows[0];
+  }
 };

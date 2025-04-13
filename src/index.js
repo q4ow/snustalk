@@ -26,6 +26,8 @@ import {
   handleApplicationButton,
 } from "./handlers/applicationHandler.js";
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
+import express from 'express';
+import { setupAuth } from './auth/auth.js';
 
 dotenv.config();
 
@@ -46,7 +48,6 @@ const requiredEnvVars = [
   // "STATS_BOTS_CHANNEL_ID",
   // "STATS_TOTAL_TICKETS_CHANNEL_ID",
   // "STATS_OPEN_TICKETS_CHANNEL_ID",
-  "APPLICATIONS_CATEGORY_ID",
   "APPLICATIONS_CHANNEL_ID",
   "APPLICATIONS_LOGS_CHANNEL_ID",
   "MEMBER_LOGS_CHANNEL_ID",
@@ -93,6 +94,12 @@ client.once("ready", async () => {
   console.log(`👥 Connected to ${client.guilds.cache.size} guild(s)`);
   console.log(`🔗 Bot ID: ${client.user.id}`);
   console.log();
+  const app = express();
+  setupAuth(app);
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`✅ Auth server running on localhost:${PORT}`);
+  });
 
   console.log("Initializing...");
   await registerSlashCommands(client);
@@ -137,10 +144,10 @@ client.once("ready", async () => {
       console.error(
         `Unverified role (${process.env.UNVERIFIED_ROLE_ID}) not found in guild ${guild.name}`,
       );
-      console.log(
-        "Available roles:",
-        guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
-      );
+      // console.log(
+      //   "Available roles:",
+      //   guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
+      // );
     } else {
       console.log(
         `✅ Found unverified role: ${unverifiedRole.name} (${unverifiedRole.id})`,
@@ -161,10 +168,10 @@ client.once("ready", async () => {
       console.error(
         `Verified role (${process.env.VERIFIED_ROLE_ID}) not found in guild ${guild.name}`,
       );
-      console.log(
-        "Available roles:",
-        guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
-      );
+      // console.log(
+      //   "Available roles:",
+      //   guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
+      // );
     } else {
       console.log(
         `✅ Found verified role: ${verifiedRole.name} (${verifiedRole.id})`,
@@ -264,7 +271,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }
 });

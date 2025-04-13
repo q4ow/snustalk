@@ -9,8 +9,15 @@
         "format": "prettier --write src"
     },
     "dependencies": {
+        "connect-pg-simple": "^10.0.0",
         "discord.js": "latest",
-        "dotenv": "latest"
+        "dotenv": "latest",
+        "express": "^5.1.0",
+        "express-session": "^1.18.1",
+        "passport": "^0.7.0",
+        "passport-discord": "^0.1.4",
+        "pg": "^8.14.1",
+        "pg-pool": "^3.8.0"
     },
     "devDependencies": {
         "nodemon": "latest",
