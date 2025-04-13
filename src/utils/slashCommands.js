@@ -323,4 +323,20 @@ export const slashCommands = [
     new SlashCommandBuilder()
         .setName("help")
         .setDescription("Shows all available commands"),
+
+    new SlashCommandBuilder()
+        .setName("apply")
+        .setDescription("Start a staff application process")
+        .setDMPermission(false) // TODO figure this shit out
+        .addStringOption((option) =>
+            option
+                .setName("position")
+                .setDescription("The staff position you're applying for")
+                .setRequired(true)
+                .addChoices(
+                    { name: "Moderator", value: "moderator" },
+                    { name: "Helper", value: "helper" },
+                    { name: "Trial Staff", value: "trial" }
+                )
+        ),
 ];

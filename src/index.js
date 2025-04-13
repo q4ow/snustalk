@@ -21,6 +21,7 @@ import {
   handleSlashCommand,
 } from "./utils/commands.js";
 import { startStatsTracker } from "./handlers/statsHandler.js";
+import { handleApplicationResponse, handleApplicationButton } from "./handlers/applicationHandler.js";
 
 dotenv.config();
 
@@ -40,6 +41,9 @@ const requiredEnvVars = [
   "STATS_BOTS_CHANNEL_ID",
   "STATS_TOTAL_TICKETS_CHANNEL_ID",
   "STATS_OPEN_TICKETS_CHANNEL_ID",
+  "APPLICATIONS_CATEGORY_ID",
+  "APPLICATIONS_CHANNEL_ID",
+  "APPLICATIONS_LOGS_CHANNEL_ID",
 ];
 
 for (const envVar of requiredEnvVars) {
@@ -55,6 +59,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
   ],
   partials: [
     Partials.Message,
@@ -157,31 +162,46 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       const handlers = {
         create_general_ticket: () => handleTicketCreate(interaction, "GENERAL"),
-        create_management_ticket: () =>
-          handleTicketCreate(interaction, "MANAGEMENT"),
+        create_management_ticket: () => handleTicketCreate(interaction, "MANAGEMENT"),
         claim_ticket: () => handleTicketClaim(interaction),
         unclaim_ticket: () => handleTicketUnclaim(interaction),
         close_ticket: () => handleTicketClose(interaction),
       };
 
+      if (interaction.customId.startsWith('accept_app_') || interaction.customId.startsWith('deny_app_')) {
+        await handleApplicationButton(interaction);
+        return;
+      }
+
       const handler = handlers[interaction.customId];
       if (handler) await handler();
     }
+
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.includes('_app_modal_')) {
+        return;
+      }
+    }
+
   } catch (error) {
     console.error("❌ Error handling interaction:", error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction
-        .reply({
-          content: "An error occurred while processing your request.",
-          flags: 64,
-        })
-        .catch(() => {});
+      await interaction.reply({
+        content: "An error occurred while processing your request.",
+        flags: 64,
+      }).catch(() => { });
     }
   }
 });
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  if (message.channel.type === 1) {
+    await handleApplicationResponse(message);
+    return;
+  }
+
   try {
     await handleCommand(message, commands);
   } catch (error) {

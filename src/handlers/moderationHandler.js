@@ -94,6 +94,20 @@ export async function timeoutUser(guild, moderator, target, duration, reason) {
 
   await target.timeout(duration, reason);
   await db.addModAction(guild.id, timeout);
+
+  const mutedRoleID = process.env.MUTED_ROLE_ID;
+  if (mutedRoleID) {
+    const mutedRole = guild.roles.cache.get(mutedRoleID);
+    if (mutedRole) {
+      await target.roles.add(mutedRole);
+
+      setTimeout(async () => {
+        await target.roles.remove(mutedRole);
+      }, duration);
+    } else {
+      console.error("Muted role not found.");
+    }
+  }
   return timeout;
 }
 

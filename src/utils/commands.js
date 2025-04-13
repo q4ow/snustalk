@@ -30,6 +30,7 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { createNotesEmbed } from "../embeds/notesEmbed.js";
 import { slashCommands } from "./slashCommands.js";
+import { startApplication, handleApplicationButton } from "../handlers/applicationHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -55,7 +56,7 @@ export const commands = {
         emoji: { name: "✅" },
       };
       await handleVerification(mockReaction, message.author);
-      await message.reply("✅ Verification embeds have been sent to your DMs.");
+      await message.reply("✅ Verification messages have been sent to your DMs.");
     },
     errorMessage: "❌ An error occurred while sending verification embeds.",
   },
@@ -405,10 +406,10 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "ping":
-        const sent = await interaction.reply({
+        await interaction.reply({
           content: "Pinging...",
-          fetchReply: true, // ill just do thiss later
         });
+        const sent = await interaction.fetchReply();
         const roundtrip = sent.createdTimestamp - interaction.createdTimestamp;
         const wsHeartbeat = interaction.client.ws.ping;
 
@@ -727,6 +728,27 @@ export async function handleSlashCommand(interaction) {
       case "help":
         const helpEmbed = createHelpEmbed(slashCommands, BOT_PREFIX);
         await interaction.reply({ embeds: [helpEmbed] });
+        break;
+
+      case "apply":
+        const appChannel = await interaction.guild.channels.fetch(process.env.APPLICATIONS_CHANNEL_ID);
+        if (!appChannel) {
+          await interaction.reply({
+            content: "❌ Applications channel not found. Please contact an administrator.",
+            flags: 64
+          });
+          return;
+        }
+
+        if (interaction.channel.id !== process.env.APPLICATIONS_CHANNEL_ID) {
+          await interaction.reply({
+            content: `❌ Please use this command in ${appChannel}`,
+            flags: 64
+          });
+          return;
+        }
+
+        await startApplication(interaction);
         break;
     }
   } catch (error) {
