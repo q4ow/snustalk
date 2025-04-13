@@ -141,19 +141,33 @@ export async function handleApplicationButton(interaction) {
         const reason = modalResponse.fields.getTextInputValue('reason');
         const guild = interaction.guild;
         const user = await interaction.client.users.fetch(userId);
-        const member = await guild.members.fetch(userId).catch(() => null);
+        const member = await guild.members.fetch(userId);
 
-        if (action === 'accept' && member) {
-            const roleIds = process.env.STAFF_APPLICANT_ROLE_IDS.split(',');
-            for (const roleId of roleIds) {
-                const role = guild.roles.cache.get(roleId.trim());
-                if (role) {
-                    try {
-                        await member.roles.add(role);
-                    } catch (error) {
-                        console.error(`Failed to add role ${roleId} to member ${member.id}:`, error);
+        if (!member) {
+            await modalResponse.reply({ content: "Could not find the user in the server.", ephemeral: true });
+            return;
+        }
+
+        if (action === 'accept') {
+            try {
+                const roleIds = process.env.STAFF_APPLICANT_ROLE_IDS.split(',');
+                for (const roleId of roleIds) {
+                    const trimmedRoleId = roleId.trim();
+                    const role = await guild.roles.fetch(trimmedRoleId);
+                    if (!role) {
+                        console.error(`Role not found: ${trimmedRoleId}`);
+                        continue;
                     }
+                    await member.roles.add(role);
+                    console.log(`Added role ${role.name} to ${member.user.tag}`);
                 }
+            } catch (error) {
+                console.error(`Failed to add roles to member ${member.id}:`, error);
+                await modalResponse.reply({
+                    content: "Failed to assign roles, but the application was accepted.",
+                    ephemeral: true
+                });
+                return;
             }
         }
 
