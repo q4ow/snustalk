@@ -172,7 +172,7 @@ export async function handleTicketCreate(interaction, type) {
 
 export async function handleTicketClose(interaction) {
     try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         const channel = interaction.channel;
         const logChannel = await interaction.guild.channels.fetch(process.env.TICKET_LOGS_CHANNEL_ID);
@@ -234,7 +234,7 @@ export async function handleTicketClose(interaction) {
         } else {
             await interaction.reply({
                 content: errorMessage,
-                ephemeral: true
+                flags: 64
             });
         }
     }

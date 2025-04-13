@@ -2,8 +2,42 @@ import { setupTicketSystem } from '../handlers/ticketHandler.js';
 import { handleVerification } from '../handlers/verificationHandler.js';
 import { handleWelcome } from '../handlers/welcomeHandler.js';
 import { handlePurge } from '../handlers/purgeHandler.js';
+import {
+    REST,
+    Routes,
+    SlashCommandBuilder,
+    PermissionFlagsBits
+} from 'discord.js';
 
 export const BOT_PREFIX = process.env.BOT_PREFIX || '$';
+
+const slashCommands = [
+    new SlashCommandBuilder()
+        .setName('setup-tickets')
+        .setDescription('Sets up the ticket system')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+    new SlashCommandBuilder()
+        .setName('resend-verify')
+        .setDescription('Resends verification embeds')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+
+    new SlashCommandBuilder()
+        .setName('welcome')
+        .setDescription('Sends a welcome message')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+
+    new SlashCommandBuilder()
+        .setName('purge')
+        .setDescription('Purges messages from the channel')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .addIntegerOption(option =>
+            option.setName('amount')
+                .setDescription('Number of messages to purge')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(100))
+];
 
 export const commands = {
     'setup-tickets': {
@@ -21,7 +55,8 @@ export const commands = {
             const mockReaction = {
                 message: {
                     channelId: process.env.VERIFICATION_CHANNEL_ID,
-                    guild: message.guild
+                    guild: message.guild,
+                    channel: message.channel
                 },
                 emoji: { name: '✅' }
             };
@@ -68,7 +103,7 @@ export async function handleCommand(message, commands) {
             if (!hasPermission) {
                 await message.reply({
                     content: '❌ You do not have permission to use this command.',
-                    ephemeral: true
+                    flags: 64
                 });
                 return true;
             }
@@ -89,4 +124,61 @@ export async function handleCommand(message, commands) {
     }
 
     return true;
+}
+
+export async function handleSlashCommand(interaction) {
+    try {
+        switch (interaction.commandName) {
+            case 'setup-tickets':
+                await setupTicketSystem(interaction.channel);
+                await interaction.reply({ content: '✅ Ticket system has been set up!', flags: 64 });
+                break;
+
+            case 'resend-verify':
+                const mockReaction = {
+                    message: {
+                        channelId: process.env.VERIFICATION_CHANNEL_ID,
+                        guild: interaction.guild,
+                        channel: interaction.channel
+                    },
+                    emoji: { name: '✅' }
+                };
+                await handleVerification(mockReaction, interaction.user);
+                await interaction.reply({ content: '✅ Verification embeds have been sent!', flags: 64 });
+                break;
+
+            case 'welcome':
+                await handleWelcome(interaction.member);
+                await interaction.reply({ content: '✅ Welcome message sent!', flags: 64 });
+                break;
+
+            case 'purge':
+                const amount = interaction.options.getInteger('amount');
+                await handlePurge(interaction, [amount]);
+                await interaction.reply({ content: `✅ Purged ${amount} messages!`, flags: 64 });
+                break;
+        }
+    } catch (error) {
+        console.error(`Error executing slash command ${interaction.commandName}:`, error);
+        await interaction.reply({
+            content: '❌ An error occurred while executing the command.',
+            flags: 64
+        });
+    }
+}
+
+export async function registerSlashCommands(client) {
+    try {
+        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+        console.log('Started refreshing slash commands...');
+
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            { body: slashCommands.map(command => command.toJSON()) }
+        );
+
+        console.log('Successfully registered slash commands!');
+    } catch (error) {
+        console.error('Error registering slash commands:', error);
+    }
 }

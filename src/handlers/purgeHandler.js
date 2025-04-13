@@ -9,11 +9,8 @@ export async function handlePurge(message, args) {
             return message.reply('❌ Please provide a number between 1 and 100.').then(msg => setTimeout(() => msg.delete().catch(() => { }), 5000));
         }
 
-        const fetchedMessages = await message.channel.messages.fetch({ limit: deleteCount + 1 });
+        const fetchedMessages = await message.channel.messages.fetch({ limit: deleteCount });
         await message.channel.bulkDelete(fetchedMessages, true);
-
-        const confirmationMessage = await message.channel.send(`✅ Successfully deleted ${fetchedMessages.size - 1} messages.`);
-        setTimeout(() => confirmationMessage.delete().catch(() => { }), 5000);
     } catch (error) {
         if (error.code === 50034) {
             return message.reply('❌ Cannot delete messages older than 14 days.').then(msg => setTimeout(() => msg.delete().catch(() => { }), 5000));

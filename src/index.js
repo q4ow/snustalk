@@ -3,13 +3,13 @@ import {
     GatewayIntentBits,
     Partials,
     EmbedBuilder,
-    ActivityType
+    ActivityType,
 } from 'discord.js';
 import dotenv from 'dotenv';
 import { handleVerification } from './handlers/verificationHandler.js';
 import { handleWelcome } from './handlers/welcomeHandler.js';
 import { handleTicketCreate, handleTicketClose } from './handlers/ticketHandler.js';
-import { handleCommand, commands } from './utils/commands.js';
+import { handleCommand, commands, registerSlashCommands, handleSlashCommand } from './utils/commands.js';
 
 dotenv.config();
 
@@ -57,6 +57,8 @@ client.once('ready', async () => {
     console.log()
 
     console.log('Initializing systems...');
+    await registerSlashCommands(client);
+    console.log('✅ Slash commands registered');
     console.log('✅ Ticketing system initialized');
 
     client.user.setPresence({
@@ -115,23 +117,30 @@ client.on('guildMemberAdd', handleWelcome);
 client.on('messageReactionAdd', handleVerification);
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
     try {
-        const handlers = {
-            'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
-            'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
-            'close_ticket': () => handleTicketClose(interaction)
-        };
+        if (interaction.isCommand()) {
+            await handleSlashCommand(interaction);
+            return;
+        }
 
-        const handler = handlers[interaction.customId];
-        if (handler) await handler();
+        if (interaction.isButton()) {
+            const handlers = {
+                'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
+                'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
+                'close_ticket': () => handleTicketClose(interaction)
+            };
+
+            const handler = handlers[interaction.customId];
+            if (handler) await handler();
+        }
     } catch (error) {
-        console.error('❌ Error handling button interaction:', error);
-        await interaction.reply({
-            content: 'An error occurred while processing your request.',
-            ephemeral: true
-        }).catch(() => { });
+        console.error('❌ Error handling interaction:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: 'An error occurred while processing your request.',
+                flags: 64
+            }).catch(() => { });
+        }
     }
 });
 
