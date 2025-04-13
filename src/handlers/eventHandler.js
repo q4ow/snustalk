@@ -27,13 +27,22 @@ export function setupLoggingEvents(client) {
     });
   });
 
-  client.on("guildMemberUpdate", (oldMember, newMember) => {
+  client.on("guildMemberUpdate", async (oldMember, newMember) => {
     if (oldMember.nickname !== newMember.nickname) {
+      const auditLogs = await newMember.guild.fetchAuditLogs({
+        type: AuditLogEvent.MemberUpdate,
+        limit: 1,
+      });
+
+      const auditEntry = auditLogs.entries.first();
+      const moderator = auditEntry?.executor || "Unknown";
+
       logger.createLog("MEMBER", {
         action: "NICKNAME",
         member: newMember,
         oldNick: oldMember.nickname,
         newNick: newMember.nickname,
+        moderator: moderator,
       });
     }
   });

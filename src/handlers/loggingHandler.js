@@ -72,50 +72,50 @@ class LogHandler {
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(LOG_TYPES[type].color)
-      .setTimestamp()
-      .setFooter({ text: `${LOG_TYPES[type].emoji} ${type} Log` });
-
     try {
+      if (!data || !data.action) {
+        console.error(`Invalid log data for ${type}:`, data);
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(LOG_TYPES[type].color)
+        .setTimestamp()
+        .setFooter({ text: `${LOG_TYPES[type].emoji} ${type} Log` });
+
       switch (type) {
         case "MEMBER":
-          await this.formatMemberLog(embed, data);
+          this.formatMemberLog(embed, data);
           break;
         case "MESSAGE":
-          await this.formatMessageLog(embed, data);
+          this.formatMessageLog(embed, data);
           break;
         case "MOD":
-          await this.formatModerationLog(embed, data); // Changed from formatModLog
+          this.formatModerationLog(embed, data);
           break;
         case "VOICE":
-          await this.formatVoiceLog(embed, data);
+          this.formatVoiceLog(embed, data);
           break;
         case "CHANNEL":
-          await this.formatChannelLog(embed, data);
+          this.formatChannelLog(embed, data);
           break;
         case "ROLE":
-          await this.formatRoleLog(embed, data);
+          this.formatRoleLog(embed, data);
           break;
         case "SERVER":
-          await this.formatServerLog(embed, data);
-          break;
-        case "USER":
-          await this.formatUserLog(embed, data);
-          break;
-        case "INVITE":
-          await this.formatInviteLog(embed, data);
-          break;
-        case "THREAD":
-          await this.formatThreadLog(embed, data);
+          this.formatServerLog(embed, data);
           break;
         default:
           console.warn(`Unknown log type: ${type}`);
           return;
       }
 
-      console.log(`Attempting to send ${type} log to channel ${channel.name}`);
+      if (!embed.data.title || !embed.data.fields?.length) {
+        console.error(`Invalid embed generated for ${type} log:`, embed);
+        return;
+      }
 
+      console.log(`Attempting to send ${type} log to channel ${channel.name}`);
       await channel.send({ embeds: [embed] });
       console.log(`Successfully sent ${type} log`);
     } catch (error) {
@@ -139,6 +139,7 @@ class LogHandler {
             { name: "Member ID", value: data.member.id, inline: true },
           );
         break;
+
       case "LEAVE":
         embed
           .setTitle("🚶 Member Left")
@@ -152,22 +153,34 @@ class LogHandler {
             { name: "Member ID", value: data.member.id, inline: true },
           );
         break;
+
       case "NICKNAME":
-        embed.setTitle("📝 Nickname Changed").addFields(
-          { name: "Member", value: `${data.member}`, inline: true },
-          {
-            name: "Old Nickname",
-            value: data.oldNick || "None",
-            inline: true,
-          },
-          {
-            name: "New Nickname",
-            value: data.newNick || "None",
-            inline: true,
-          },
-        );
+        embed
+          .setTitle("📝 Nickname Changed")
+          .addFields(
+            { name: "Member", value: `${data.member}`, inline: true },
+            { name: "Changed By", value: `${data.moderator}`, inline: true },
+            {
+              name: "Old Nickname",
+              value: data.oldNick || "None",
+              inline: true,
+            },
+            {
+              name: "New Nickname",
+              value: data.newNick || "None",
+              inline: true,
+            },
+          );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Member Action")
+          .setDescription(`Unknown action type: ${data.action}`);
         break;
     }
+
+    return embed;
   }
 
   formatMessageLog(embed, data) {
