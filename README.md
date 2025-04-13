@@ -32,6 +32,13 @@ A Discord bot built with discord.js, originally developed for the SnusTalk Centr
   - Message purging command
   - Channel lock/unlock
   - Nickname management
+  - Warning system with removal
+  - Kick and ban commands
+  - Timeout management
+  - Moderation history tracking
+  - Role hierarchy checks
+  - Action logging
+  - Permission-based access
 
 - **Utility Commands**
   - User information
