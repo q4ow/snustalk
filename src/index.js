@@ -20,7 +20,7 @@ import {
   registerSlashCommands,
   handleSlashCommand,
 } from "./utils/commands.js";
-import { startStatsTracker } from "./handlers/statsHandler.js";
+// import { startStatsTracker } from "./handlers/statsHandler.js";
 import {
   handleApplicationResponse,
   handleApplicationButton,
@@ -41,10 +41,10 @@ const requiredEnvVars = [
   "STAFF_ROLE_ID",
   "TICKET_LOGS_CHANNEL_ID",
   "EZ_HOST_KEY",
-  "STATS_MEMBERS_CHANNEL_ID",
-  "STATS_BOTS_CHANNEL_ID",
-  "STATS_TOTAL_TICKETS_CHANNEL_ID",
-  "STATS_OPEN_TICKETS_CHANNEL_ID",
+  // "STATS_MEMBERS_CHANNEL_ID",
+  // "STATS_BOTS_CHANNEL_ID",
+  // "STATS_TOTAL_TICKETS_CHANNEL_ID",
+  // "STATS_OPEN_TICKETS_CHANNEL_ID",
   "APPLICATIONS_CATEGORY_ID",
   "APPLICATIONS_CHANNEL_ID",
   "APPLICATIONS_LOGS_CHANNEL_ID",
@@ -88,7 +88,7 @@ client.once("ready", async () => {
   console.log("✅ Notes handler initialized");
 
   const guild = client.guilds.cache.first();
-  await startStatsTracker(guild);
+  // await startStatsTracker(guild);
   console.log("✅ Stats tracker initialized");
 
   client.user.setPresence({
@@ -102,22 +102,72 @@ client.once("ready", async () => {
   });
 
   try {
+    const guild = client.guilds.cache.first();
+    if (!guild) {
+      throw new Error("No guild available");
+    }
+
+    const unverifiedRole = await guild.roles
+      .fetch(process.env.UNVERIFIED_ROLE_ID)
+      .catch((error) => {
+        console.error(
+          `Failed to fetch unverified role (${process.env.UNVERIFIED_ROLE_ID}):`,
+          error,
+        );
+        return null;
+      });
+
+    if (!unverifiedRole) {
+      console.error(
+        `Unverified role (${process.env.UNVERIFIED_ROLE_ID}) not found in guild ${guild.name}`,
+      );
+      console.log(
+        "Available roles:",
+        guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
+      );
+    } else {
+      console.log(
+        `✅ Found unverified role: ${unverifiedRole.name} (${unverifiedRole.id})`,
+      );
+    }
+
+    const verifiedRole = await guild.roles
+      .fetch(process.env.VERIFIED_ROLE_ID)
+      .catch((error) => {
+        console.error(
+          `Failed to fetch verified role (${process.env.VERIFIED_ROLE_ID}):`,
+          error,
+        );
+        return null;
+      });
+
+    if (!verifiedRole) {
+      console.error(
+        `Verified role (${process.env.VERIFIED_ROLE_ID}) not found in guild ${guild.name}`,
+      );
+      console.log(
+        "Available roles:",
+        guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
+      );
+    } else {
+      console.log(
+        `✅ Found verified role: ${verifiedRole.name} (${verifiedRole.id})`,
+      );
+    }
+
     await setupVerificationMessage();
     console.log("✅ Verification handler initialized");
 
     const welcomeChannel = await client.channels.fetch(
       process.env.WELCOME_CHANNEL_ID,
     );
-    if (!welcomeChannel) throw new Error("Welcome channel not found");
-
-    const unverifiedRole = await client.guilds.cache
-      .first()
-      .roles.fetch(process.env.UNVERIFIED_ROLE_ID);
-    if (!unverifiedRole) throw new Error("Unverified role not found");
-
+    if (!welcomeChannel) {
+      throw new Error("Welcome channel not found");
+    }
     console.log("✅ Welcome handler initialized");
   } catch (error) {
     console.error("❌ Failed to initialize systems:", error);
+    console.error("Full error details:", error);
   }
 });
 

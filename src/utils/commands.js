@@ -26,10 +26,7 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { createNotesEmbed } from "../embeds/notesEmbed.js";
 import { slashCommands } from "./slashCommands.js";
-import {
-  startApplication,
-  handleApplicationButton,
-} from "../handlers/applicationHandler.js";
+import { startApplication } from "../handlers/applicationHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 

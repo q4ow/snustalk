@@ -8,7 +8,6 @@ import {
 export async function handleVerification(reaction, user) {
   try {
     if (user.bot) return;
-
     if (reaction.message.channelId !== process.env.VERIFICATION_CHANNEL_ID)
       return;
     if (reaction.emoji.name !== "✅") return;
@@ -16,13 +15,27 @@ export async function handleVerification(reaction, user) {
     const guild = reaction.message.guild;
     const member = await guild.members.fetch(user.id);
 
-    const verifiedRole = await guild.roles.fetch(process.env.VERIFIED_ROLE_ID);
-    const unverifiedRole = await guild.roles.fetch(
-      process.env.UNVERIFIED_ROLE_ID,
-    );
+    const verifiedRole = await guild.roles
+      .fetch(process.env.VERIFIED_ROLE_ID)
+      .catch((error) => {
+        console.error(`Failed to fetch verified role:`, error);
+        return null;
+      });
+
+    const unverifiedRole = await guild.roles
+      .fetch(process.env.UNVERIFIED_ROLE_ID)
+      .catch((error) => {
+        console.error(`Failed to fetch unverified role:`, error);
+        return null;
+      });
 
     if (!verifiedRole || !unverifiedRole) {
-      console.error("Required roles not found");
+      console.error("Required roles not found:", {
+        verifiedRole: verifiedRole ? "Found" : "Missing",
+        unverifiedRole: unverifiedRole ? "Found" : "Missing",
+        verifiedRoleId: process.env.VERIFIED_ROLE_ID,
+        unverifiedRoleId: process.env.UNVERIFIED_ROLE_ID,
+      });
       return;
     }
 

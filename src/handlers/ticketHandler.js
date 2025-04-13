@@ -464,22 +464,35 @@ export async function handleTicketClose(interaction) {
         const author = msg.author.tag;
         let content = msg.content || "";
 
+        content = content
+          .replace(/@(everyone|here)/g, "@\u200b$1")
+          .replace(/<@[!&]?(\d+)>/g, "@user")
+          .replace(/[^\x20-\x7E\n]/g, "")
+          .trim();
+
         if (msg.embeds.length > 0) {
           content += msg.embeds
-            .map(
-              (embed) =>
-                `\n[Embed: ${embed.title || "Untitled"}]${embed.description ? " - " + embed.description : ""}`,
-            )
+            .map((embed) => {
+              const title = embed.title
+                ? embed.title.replace(/[^\x20-\x7E\n]/g, "")
+                : "Untitled";
+              const desc = embed.description
+                ? embed.description
+                    .replace(/[^\x20-\x7E\n]/g, "")
+                    .replace(/<@[!&]?(\d+)>/g, "@user")
+                    .trim()
+                : "";
+              return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
+            })
             .join("\n");
         }
 
         if (msg.attachments.size > 0) {
           content +=
-            "\n[Attachments: " +
+            "\nAttachments: " +
             Array.from(msg.attachments.values())
-              .map((att) => att.url)
-              .join(", ") +
-            "]";
+              .map((att) => att.name)
+              .join(", ");
         }
 
         return `[${time}] ${author}: ${content}`;
@@ -491,12 +504,16 @@ export async function handleTicketClose(interaction) {
       `Closed by: ${interaction.user.tag}`,
       `Closed at: ${new Date().toLocaleString()}`,
       "\n=== TICKET HISTORY ===",
-      ...ticketHistory,
+      ...ticketHistory.map((line) => line.replace(/[^\x20-\x7E\n]/g, "")),
       "\n=== MESSAGE HISTORY ===",
       ...messageHistory,
     ].join("\n");
 
-    const cleanTranscript = transcript.replace(/\r\n/g, "\n").slice(0, 100000);
+    const cleanTranscript = transcript
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .slice(0, 50000);
 
     console.log("Sending transcript to API...");
     const response = await fetch("https://api.e-z.host/paste", {
@@ -508,9 +525,9 @@ export async function handleTicketClose(interaction) {
       },
       body: JSON.stringify({
         text: cleanTranscript,
-        title: `${channel.name}-transcript`,
+        title: channel.name.replace(/[^\w-]/g, "-"),
         description: `Ticket transcript for ${channel.name}`,
-        language: "text",
+        language: "plaintext",
       }),
     });
 
