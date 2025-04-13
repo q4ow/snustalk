@@ -5,8 +5,6 @@ import { handlePurge } from "../handlers/purgeHandler.js";
 import {
   REST,
   Routes,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
 } from "discord.js";
 import {
@@ -26,386 +24,14 @@ import {
   createModActionEmbed,
   removeWarning,
 } from "../handlers/moderationHandler.js";
+import { createHelpEmbed } from "../embeds/helpEmbed.js";
+import { createUserEmbed } from "../embeds/userEmbed.js";
+import { createServerEmbed } from "../embeds/serverEmbed.js";
+import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
+import { createNotesEmbed } from "../embeds/notesEmbed.js";
+import { slashCommands } from "./slashCommands.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
-
-function createHelpEmbed(slashCommands, prefix) {
-  const commandGroups = {
-    "🛡️ Moderation": [
-      "warn",
-      "removewarning",
-      "kick",
-      "ban",
-      "timeout",
-      "untimeout",
-      "warnings",
-      "modlogs",
-      "purge",
-      "lock",
-      "unlock",
-      "nickname",
-    ],
-    "🎫 Tickets": ["setup-tickets"],
-    "🔧 Utility": ["userinfo", "serverinfo", "avatar", "ping"],
-    "📝 Notes": ["note"],
-    "⚙️ System": ["resend-verify", "welcome"],
-  };
-
-  const helpEmbed = new EmbedBuilder()
-    .setTitle("Command Help")
-    .setColor("#2F3136")
-    .setDescription(
-      `Use \`${prefix}command\` or \`/command\` to execute a command.`,
-    )
-    .setTimestamp();
-
-  for (const [category, cmds] of Object.entries(commandGroups)) {
-    const commandList = cmds
-      .map((cmdName) => {
-        const slashCmd = slashCommands.find((cmd) => cmd.name === cmdName);
-        return `\`${cmdName}\` - ${slashCmd ? slashCmd.description : "No description available"}`;
-      })
-      .join("\n");
-
-    helpEmbed.addFields({ name: category, value: commandList });
-  }
-
-  helpEmbed.addFields({
-    name: "📌 Note",
-    value: [
-      "Some commands may require special permissions to use.",
-      "Duration format for timeout: `1s`, `1m`, `1h`, `1d` (seconds, minutes, hours, days)",
-      "For detailed command usage, type the command without any arguments.",
-    ].join("\n"),
-  });
-
-  return helpEmbed;
-}
-
-const slashCommands = [
-  new SlashCommandBuilder()
-    .setName("setup-tickets")
-    .setDescription("Sets up the ticket system")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addStringOption((option) =>
-      option.setName("title").setDescription("Title for the ticket panel"),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("description")
-        .setDescription("Description for the ticket panel"),
-    )
-    .addRoleOption((option) =>
-      option
-        .setName("moderator_role")
-        .setDescription("Role for ticket moderators"),
-    )
-    .addStringOption((option) =>
-      option.setName("color").setDescription("Color for the embed (hex code)"),
-    )
-    .addStringOption((option) =>
-      option.setName("thumbnail").setDescription("URL for the embed thumbnail"),
-    )
-    .addStringOption((option) =>
-      option.setName("footer").setDescription("Footer text for the embed"),
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName("max_tickets")
-        .setDescription("Maximum tickets per user")
-        .setMinValue(1)
-        .setMaxValue(5),
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName("auto_close")
-        .setDescription(
-          "Auto-close tickets after X hours of inactivity (0 to disable)",
-        )
-        .setMinValue(0),
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName("enable_claiming")
-        .setDescription("Enable ticket claiming system"),
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName("close_confirmation")
-        .setDescription("Require confirmation when closing tickets"),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("resend-verify")
-    .setDescription("Resends verification embeds")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
-
-  new SlashCommandBuilder()
-    .setName("welcome")
-    .setDescription("Sends a welcome message")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
-
-  new SlashCommandBuilder()
-    .setName("purge")
-    .setDescription("Purges messages from the channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-    .addIntegerOption((option) =>
-      option
-        .setName("amount")
-        .setDescription("Number of messages to purge")
-        .setRequired(true)
-        .setMinValue(1)
-        .setMaxValue(100),
-    ),
-  new SlashCommandBuilder()
-    .setName("userinfo")
-    .setDescription("Shows information about a user")
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to get info about")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("serverinfo")
-    .setDescription("Shows information about the server"),
-
-  new SlashCommandBuilder()
-    .setName("lock")
-    .setDescription("Locks a channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
-    .addChannelOption((option) =>
-      option
-        .setName("channel")
-        .setDescription("The channel to lock")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("unlock")
-    .setDescription("Unlocks a channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
-    .addChannelOption((option) =>
-      option
-        .setName("channel")
-        .setDescription("The channel to unlock")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("nickname")
-    .setDescription("Change a user's nickname")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to change nickname")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("nickname")
-        .setDescription("The new nickname")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Shows the bot's latency"),
-  new SlashCommandBuilder()
-    .setName("avatar")
-    .setDescription("Returns user avatar")
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user whose avatar to show")
-        .setRequired(false),
-    ),
-  new SlashCommandBuilder()
-    .setName("note")
-    .setDescription("Manage your personal notes")
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("add")
-        .setDescription("Add a new note")
-        .addStringOption((option) =>
-          option
-            .setName("content")
-            .setDescription("The content of your note")
-            .setRequired(true),
-        ),
-    )
-    .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("List all your notes"),
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("delete")
-        .setDescription("Delete one of your notes")
-        .addStringOption((option) =>
-          option
-            .setName("id")
-            .setDescription("The ID of the note to delete")
-            .setRequired(true),
-        ),
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("edit")
-        .setDescription("Edit one of your notes")
-        .addStringOption((option) =>
-          option
-            .setName("id")
-            .setDescription("The ID of the note to edit")
-            .setRequired(true),
-        )
-        .addStringOption((option) =>
-          option
-            .setName("content")
-            .setDescription("The new content of your note")
-            .setRequired(true),
-        ),
-    ),
-  new SlashCommandBuilder()
-    .setName("warn")
-    .setDescription("Warn a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to warn")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("reason")
-        .setDescription("Reason for the warning")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("kick")
-    .setDescription("Kick a user from the server")
-    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to kick")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("reason")
-        .setDescription("Reason for the kick")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("ban")
-    .setDescription("Ban a user from the server")
-    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to ban")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("reason")
-        .setDescription("Reason for the ban")
-        .setRequired(false),
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName("delete_days")
-        .setDescription("Number of days of messages to delete")
-        .setRequired(false)
-        .addChoices(
-          { name: "None", value: 0 },
-          { name: "1 day", value: 1 },
-          { name: "7 days", value: 7 },
-        ),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("timeout")
-    .setDescription("Timeout a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to timeout")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("duration")
-        .setDescription("Timeout duration (e.g., 1h, 1d)")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("reason")
-        .setDescription("Reason for the timeout")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("untimeout")
-    .setDescription("Remove timeout from a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to remove timeout from")
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("reason")
-        .setDescription("Reason for removing the timeout")
-        .setRequired(false),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("warnings")
-    .setDescription("View warnings for a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to check warnings for")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("modlogs")
-    .setDescription("View moderation history for a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to check moderation history for")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("removewarning")
-    .setDescription("Remove a warning from a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-    .addStringOption((option) =>
-      option
-        .setName("id")
-        .setDescription("The ID of the warning to remove")
-        .setRequired(true),
-    ),
-
-  new SlashCommandBuilder()
-    .setName("help")
-    .setDescription("Shows all available commands"),
-];
 
 export const commands = {
   "setup-tickets": {
@@ -457,36 +83,7 @@ export const commands = {
     async execute(message) {
       const mentionedUser = message.mentions.users.first() || message.author;
       const member = await message.guild.members.fetch(mentionedUser.id);
-
-      const userEmbed = new EmbedBuilder()
-        .setTitle(`User Information - ${mentionedUser.tag}`)
-        .setThumbnail(mentionedUser.displayAvatarURL({ dynamic: true }))
-        .setColor("#2F3136")
-        .addFields(
-          { name: "User ID", value: mentionedUser.id, inline: true },
-          {
-            name: "Account Created",
-            value: `<t:${Math.floor(mentionedUser.createdTimestamp / 1000)}:R>`,
-            inline: true,
-          },
-          {
-            name: "Joined Server",
-            value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`,
-            inline: true,
-          },
-          {
-            name: "Roles",
-            value:
-              member.roles.cache.size > 1
-                ? member.roles.cache
-                  .filter((r) => r.id !== message.guild.id)
-                  .map((r) => r)
-                  .join(", ")
-                : "No roles",
-          },
-        )
-        .setTimestamp();
-
+      const userEmbed = createUserEmbed(mentionedUser, member);
       await message.reply({ embeds: [userEmbed] });
     },
     errorMessage: "❌ Could not fetch user information.",
@@ -498,34 +95,7 @@ export const commands = {
     async execute(message) {
       const guild = message.guild;
       const owner = await guild.fetchOwner();
-
-      const serverEmbed = new EmbedBuilder()
-        .setTitle(`Server Information - ${guild.name}`)
-        .setThumbnail(guild.iconURL({ dynamic: true }))
-        .setColor("#2F3136")
-        .addFields(
-          { name: "Owner", value: owner.user.tag, inline: true },
-          {
-            name: "Created",
-            value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
-            inline: true,
-          },
-          { name: "Members", value: `${guild.memberCount}`, inline: true },
-          {
-            name: "Channels",
-            value: `${guild.channels.cache.size}`,
-            inline: true,
-          },
-          { name: "Roles", value: `${guild.roles.cache.size}`, inline: true },
-          { name: "Boost Level", value: `${guild.premiumTier}`, inline: true },
-          {
-            name: "Boosts",
-            value: `${guild.premiumSubscriptionCount || 0}`,
-            inline: true,
-          },
-        )
-        .setTimestamp();
-
+      const serverEmbed = createServerEmbed(guild, owner);
       await message.reply({ embeds: [serverEmbed] });
     },
     errorMessage: "❌ Could not fetch server information.",
@@ -600,13 +170,7 @@ export const commands = {
     deleteAfter: false,
     async execute(message) {
       const user = message.mentions.users.first() || message.author;
-
-      const avatarEmbed = new EmbedBuilder()
-        .setTitle(`${user.tag}'s Avatar`)
-        .setImage(user.displayAvatarURL({ size: 4096, dynamic: true }))
-        .setColor("#2F3136")
-        .setTimestamp();
-
+      const avatarEmbed = createAvatarEmbed(user);
       await message.reply({ embeds: [avatarEmbed] });
     },
     errorMessage: "❌ Could not fetch avatar.",
@@ -634,17 +198,7 @@ export const commands = {
 
           case "list":
             const notes = await listNotes(message.author.id);
-            const embed = new EmbedBuilder()
-              .setTitle("Your Notes")
-              .setColor("#2F3136")
-              .setDescription(
-                notes
-                  .map(
-                    (note) =>
-                      `**ID:** ${note.id}\n${note.content}\n*Created: <t:${Math.floor(new Date(note.timestamp).getTime() / 1000)}:R>*${note.edited ? `\n*Edited: <t:${Math.floor(new Date(note.edited).getTime() / 1000)}:R>*` : ""}\n`,
-                  )
-                  .join("\n"),
-              );
+            const embed = createNotesEmbed(notes);
             return message.reply({ embeds: [embed] });
 
           case "delete":
@@ -793,74 +347,14 @@ export async function handleSlashCommand(interaction) {
       case "userinfo":
         const user = interaction.options.getUser("user") || interaction.user;
         const member = await interaction.guild.members.fetch(user.id);
-
-        const userEmbed = new EmbedBuilder()
-          .setTitle(`User Information - ${user.tag}`)
-          .setThumbnail(user.displayAvatarURL({ dynamic: true }))
-          .setColor("#2F3136")
-          .addFields(
-            { name: "User ID", value: user.id, inline: true },
-            {
-              name: "Account Created",
-              value: `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
-              inline: true,
-            },
-            {
-              name: "Joined Server",
-              value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`,
-              inline: true,
-            },
-            {
-              name: "Roles",
-              value:
-                member.roles.cache.size > 1
-                  ? member.roles.cache
-                    .filter((r) => r.id !== interaction.guild.id)
-                    .map((r) => r)
-                    .join(", ")
-                  : "No roles",
-            },
-          )
-          .setTimestamp();
-
+        const userEmbed = createUserEmbed(user, member);
         await interaction.reply({ embeds: [userEmbed] });
         break;
 
       case "serverinfo":
         const guild = interaction.guild;
         const owner = await guild.fetchOwner();
-
-        const serverEmbed = new EmbedBuilder()
-          .setTitle(`Server Information - ${guild.name}`)
-          .setThumbnail(guild.iconURL({ dynamic: true }))
-          .setColor("#2F3136")
-          .addFields(
-            { name: "Owner", value: owner.user.tag, inline: true },
-            {
-              name: "Created",
-              value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
-              inline: true,
-            },
-            { name: "Members", value: `${guild.memberCount}`, inline: true },
-            {
-              name: "Channels",
-              value: `${guild.channels.cache.size}`,
-              inline: true,
-            },
-            { name: "Roles", value: `${guild.roles.cache.size}`, inline: true },
-            {
-              name: "Boost Level",
-              value: `${guild.premiumTier}`,
-              inline: true,
-            },
-            {
-              name: "Boosts",
-              value: `${guild.premiumSubscriptionCount || 0}`,
-              inline: true,
-            },
-          )
-          .setTimestamp();
-
+        const serverEmbed = createServerEmbed(guild, owner);
         await interaction.reply({ embeds: [serverEmbed] });
         break;
 
@@ -913,7 +407,7 @@ export async function handleSlashCommand(interaction) {
       case "ping":
         const sent = await interaction.reply({
           content: "Pinging...",
-          fetchReply: true,
+          fetchReply: true, // ill just do thiss later
         });
         const roundtrip = sent.createdTimestamp - interaction.createdTimestamp;
         const wsHeartbeat = interaction.client.ws.ping;
@@ -924,15 +418,8 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "avatar":
-        const avatarUser =
-          interaction.options.getUser("user") || interaction.user;
-
-        const avatarEmbed = new EmbedBuilder()
-          .setTitle(`${avatarUser.tag}'s Avatar`)
-          .setImage(avatarUser.displayAvatarURL({ size: 4096, dynamic: true }))
-          .setColor("#2F3136")
-          .setTimestamp();
-
+        const avatarUser = interaction.options.getUser("user") || interaction.user;
+        const avatarEmbed = createAvatarEmbed(avatarUser);
         await interaction.reply({ embeds: [avatarEmbed] });
         break;
 
@@ -951,17 +438,7 @@ export async function handleSlashCommand(interaction) {
 
             case "list":
               const notes = await listNotes(interaction.user.id);
-              const embed = new EmbedBuilder()
-                .setTitle("Your Notes")
-                .setColor("#2F3136")
-                .setDescription(
-                  notes
-                    .map(
-                      (note) =>
-                        `**ID:** ${note.id}\n${note.content}\n*Created: <t:${Math.floor(new Date(note.timestamp).getTime() / 1000)}:R>*${note.edited ? `\n*Edited: <t:${Math.floor(new Date(note.edited).getTime() / 1000)}:R>*` : ""}\n`,
-                    )
-                    .join("\n"),
-                );
+              const embed = createNotesEmbed(notes);
               await interaction.reply({ embeds: [embed], flags: 64 });
               break;
 
