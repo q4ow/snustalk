@@ -8,6 +8,7 @@ A Discord bot built with discord.js, originally developed for the SnusTalk Centr
 - **Verification System**
   - Reaction-based verification
   - Automatic role assignment
+  - DM confirmation with optional RestoreCore backup
 
 - **Welcome System**
   - Customizable welcome messages
@@ -16,21 +17,27 @@ A Discord bot built with discord.js, originally developed for the SnusTalk Centr
 
 - **Ticket System**
   - Two-tier support system (General & Management)
+  - Ticket claiming system
   - Transcript logging
   - Automatic category and permission management
   - Staff role notifications
 
+- **Server Statistics**
+  - Member count tracking
+  - Bot count tracking
+  - Total tickets tracking
+  - Open tickets tracking
+
 - **Moderation**
   - Message purging command
-  - More features planned
+  - Channel lock/unlock
+  - Nickname management
 
-### Planned Features
-- Moderation commands
-- Server statistics
-- Basic auto-moderation (e.g., word filtering)
-- Lightweight logging system (e.g., message deletions, user joins/leaves)
-- User note tracking
-- Custom command creation with limited scope
+- **Utility Commands**
+  - User information
+  - Server information
+  - Avatar display
+  - Bot latency check
 
 ## Setup Instructions
 
@@ -68,17 +75,22 @@ pnpm dev
 Create a .env file in the root directory with the following variables:
 
 ```env
-DISCORD_TOKEN=           # Your bot's token
-GUILD_ID=                # Your server ID
-WELCOME_CHANNEL_ID=      # Channel ID for welcome messages
-VERIFICATION_CHANNEL_ID= # Channel ID for verification
-VERIFIED_ROLE_ID=        # Role ID for verified members
-UNVERIFIED_ROLE_ID=      # Role ID for unverified members
-TICKET_CATEGORY_ID=      # Category ID for tickets
-MANAGEMENT_ROLE_ID=      # Role ID for management team
-STAFF_ROLE_ID=           # Role ID for staff members
-TICKET_LOGS_CHANNEL_ID=  # Channel ID for ticket logs
-EZ_HOST_KEY=             # API key for EZ.Host (for transcripts)
+DISCORD_TOKEN=                  # Your bot's token
+GUILD_ID=                       # Your server ID
+RESTORECORD_LINK=               # Your restorecord link (optional)
+EZ_HOST_KEY=                    # API key for EZ.Host (for transcripts)
+VERIFIED_ROLE_ID=               # Role ID for verified members
+UNVERIFIED_ROLE_ID=             # Role ID for unverified members
+MANAGEMENT_ROLE_ID=             # Role ID for management team
+STAFF_ROLE_ID=                  # Role ID for staff members
+TICKET_CATEGORY_ID=             # Category ID for tickets
+WELCOME_CHANNEL_ID=             # Channel ID for welcome messages
+VERIFICATION_CHANNEL_ID=        # Channel ID for verification
+TICKET_LOGS_CHANNEL_ID=         # Channel ID for ticket logs
+STATS_MEMBERS_CHANNEL_ID=       # Channel ID for member count
+STATS_BOTS_CHANNEL_ID=          # Channel ID for bot count
+STATS_TOTAL_TICKETS_CHANNEL_ID= # Channel ID for total tickets
+STATS_OPEN_TICKETS_CHANNEL_ID=  # Channel ID for open tickets
 ```
 
 ### How to Get These Values
@@ -122,12 +134,27 @@ Both slash commands and prefix commands are available:
 - `/purge <amount>` - Deletes specified number of messages (1-100)
 - `/resend-verify` - Resends verification embed (DEBUG)
 - `/welcome` - Manually triggers welcome message (DEBUG)
+- `/userinfo [user]` - Shows detailed information about a user
+- `/serverinfo` - Shows information about the server
+- `/lock [channel]` - Locks a channel from sending messages
+- `/unlock [channel]` - Unlocks a previously locked channel
+- `/nickname <user> <name>` - Changes a user's nickname
+- `/ping` - Shows the bot's latency
+- `/avatar [user]` - Shows user's avatar
 
 #### Prefix Commands
+All slash commands are also available as prefix commands using `$`:
 - `$setup-tickets` - Creates the ticket panel
 - `$purge <number>` - Deletes specified number of messages
 - `$resend-verify` - Resends verification embed (DEBUG)
 - `$welcome` - Manually triggers welcome message (DEBUG)
+- `$userinfo [@user]` - Shows detailed information about a user
+- `$serverinfo` - Shows information about the server
+- `$lock [#channel]` - Locks a channel from sending messages
+- `$unlock [#channel]` - Unlocks a previously locked channel
+- `$nickname @user <name>` - Changes a user's nickname
+- `$ping` - Shows the bot's latency
+- `$avatar [@user]` - Shows user's avatar
 
 > **Note**: Slash commands provide better permission handling and parameter validation. They are the recommended way to interact with the bot.
 
