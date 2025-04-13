@@ -29,6 +29,59 @@ import {
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
+function createHelpEmbed(slashCommands, prefix) {
+  const commandGroups = {
+    "🛡️ Moderation": [
+      "warn",
+      "removewarning",
+      "kick",
+      "ban",
+      "timeout",
+      "untimeout",
+      "warnings",
+      "modlogs",
+      "purge",
+      "lock",
+      "unlock",
+      "nickname",
+    ],
+    "🎫 Tickets": ["setup-tickets"],
+    "🔧 Utility": ["userinfo", "serverinfo", "avatar", "ping"],
+    "📝 Notes": ["note"],
+    "⚙️ System": ["resend-verify", "welcome"],
+  };
+
+  const helpEmbed = new EmbedBuilder()
+    .setTitle("Command Help")
+    .setColor("#2F3136")
+    .setDescription(
+      `Use \`${prefix}command\` or \`/command\` to execute a command.`,
+    )
+    .setTimestamp();
+
+  for (const [category, cmds] of Object.entries(commandGroups)) {
+    const commandList = cmds
+      .map((cmdName) => {
+        const slashCmd = slashCommands.find((cmd) => cmd.name === cmdName);
+        return `\`${cmdName}\` - ${slashCmd ? slashCmd.description : "No description available"}`;
+      })
+      .join("\n");
+
+    helpEmbed.addFields({ name: category, value: commandList });
+  }
+
+  helpEmbed.addFields({
+    name: "📌 Note",
+    value: [
+      "Some commands may require special permissions to use.",
+      "Duration format for timeout: `1s`, `1m`, `1h`, `1d` (seconds, minutes, hours, days)",
+      "For detailed command usage, type the command without any arguments.",
+    ].join("\n"),
+  });
+
+  return helpEmbed;
+}
+
 const slashCommands = [
   new SlashCommandBuilder()
     .setName("setup-tickets")
@@ -426,9 +479,9 @@ export const commands = {
             value:
               member.roles.cache.size > 1
                 ? member.roles.cache
-                    .filter((r) => r.id !== message.guild.id)
-                    .map((r) => r)
-                    .join(", ")
+                  .filter((r) => r.id !== message.guild.id)
+                  .map((r) => r)
+                  .join(", ")
                 : "No roles",
           },
         )
@@ -618,6 +671,15 @@ export const commands = {
       }
     },
   },
+  help: {
+    permissions: [],
+    deleteAfter: false,
+    async execute(message) {
+      const helpEmbed = createHelpEmbed(slashCommands, BOT_PREFIX);
+      await message.reply({ embeds: [helpEmbed] });
+    },
+    errorMessage: "❌ Could not display help information.",
+  },
 };
 
 export async function handleCommand(message, commands) {
@@ -661,7 +723,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -753,9 +815,9 @@ export async function handleSlashCommand(interaction) {
               value:
                 member.roles.cache.size > 1
                   ? member.roles.cache
-                      .filter((r) => r.id !== interaction.guild.id)
-                      .map((r) => r)
-                      .join(", ")
+                    .filter((r) => r.id !== interaction.guild.id)
+                    .map((r) => r)
+                    .join(", ")
                   : "No roles",
             },
           )
@@ -1183,6 +1245,11 @@ export async function handleSlashCommand(interaction) {
         }
 
         await interaction.reply({ embeds: [modlogsEmbed], flags: 64 });
+        break;
+
+      case "help":
+        const helpEmbed = createHelpEmbed(slashCommands, BOT_PREFIX);
+        await interaction.reply({ embeds: [helpEmbed] });
         break;
     }
   } catch (error) {
