@@ -25,7 +25,7 @@ import {
   handleApplicationResponse,
   handleApplicationButton,
 } from "./handlers/applicationHandler.js";
-import { setupLoggingEvents } from './handlers/eventHandler.js';
+import { setupLoggingEvents } from "./handlers/eventHandler.js";
 
 dotenv.config();
 
@@ -95,7 +95,7 @@ client.once("ready", async () => {
   await registerSlashCommands(client);
   console.log("✅ Slash commands registered");
   setupLoggingEvents(client);
-  console.log('✅ Logging system initialized');
+  console.log("✅ Logging system initialized");
   console.log("✅ Ticketing handler initialized");
   console.log("✅ Purge handler initialized");
   console.log("✅ Notes handler initialized");
@@ -261,7 +261,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
   }
 });
