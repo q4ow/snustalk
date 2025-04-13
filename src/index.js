@@ -15,6 +15,7 @@ import {
     handleTicketUnclaim
 } from './handlers/ticketHandler.js';
 import { handleCommand, commands, registerSlashCommands, handleSlashCommand } from './utils/commands.js';
+import { startStatsTracker } from './handlers/statsHandler.js';
 
 dotenv.config();
 
@@ -29,7 +30,11 @@ const requiredEnvVars = [
     'MANAGEMENT_ROLE_ID',
     'STAFF_ROLE_ID',
     'TICKET_LOGS_CHANNEL_ID',
-    'EZ_HOST_KEY'
+    'EZ_HOST_KEY',
+    'STATS_MEMBERS_CHANNEL_ID',
+    'STATS_BOTS_CHANNEL_ID',
+    'STATS_TOTAL_TICKETS_CHANNEL_ID',
+    'STATS_OPEN_TICKETS_CHANNEL_ID',
 ];
 
 for (const envVar of requiredEnvVars) {
@@ -66,6 +71,10 @@ client.once('ready', async () => {
     console.log('✅ Slash commands registered');
     console.log('✅ Ticketing handler initialized');
     console.log('✅ Purge handler initialized');
+
+    const guild = client.guilds.cache.first();
+    await startStatsTracker(guild);
+    console.log('✅ Stats tracker initialized');
 
     client.user.setPresence({
         activities: [{
