@@ -174,15 +174,15 @@ class LogHandler {
       case "CREATE":
         embed.setTitle("📝 Channel Created").addFields(
           { name: "Name", value: data.channel.name, inline: true },
-          { name: "Type", value: data.channel.type.toString(), inline: true }, // Convert to string
+          { name: "Type", value: data.channel.type.toString(), inline: true },
           {
             name: "Category",
             value: data.channel.parent?.name || "None",
             inline: true,
           },
           {
-            name: "Position",
-            value: data.channel.position.toString(), // Convert to string
+            name: "Created By",
+            value: data.executor ? `${data.executor}` : "Unknown",
             inline: true,
           },
         );
@@ -191,10 +191,15 @@ class LogHandler {
       case "DELETE":
         embed.setTitle("🗑️ Channel Deleted").addFields(
           { name: "Name", value: data.channel.name, inline: true },
-          { name: "Type", value: data.channel.type.toString(), inline: true }, // Convert to string
+          { name: "Type", value: data.channel.type.toString(), inline: true },
           {
             name: "Category",
             value: data.channel.parent?.name || "None",
+            inline: true,
+          },
+          {
+            name: "Deleted By",
+            value: data.executor ? `${data.executor}` : "Unknown",
             inline: true,
           },
         );
@@ -229,11 +234,22 @@ class LogHandler {
             `Category: ${data.oldChannel.parent?.name || "None"} → ${data.newChannel.parent?.name || "None"}`,
           );
         }
+        if (
+          data.oldChannel.permissionOverwrites !==
+          data.newChannel.permissionOverwrites
+        ) {
+          changes.push("Permissions were updated");
+        }
 
         embed.setTitle("📝 Channel Updated").addFields(
           {
             name: "Channel",
             value: data.newChannel.toString(),
+            inline: true,
+          },
+          {
+            name: "Updated By",
+            value: data.executor ? `${data.executor}` : "Unknown",
             inline: true,
           },
           {
@@ -243,41 +259,24 @@ class LogHandler {
         );
         break;
 
-      case "THREAD_CREATE":
-        embed.setTitle("🧵 Thread Created").addFields(
-          { name: "Name", value: data.thread.name, inline: true },
-          { name: "Creator", value: `${data.creator}`, inline: true },
+      case "PINS_UPDATE":
+        embed.setTitle("📌 Channel Pins Updated").addFields(
           {
-            name: "Parent Channel",
-            value: `${data.thread.parent}`,
+            name: "Channel",
+            value: data.channel.toString(),
+            inline: true,
+          },
+          {
+            name: "Updated By",
+            value: data.executor ? `${data.executor}` : "Unknown",
+            inline: true,
+          },
+          {
+            name: "Time",
+            value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
             inline: true,
           },
         );
-        break;
-
-      case "THREAD_DELETE":
-        embed.setTitle("🧵 Thread Deleted").addFields(
-          { name: "Name", value: data.thread.name, inline: true },
-          {
-            name: "Parent Channel",
-            value: `${data.thread.parent}`,
-            inline: true,
-          },
-        );
-        break;
-
-      case "THREAD_UPDATE":
-        embed
-          .setTitle(`🧵 Thread ${data.archived ? "Archived" : "Unarchived"}`)
-          .addFields(
-            { name: "Name", value: data.thread.name, inline: true },
-            {
-              name: "Parent Channel",
-              value: `${data.thread.parent}`,
-              inline: true,
-            },
-            { name: "By", value: `${data.executor}`, inline: true },
-          );
         break;
 
       default:

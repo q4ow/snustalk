@@ -166,21 +166,35 @@ export function setupLoggingEvents(client) {
     }
   });
 
-  client.on("channelCreate", (channel) => {
+  client.on("channelCreate", async (channel) => {
+    const auditLogs = await channel.guild.fetchAuditLogs({
+      type: AuditLogEvent.ChannelCreate,
+      limit: 1,
+    });
+    const executor = auditLogs.entries.first()?.executor;
+
     logger.createLog("CHANNEL", {
       action: "CREATE",
       channel,
+      executor,
     });
   });
 
-  client.on("channelDelete", (channel) => {
+  client.on("channelDelete", async (channel) => {
+    const auditLogs = await channel.guild.fetchAuditLogs({
+      type: AuditLogEvent.ChannelDelete,
+      limit: 1,
+    });
+    const executor = auditLogs.entries.first()?.executor;
+
     logger.createLog("CHANNEL", {
       action: "DELETE",
       channel,
+      executor,
     });
   });
 
-  client.on("channelUpdate", (oldChannel, newChannel) => {
+  client.on("channelUpdate", async (oldChannel, newChannel) => {
     const changes = [];
 
     if (oldChannel.name !== newChannel.name) {
@@ -201,11 +215,18 @@ export function setupLoggingEvents(client) {
     }
 
     if (changes.length > 0) {
+      const auditLogs = await newChannel.guild.fetchAuditLogs({
+        type: AuditLogEvent.ChannelUpdate,
+        limit: 1,
+      });
+      const executor = auditLogs.entries.first()?.executor;
+
       logger.createLog("CHANNEL", {
         action: "UPDATE",
         oldChannel,
         newChannel,
         changes,
+        executor,
       });
     }
   });
