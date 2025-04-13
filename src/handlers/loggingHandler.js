@@ -1,4 +1,4 @@
-import { EmbedBuilder, AuditLogEvent } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { formatDuration } from "../utils/moderation.js";
 
 const LOG_TYPES = {
@@ -155,22 +155,20 @@ class LogHandler {
         break;
 
       case "NICKNAME":
-        embed
-          .setTitle("📝 Nickname Changed")
-          .addFields(
-            { name: "Member", value: `${data.member}`, inline: true },
-            { name: "Changed By", value: `${data.moderator}`, inline: true },
-            {
-              name: "Old Nickname",
-              value: data.oldNick || "None",
-              inline: true,
-            },
-            {
-              name: "New Nickname",
-              value: data.newNick || "None",
-              inline: true,
-            },
-          );
+        embed.setTitle("📝 Nickname Changed").addFields(
+          { name: "Member", value: `${data.member}`, inline: true },
+          { name: "Changed By", value: `${data.moderator}`, inline: true },
+          {
+            name: "Old Nickname",
+            value: data.oldNick || "None",
+            inline: true,
+          },
+          {
+            name: "New Nickname",
+            value: data.newNick || "None",
+            inline: true,
+          },
+        );
         break;
 
       default:

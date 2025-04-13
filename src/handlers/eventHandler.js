@@ -1,4 +1,5 @@
 import { LogHandler } from "./loggingHandler.js";
+import { AuditLogEvent } from "discord.js";
 
 export function setupLoggingEvents(client) {
   console.log("Setting up logging events...");
