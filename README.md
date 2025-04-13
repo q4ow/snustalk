@@ -142,6 +142,14 @@ Both slash commands and prefix commands are available:
 - `/ping` - Shows the bot's latency
 - `/avatar [user]` - Shows user's avatar
 - `/help` - Displays all commands and their usage
+- `/warn <user> [reason]` - Warns a user
+- `/removewarning <id>` - Removes a warning from a user
+- `/kick <user> [reason]` - Kicks a user from the server
+- `/ban <user> [reason] [delete_days]` - Bans a user from the server
+- `/timeout <user> <duration> [reason]` - Timeouts a user
+- `/untimeout <user> [reason]` - Removes timeout from a user
+- `/warnings <user>` - Views warnings for a user
+- `/modlogs <user>` - Views moderation history for a user
 
 #### Prefix Commands
 All slash commands are also available as prefix commands using `$`:
@@ -157,8 +165,20 @@ All slash commands are also available as prefix commands using `$`:
 - `$ping` - Shows the bot's latency
 - `$avatar [@user]` - Shows user's avatar
 - `$help` - Displays all commands and their usage
+- `$warn @user [reason]` - Warns a user
+- `$removewarning <id>` - Removes a warning from a user
+- `$kick @user [reason]` - Kicks a user from the server
+- `$ban @user [reason] [delete_days]` - Bans a user from the server
+- `$timeout @user <duration> [reason]` - Timeouts a user
+- `$untimeout @user [reason]` - Removes timeout from a user
+- `$warnings @user` - Views warnings for a user
+- `$modlogs @user` - Views moderation history for a user
 
-> **Note**: Slash commands provide better permission handling and parameter validation. They are the recommended way to interact with the bot.
+> **Note**: 
+> - `<>` indicates required parameters
+> - `[]` indicates optional parameters
+> - Duration format for timeout: `1m`, `1h`, `1d` (minutes, hours, days)
+> - All moderation commands require appropriate permissions
 
 ### Verification Process
 1. Users join the server

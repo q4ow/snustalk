@@ -15,6 +15,17 @@ import {
   editNote,
   listNotes,
 } from "../handlers/notesHandler.js";
+import {
+  warnUser,
+  kickUser,
+  banUser,
+  timeoutUser,
+  removeTimeout,
+  getUserWarnings,
+  getUserModActions,
+  createModActionEmbed,
+  removeWarning,
+} from "../handlers/moderationHandler.js";
 
 export const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -206,6 +217,140 @@ const slashCommands = [
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("Shows all available commands"),
+  new SlashCommandBuilder()
+    .setName("warn")
+    .setDescription("Warn a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to warn")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("reason")
+        .setDescription("Reason for the warning")
+        .setRequired(false),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("kick")
+    .setDescription("Kick a user from the server")
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to kick")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("reason")
+        .setDescription("Reason for the kick")
+        .setRequired(false),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("ban")
+    .setDescription("Ban a user from the server")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to ban")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("reason")
+        .setDescription("Reason for the ban")
+        .setRequired(false),
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("delete_days")
+        .setDescription("Number of days of messages to delete")
+        .setRequired(false)
+        .addChoices(
+          { name: "None", value: 0 },
+          { name: "1 day", value: 1 },
+          { name: "7 days", value: 7 },
+        ),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("timeout")
+    .setDescription("Timeout a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to timeout")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("duration")
+        .setDescription("Timeout duration (e.g., 1h, 1d)")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("reason")
+        .setDescription("Reason for the timeout")
+        .setRequired(false),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("untimeout")
+    .setDescription("Remove timeout from a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to remove timeout from")
+        .setRequired(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("reason")
+        .setDescription("Reason for removing the timeout")
+        .setRequired(false),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("warnings")
+    .setDescription("View warnings for a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to check warnings for")
+        .setRequired(true),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("modlogs")
+    .setDescription("View moderation history for a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("The user to check moderation history for")
+        .setRequired(true),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("removewarning")
+    .setDescription("Remove a warning from a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addStringOption((option) =>
+      option
+        .setName("id")
+        .setDescription("The ID of the warning to remove")
+        .setRequired(true),
+    ),
 ];
 
 export const commands = {
@@ -857,6 +1002,261 @@ export async function handleSlashCommand(interaction) {
 
         await interaction.reply({ embeds: [helpEmbed] });
         break;
+
+      case "warn":
+        const userToWarn = interaction.options.getUser("user");
+        const warnReason = interaction.options.getString("reason");
+        const warnMember = await interaction.guild.members.fetch(userToWarn.id);
+
+        if (
+          warnMember.roles.highest.position >=
+          interaction.member.roles.highest.position
+        ) {
+          await interaction.reply({
+            content: "❌ You cannot warn this user due to role hierarchy.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const warning = await warnUser(
+          interaction.guild,
+          interaction.user,
+          warnMember,
+          warnReason,
+        );
+
+        await interaction.reply({
+          embeds: [createModActionEmbed(warning, interaction.guild)],
+          flags: 64,
+        });
+        break;
+
+      case "removewarning":
+        const warningId = interaction.options.getString("id");
+
+        try {
+          await removeWarning(
+            interaction.guild.id,
+            interaction.user,
+            warningId,
+          );
+
+          const embed = new EmbedBuilder()
+            .setTitle("Warning Removed")
+            .setColor("#32CD32")
+            .addFields(
+              { name: "Warning ID", value: warningId, inline: true },
+              {
+                name: "Removed by",
+                value: `<@${interaction.user.id}>`,
+                inline: true,
+              },
+              { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:R>` },
+            )
+            .setTimestamp();
+
+          await interaction.reply({
+            embeds: [embed],
+            flags: 64,
+          });
+        } catch (error) {
+          await interaction.reply({
+            content: `❌ ${error.message}`,
+            flags: 64,
+          });
+        }
+        break;
+
+      case "kick":
+        const userToKick = interaction.options.getUser("user");
+        const kickReason = interaction.options.getString("reason");
+        const kickMember = await interaction.guild.members.fetch(userToKick.id);
+
+        if (
+          kickMember.roles.highest.position >=
+          interaction.member.roles.highest.position
+        ) {
+          await interaction.reply({
+            content: "❌ You cannot kick this user due to role hierarchy.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const kick = await kickUser(
+          interaction.guild,
+          interaction.user,
+          kickMember,
+          kickReason,
+        );
+
+        await interaction.reply({
+          embeds: [createModActionEmbed(kick, interaction.guild)],
+          flags: 64,
+        });
+        break;
+
+      case "ban":
+        const userToBan = interaction.options.getUser("user");
+        const banReason = interaction.options.getString("reason");
+        const deleteDays = interaction.options.getInteger("delete_days") || 0;
+        const banMember = await interaction.guild.members.fetch(userToBan.id);
+
+        if (
+          banMember.roles.highest.position >=
+          interaction.member.roles.highest.position
+        ) {
+          await interaction.reply({
+            content: "❌ You cannot ban this user due to role hierarchy.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const ban = await banUser(
+          interaction.guild,
+          interaction.user,
+          banMember,
+          banReason,
+          deleteDays,
+        );
+
+        await interaction.reply({
+          embeds: [createModActionEmbed(ban, interaction.guild)],
+          flags: 64,
+        });
+        break;
+
+      case "timeout":
+        const targetTimeoutUser = interaction.options.getUser("user");
+        const timeoutReason = interaction.options.getString("reason");
+        const durationStr = interaction.options.getString("duration");
+        const timeoutMember = await interaction.guild.members.fetch(
+          targetTimeoutUser.id,
+        );
+
+        if (
+          timeoutMember.roles.highest.position >=
+          interaction.member.roles.highest.position
+        ) {
+          await interaction.reply({
+            content: "❌ You cannot timeout this user due to role hierarchy.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const duration = parseDuration(durationStr);
+        if (!duration) {
+          await interaction.reply({
+            content: "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
+            flags: 64,
+          });
+          return;
+        }
+
+        const timeout = await timeoutUser(
+          interaction.guild,
+          interaction.user,
+          timeoutMember,
+          duration,
+          timeoutReason,
+        );
+
+        await interaction.reply({
+          embeds: [createModActionEmbed(timeout, interaction.guild)],
+          flags: 64,
+        });
+        break;
+
+      case "untimeout":
+        const untimeoutUser = interaction.options.getUser("user");
+        const untimeoutReason = interaction.options.getString("reason");
+        const untimeoutMember = await interaction.guild.members.fetch(
+          untimeoutUser.id,
+        );
+
+        if (
+          untimeoutMember.roles.highest.position >=
+          interaction.member.roles.highest.position
+        ) {
+          await interaction.reply({
+            content:
+              "❌ You cannot remove timeout from this user due to role hierarchy.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const untimeout = await removeTimeout(
+          interaction.guild,
+          interaction.user,
+          untimeoutMember,
+          untimeoutReason,
+        );
+
+        await interaction.reply({
+          embeds: [createModActionEmbed(untimeout, interaction.guild)],
+          flags: 64,
+        });
+        break;
+
+      case "warnings":
+        const warningsUser = interaction.options.getUser("user");
+        const warnings = await getUserWarnings(
+          interaction.guild.id,
+          warningsUser.id,
+        );
+
+        const warningsEmbed = new EmbedBuilder()
+          .setTitle(`Warnings - ${warningsUser.tag}`)
+          .setColor("#FFA500")
+          .setTimestamp();
+
+        if (warnings.length === 0) {
+          warningsEmbed.setDescription("This user has no warnings.");
+        } else {
+          warningsEmbed.setDescription(
+            warnings
+              .map(
+                (warning) =>
+                  `**ID:** ${warning.id}\n**Moderator:** <@${warning.moderatorId}>\n**Reason:** ${warning.reason}\n**Time:** <t:${Math.floor(new Date(warning.timestamp).getTime() / 1000)}:R>\n`,
+              )
+              .join("\n"),
+          );
+        }
+
+        await interaction.reply({ embeds: [warningsEmbed], flags: 64 });
+        break;
+
+      case "modlogs":
+        const modlogsUser = interaction.options.getUser("user");
+        const modlogs = await getUserModActions(
+          interaction.guild.id,
+          modlogsUser.id,
+        );
+
+        const modlogsEmbed = new EmbedBuilder()
+          .setTitle(`Moderation History - ${modlogsUser.tag}`)
+          .setColor("#2F3136")
+          .setTimestamp();
+
+        if (modlogs.length === 0) {
+          modlogsEmbed.setDescription("This user has no moderation history.");
+        } else {
+          modlogsEmbed.setDescription(
+            modlogs
+              .map(
+                (action) =>
+                  `**Type:** ${action.type.toUpperCase()}\n**ID:** ${action.id}\n**Moderator:** <@${action.moderatorId}>\n**Reason:** ${action.reason}\n**Time:** <t:${Math.floor(new Date(action.timestamp).getTime() / 1000)}:R>\n`,
+              )
+              .join("\n"),
+          );
+        }
+
+        await interaction.reply({ embeds: [modlogsEmbed], flags: 64 });
+        break;
     }
   } catch (error) {
     console.error(
@@ -868,6 +1268,35 @@ export async function handleSlashCommand(interaction) {
       flags: 64,
     });
   }
+}
+
+function parseDuration(durationStr) {
+  const match = durationStr.match(/^(\d+)([smhd])$/);
+  if (!match) return null;
+
+  const amount = parseInt(match[1]);
+  const unit = match[2];
+
+  let milliseconds;
+
+  switch (unit) {
+    case "s":
+      milliseconds = amount * 1000;
+      break;
+    case "m":
+      milliseconds = amount * 60 * 1000;
+      break;
+    case "h":
+      milliseconds = amount * 60 * 60 * 1000;
+      break;
+    case "d":
+      milliseconds = amount * 24 * 60 * 60 * 1000;
+      break;
+    default:
+      return null;
+  }
+
+  return milliseconds;
 }
 
 export async function registerSlashCommands(client) {

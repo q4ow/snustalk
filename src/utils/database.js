@@ -5,6 +5,22 @@ const DB_PATH = path.join(process.cwd(), "data");
 const TICKETS_FILE = path.join(DB_PATH, "tickets.json");
 const TICKET_ACTIONS_FILE = path.join(DB_PATH, "ticket_actions.json");
 const NOTES_FILE = path.join(DB_PATH, "notes.json");
+const MOD_ACTIONS_FILE = path.join(DB_PATH, "mod_actions.json");
+
+async function readModActions() {
+  try {
+    await ensureDirectory();
+    const data = await fs.readFile(MOD_ACTIONS_FILE, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
+
+async function writeModActions(data) {
+  await ensureDirectory();
+  await fs.writeFile(MOD_ACTIONS_FILE, JSON.stringify(data, null, 2));
+}
 
 async function ensureDirectory() {
   try {
@@ -170,6 +186,34 @@ export const db = {
     note.content = newContent;
     note.edited = new Date().toISOString();
     await writeNotes(data);
+    return true;
+  },
+
+  async addModAction(guildId, action) {
+    const data = await readModActions();
+    if (!data[guildId]) data[guildId] = [];
+    data[guildId].push(action);
+    await writeModActions(data);
+    return true;
+  },
+
+  async getModActions(guildId) {
+    const data = await readModActions();
+    return data[guildId] || [];
+  },
+
+  async removeModAction(guildId, actionId, type) {
+    const data = await readModActions();
+    if (!data[guildId]) return false;
+
+    const index = data[guildId].findIndex(
+      (action) => action.id === actionId && action.type === type,
+    );
+
+    if (index === -1) return false;
+
+    data[guildId].splice(index, 1);
+    await writeModActions(data);
     return true;
   },
 };
