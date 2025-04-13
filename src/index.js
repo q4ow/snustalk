@@ -61,7 +61,7 @@ client.once('ready', async () => {
     console.log(`🔗 Bot ID: ${client.user.id}`)
     console.log()
 
-    console.log('Initializing systems...');
+    console.log('Initializing...');
     await registerSlashCommands(client);
     console.log('✅ Slash commands registered');
     console.log('✅ Ticketing handler initialized');
