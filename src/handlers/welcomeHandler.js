@@ -25,8 +25,8 @@ export async function handleWelcome(member) {
         const memberCount = guild.memberCount;
 
         const welcomeEmbed = new EmbedBuilder()
-            .setTitle('Welcome to the Server! 🎉')
-            .setDescription(`Welcome ${member} to **${guild.name}**!\nYou are our ${memberCount}${getSuffix(memberCount)} member!`)
+            .setTitle('Welcome to the Server!')
+            .setDescription(`Welcome ${member} to **${guild.name}**\nYou are our ${memberCount}${getSuffix(memberCount)} member`)
             .setColor('#00ff00')
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 512 }))
             .setTimestamp();
