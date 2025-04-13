@@ -95,43 +95,47 @@ class LogHandler {
     try {
       switch (type) {
         case "MEMBER":
-          this.formatMemberLog(embed, data);
+          await this.formatMemberLog(embed, data);
           break;
         case "MESSAGE":
-          this.formatMessageLog(embed, data);
+          await this.formatMessageLog(embed, data);
           break;
         case "MOD":
-          this.formatModLog(embed, data);
+          await this.formatModerationLog(embed, data); // Changed from formatModLog
           break;
         case "VOICE":
-          this.formatVoiceLog(embed, data);
+          await this.formatVoiceLog(embed, data);
           break;
         case "CHANNEL":
-          this.formatChannelLog(embed, data);
+          await this.formatChannelLog(embed, data);
           break;
         case "ROLE":
-          this.formatRoleLog(embed, data);
+          await this.formatRoleLog(embed, data);
           break;
         case "SERVER":
-          this.formatServerLog(embed, data);
+          await this.formatServerLog(embed, data);
           break;
         case "USER":
-          this.formatUserLog(embed, data);
+          await this.formatUserLog(embed, data);
           break;
         case "INVITE":
-          this.formatInviteLog(embed, data);
+          await this.formatInviteLog(embed, data);
           break;
         case "THREAD":
-          this.formatThreadLog(embed, data);
+          await this.formatThreadLog(embed, data);
           break;
         default:
           console.warn(`Unknown log type: ${type}`);
           return;
       }
 
+      console.log(`Attempting to send ${type} log to channel ${channel.name}`);
+
       await channel.send({ embeds: [embed] });
+      console.log(`Successfully sent ${type} log`);
     } catch (error) {
       console.error(`Failed to send ${type} log:`, error);
+      console.error("Full error:", error.stack);
     }
   }
 
@@ -164,21 +168,19 @@ class LogHandler {
           );
         break;
       case "NICKNAME":
-        embed
-          .setTitle("📝 Nickname Changed")
-          .addFields(
-            { name: "Member", value: `${data.member}`, inline: true },
-            {
-              name: "Old Nickname",
-              value: data.oldNick || "None",
-              inline: true,
-            },
-            {
-              name: "New Nickname",
-              value: data.newNick || "None",
-              inline: true,
-            },
-          );
+        embed.setTitle("📝 Nickname Changed").addFields(
+          { name: "Member", value: `${data.member}`, inline: true },
+          {
+            name: "Old Nickname",
+            value: data.oldNick || "None",
+            inline: true,
+          },
+          {
+            name: "New Nickname",
+            value: data.newNick || "None",
+            inline: true,
+          },
+        );
         break;
     }
   }
@@ -186,18 +188,16 @@ class LogHandler {
   formatMessageLog(embed, data) {
     switch (data.action) {
       case "DELETE":
-        embed
-          .setTitle("🗑️ Message Deleted")
-          .addFields(
-            { name: "Author", value: `${data.message.author}`, inline: true },
-            { name: "Channel", value: `${data.message.channel}`, inline: true },
-            {
-              name: "Content",
-              value:
-                data.message.content ||
-                "No content (possibly embed or attachment)",
-            },
-          );
+        embed.setTitle("🗑️ Message Deleted").addFields(
+          { name: "Author", value: `${data.message.author}`, inline: true },
+          { name: "Channel", value: `${data.message.channel}`, inline: true },
+          {
+            name: "Content",
+            value:
+              data.message.content ||
+              "No content (possibly embed or attachment)",
+          },
+        );
         break;
       case "EDIT":
         embed
@@ -231,17 +231,15 @@ class LogHandler {
           );
         break;
       case "LEAVE":
-        embed
-          .setTitle("🎙️ Member Left Voice")
-          .addFields(
-            { name: "Member", value: `${data.member}`, inline: true },
-            { name: "Channel", value: `${data.channel}`, inline: true },
-            {
-              name: "Duration",
-              value: formatDuration(data.duration),
-              inline: true,
-            },
-          );
+        embed.setTitle("🎙️ Member Left Voice").addFields(
+          { name: "Member", value: `${data.member}`, inline: true },
+          { name: "Channel", value: `${data.channel}`, inline: true },
+          {
+            name: "Duration",
+            value: formatDuration(data.duration),
+            inline: true,
+          },
+        );
         break;
       case "MOVE":
         embed
@@ -276,18 +274,16 @@ class LogHandler {
           );
         break;
       case "TIMEOUT":
-        embed
-          .setTitle("⏰ Member Timed Out")
-          .addFields(
-            { name: "Member", value: `${data.target}`, inline: true },
-            { name: "Moderator", value: `${data.moderator}`, inline: true },
-            {
-              name: "Duration",
-              value: formatDuration(data.duration),
-              inline: true,
-            },
-            { name: "Reason", value: data.reason || "No reason provided" },
-          );
+        embed.setTitle("⏰ Member Timed Out").addFields(
+          { name: "Member", value: `${data.target}`, inline: true },
+          { name: "Moderator", value: `${data.moderator}`, inline: true },
+          {
+            name: "Duration",
+            value: formatDuration(data.duration),
+            inline: true,
+          },
+          { name: "Reason", value: data.reason || "No reason provided" },
+        );
         break;
     }
   }
@@ -295,17 +291,15 @@ class LogHandler {
   formatServerLog(embed, data) {
     switch (data.action) {
       case "CHANNEL_CREATE":
-        embed
-          .setTitle("📝 Channel Created")
-          .addFields(
-            { name: "Name", value: data.channel.name, inline: true },
-            { name: "Type", value: data.channel.type, inline: true },
-            {
-              name: "Category",
-              value: data.channel.parent?.name || "None",
-              inline: true,
-            },
-          );
+        embed.setTitle("📝 Channel Created").addFields(
+          { name: "Name", value: data.channel.name, inline: true },
+          { name: "Type", value: data.channel.type, inline: true },
+          {
+            name: "Category",
+            value: data.channel.parent?.name || "None",
+            inline: true,
+          },
+        );
         break;
       case "CHANNEL_DELETE":
         embed
@@ -376,21 +370,19 @@ class LogHandler {
         }
         break;
       case "DISCRIMINATOR_CHANGE":
-        embed
-          .setTitle("Discriminator Changed")
-          .addFields(
-            { name: "User", value: `${data.user}`, inline: true },
-            {
-              name: "Old Discriminator",
-              value: data.oldDiscriminator,
-              inline: true,
-            },
-            {
-              name: "New Discriminator",
-              value: data.newDiscriminator,
-              inline: true,
-            },
-          );
+        embed.setTitle("Discriminator Changed").addFields(
+          { name: "User", value: `${data.user}`, inline: true },
+          {
+            name: "Old Discriminator",
+            value: data.oldDiscriminator,
+            inline: true,
+          },
+          {
+            name: "New Discriminator",
+            value: data.newDiscriminator,
+            inline: true,
+          },
+        );
         break;
     }
   }
@@ -398,25 +390,23 @@ class LogHandler {
   async formatInviteLog(embed, data) {
     switch (data.action) {
       case "CREATE":
-        embed
-          .setTitle("Invite Created")
-          .addFields(
-            { name: "Creator", value: `${data.creator}`, inline: true },
-            { name: "Channel", value: `${data.channel}`, inline: true },
-            { name: "Code", value: data.code, inline: true },
-            {
-              name: "Max Uses",
-              value: data.maxUses?.toString() || "Unlimited",
-              inline: true,
-            },
-            {
-              name: "Expires",
-              value: data.expiresAt
-                ? `<t:${Math.floor(data.expiresAt.getTime() / 1000)}:R>`
-                : "Never",
-              inline: true,
-            },
-          );
+        embed.setTitle("Invite Created").addFields(
+          { name: "Creator", value: `${data.creator}`, inline: true },
+          { name: "Channel", value: `${data.channel}`, inline: true },
+          { name: "Code", value: data.code, inline: true },
+          {
+            name: "Max Uses",
+            value: data.maxUses?.toString() || "Unlimited",
+            inline: true,
+          },
+          {
+            name: "Expires",
+            value: data.expiresAt
+              ? `<t:${Math.floor(data.expiresAt.getTime() / 1000)}:R>`
+              : "Never",
+            inline: true,
+          },
+        );
         break;
       case "DELETE":
         embed
@@ -442,29 +432,25 @@ class LogHandler {
   async formatThreadLog(embed, data) {
     switch (data.action) {
       case "CREATE":
-        embed
-          .setTitle("Thread Created")
-          .addFields(
-            { name: "Name", value: data.thread.name, inline: true },
-            { name: "Creator", value: `${data.creator}`, inline: true },
-            {
-              name: "Parent Channel",
-              value: `${data.thread.parent}`,
-              inline: true,
-            },
-          );
+        embed.setTitle("Thread Created").addFields(
+          { name: "Name", value: data.thread.name, inline: true },
+          { name: "Creator", value: `${data.creator}`, inline: true },
+          {
+            name: "Parent Channel",
+            value: `${data.thread.parent}`,
+            inline: true,
+          },
+        );
         break;
       case "DELETE":
-        embed
-          .setTitle("Thread Deleted")
-          .addFields(
-            { name: "Name", value: data.thread.name, inline: true },
-            {
-              name: "Parent Channel",
-              value: `${data.thread.parent}`,
-              inline: true,
-            },
-          );
+        embed.setTitle("Thread Deleted").addFields(
+          { name: "Name", value: data.thread.name, inline: true },
+          {
+            name: "Parent Channel",
+            value: `${data.thread.parent}`,
+            inline: true,
+          },
+        );
         break;
       case "ARCHIVE":
         embed

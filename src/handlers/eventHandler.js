@@ -1,8 +1,17 @@
 import { LogHandler } from "./loggingHandler.js";
 
 export function setupLoggingEvents(client) {
+  console.log("Setting up logging events...");
   const logger = new LogHandler(client);
-  logger.initialize();
+
+  logger
+    .initialize()
+    .then(() => {
+      console.log("Logger initialized successfully");
+    })
+    .catch((error) => {
+      console.error("Failed to initialize logger:", error);
+    });
 
   client.on("guildMemberAdd", (member) => {
     logger.createLog("MEMBER", {
@@ -19,13 +28,19 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("guildMemberUpdate", (oldMember, newMember) => {
+    console.log("Member update event triggered");
     if (oldMember.nickname !== newMember.nickname) {
-      logger.createLog("MEMBER", {
-        action: "NICKNAME",
-        member: newMember,
-        oldNick: oldMember.nickname,
-        newNick: newMember.nickname,
-      });
+      console.log("Nickname change detected");
+      logger
+        .createLog("MEMBER", {
+          action: "NICKNAME",
+          member: newMember,
+          oldNick: oldMember.nickname,
+          newNick: newMember.nickname,
+        })
+        .catch((error) => {
+          console.error("Error creating nickname change log:", error);
+        });
     }
   });
 
