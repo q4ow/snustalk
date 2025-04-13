@@ -11,11 +11,11 @@ import {
 const applicationQuestions = [
   "How long have you been a member of our Discord server?",
   "Do you have any prior moderating experience? If yes, please elaborate.",
-  "What can you bring to our Staff Team?",
+  "What can you bring to our Moderator Team?",
   "What is your age?",
   "What timezone are you in?",
   "How many hours per week can you dedicate to moderating?",
-  "Why should we choose you as a staff member?",
+  "Why should we choose you as a Moderator?",
   "Have you read and do you agree to follow all server rules?",
 ];
 
@@ -31,17 +31,17 @@ export async function startApplication(interaction) {
 
   await dmChannel.send({
     content:
-      "Welcome to the staff application process! Please answer each question honestly. Type 'cancel' at any time to cancel the application.",
+      "Welcome to the Moderator application process! Please answer each question honestly. Type 'cancel' at any time to cancel the application.",
     embeds: [
       new EmbedBuilder()
-        .setTitle("First Question")
+        .setTitle("Moderator Application - First Question")
         .setDescription(applicationQuestions[0])
         .setColor("#2F3136"),
     ],
   });
 
   await interaction.reply({
-    content: "I've sent you a DM to start the application process!",
+    content: "I've sent you a DM to start the Moderator application process!",
     flags: 64,
   });
 }
@@ -86,7 +86,8 @@ async function submitApplication(message, application) {
   const joinedAgo = Math.floor((Date.now() - application.guildJoinDate) / 1000);
 
   const applicationEmbed = new EmbedBuilder()
-    .setTitle(`Staff Application - ${message.author.tag}`)
+    .setTitle(`Moderator Application - ${message.author.tag}`)
+    .setDescription("Application for Moderator Position")
     .setColor("#2F3136")
     .setTimestamp()
     .addFields(
