@@ -124,6 +124,136 @@ class LogHandler {
     }
   }
 
+  formatChannelLog(embed, data) {
+    switch (data.action) {
+      case "CREATE":
+        embed
+          .setTitle("📝 Channel Created")
+          .addFields(
+            { name: "Name", value: data.channel.name, inline: true },
+            { name: "Type", value: data.channel.type, inline: true },
+            {
+              name: "Category",
+              value: data.channel.parent?.name || "None",
+              inline: true,
+            },
+            {
+              name: "Position",
+              value: data.channel.position.toString(),
+              inline: true,
+            },
+          );
+        break;
+
+      case "DELETE":
+        embed
+          .setTitle("🗑️ Channel Deleted")
+          .addFields(
+            { name: "Name", value: data.channel.name, inline: true },
+            { name: "Type", value: data.channel.type, inline: true },
+            {
+              name: "Category",
+              value: data.channel.parent?.name || "None",
+              inline: true,
+            },
+          );
+        break;
+
+      case "UPDATE":
+        const changes = [];
+        if (data.oldChannel.name !== data.newChannel.name) {
+          changes.push(
+            `Name: ${data.oldChannel.name} → ${data.newChannel.name}`,
+          );
+        }
+        if (data.oldChannel.topic !== data.newChannel.topic) {
+          changes.push(
+            `Topic: ${data.oldChannel.topic || "None"} → ${data.newChannel.topic || "None"}`,
+          );
+        }
+        if (data.oldChannel.nsfw !== data.newChannel.nsfw) {
+          changes.push(
+            `NSFW: ${data.oldChannel.nsfw} → ${data.newChannel.nsfw}`,
+          );
+        }
+        if (
+          data.oldChannel.rateLimitPerUser !== data.newChannel.rateLimitPerUser
+        ) {
+          changes.push(
+            `Slowmode: ${formatDuration(data.oldChannel.rateLimitPerUser * 1000)} → ${formatDuration(data.newChannel.rateLimitPerUser * 1000)}`,
+          );
+        }
+        if (data.oldChannel.parent?.id !== data.newChannel.parent?.id) {
+          changes.push(
+            `Category: ${data.oldChannel.parent?.name || "None"} → ${data.newChannel.parent?.name || "None"}`,
+          );
+        }
+
+        embed
+          .setTitle("📝 Channel Updated")
+          .addFields(
+            {
+              name: "Channel",
+              value: data.newChannel.toString(),
+              inline: true,
+            },
+            {
+              name: "Changes",
+              value: changes.join("\n") || "No notable changes",
+            },
+          );
+        break;
+
+      case "THREAD_CREATE":
+        embed
+          .setTitle("🧵 Thread Created")
+          .addFields(
+            { name: "Name", value: data.thread.name, inline: true },
+            { name: "Creator", value: `${data.creator}`, inline: true },
+            {
+              name: "Parent Channel",
+              value: `${data.thread.parent}`,
+              inline: true,
+            },
+          );
+        break;
+
+      case "THREAD_DELETE":
+        embed
+          .setTitle("🧵 Thread Deleted")
+          .addFields(
+            { name: "Name", value: data.thread.name, inline: true },
+            {
+              name: "Parent Channel",
+              value: `${data.thread.parent}`,
+              inline: true,
+            },
+          );
+        break;
+
+      case "THREAD_UPDATE":
+        embed
+          .setTitle(`🧵 Thread ${data.archived ? "Archived" : "Unarchived"}`)
+          .addFields(
+            { name: "Name", value: data.thread.name, inline: true },
+            {
+              name: "Parent Channel",
+              value: `${data.thread.parent}`,
+              inline: true,
+            },
+            { name: "By", value: `${data.executor}`, inline: true },
+          );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Channel Action")
+          .setDescription(`Unknown action type: ${data.action}`);
+        break;
+    }
+    return embed;
+  }
+
   formatMemberLog(embed, data) {
     switch (data.action) {
       case "JOIN":
@@ -195,25 +325,73 @@ class LogHandler {
           },
         );
         break;
+
       case "EDIT":
         embed
           .setTitle("✏️ Message Edited")
           .addFields(
             { name: "Author", value: `${data.message.author}`, inline: true },
             { name: "Channel", value: `${data.message.channel}`, inline: true },
-            { name: "Before", value: data.oldContent },
-            { name: "After", value: data.newContent },
+            { name: "Before", value: data.oldContent || "Empty message" },
+            { name: "After", value: data.newContent || "Empty message" },
           );
         break;
+
       case "BULK_DELETE":
+        embed.setTitle("🗑️ Bulk Messages Deleted").addFields(
+          { name: "Channel", value: `${data.channel}`, inline: true },
+          { name: "Count", value: `${data.count} messages`, inline: true },
+          {
+            name: "Authors",
+            value: data.authors.map((author) => `${author}`).join(", "),
+          },
+          {
+            name: "Timespan",
+            value: `Between ${data.oldestMessage.createdAt.toLocaleString()} and ${data.newestMessage.createdAt.toLocaleString()}`,
+          },
+        );
+        break;
+
+      case "REACTION_ADD":
+      case "REACTION_REMOVE":
         embed
-          .setTitle("🗑️ Bulk Messages Deleted")
+          .setTitle(
+            `${data.action === "REACTION_ADD" ? "➕" : "➖"} Reaction ${data.action === "REACTION_ADD" ? "Added" : "Removed"}`,
+          )
           .addFields(
-            { name: "Channel", value: `${data.channel}`, inline: true },
-            { name: "Count", value: `${data.count} messages`, inline: true },
+            { name: "User", value: `${data.user}`, inline: true },
+            {
+              name: "Message Author",
+              value: `${data.message.author}`,
+              inline: true,
+            },
+            { name: "Channel", value: `${data.message.channel}`, inline: true },
+            { name: "Emoji", value: `${data.emoji}`, inline: true },
+            {
+              name: "Message Link",
+              value: `[Jump to Message](${data.message.url})`,
+            },
           );
+        break;
+
+      case "PINS_UPDATE":
+        embed.setTitle("📌 Channel Pins Updated").addFields(
+          { name: "Channel", value: `${data.channel}`, inline: true },
+          {
+            name: "Time",
+            value: `<t:${Math.floor(data.time.getTime() / 1000)}:F>`,
+            inline: true,
+          },
+        );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Message Action")
+          .setDescription(`Unknown action type: ${data.action}`);
         break;
     }
+    return embed;
   }
 
   formatVoiceLog(embed, data) {
@@ -324,13 +502,28 @@ class LogHandler {
           .addFields(
             { name: "Name", value: data.role.name, inline: true },
             { name: "Color", value: data.role.hexColor, inline: true },
+            {
+              name: "Hoisted",
+              value: data.role.hoist ? "Yes" : "No",
+              inline: true,
+            },
+            {
+              name: "Mentionable",
+              value: data.role.mentionable ? "Yes" : "No",
+              inline: true,
+            },
           );
         break;
+
       case "ROLE_DELETE":
         embed
           .setTitle("🗑️ Role Deleted")
-          .addFields({ name: "Name", value: data.role.name, inline: true });
+          .addFields(
+            { name: "Name", value: data.role.name, inline: true },
+            { name: "Color", value: data.role.hexColor, inline: true },
+          );
         break;
+
       case "ROLE_UPDATE":
         embed.setTitle("📝 Role Updated").addFields(
           { name: "Role", value: data.role.name, inline: true },
@@ -342,7 +535,36 @@ class LogHandler {
           },
         );
         break;
+
+      case "MEMBER_ROLE_ADD":
+        embed.setTitle("➕ Role Added to Member").addFields(
+          { name: "Member", value: `${data.member}`, inline: true },
+          { name: "Added By", value: `${data.moderator}`, inline: true },
+          {
+            name: "Roles Added",
+            value: data.roles.map((role) => role.name).join(", "),
+          },
+        );
+        break;
+
+      case "MEMBER_ROLE_REMOVE":
+        embed.setTitle("➖ Role Removed from Member").addFields(
+          { name: "Member", value: `${data.member}`, inline: true },
+          { name: "Removed By", value: `${data.moderator}`, inline: true },
+          {
+            name: "Roles Removed",
+            value: data.roles.map((role) => role.name).join(", "),
+          },
+        );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Role Action")
+          .setDescription(`Unknown action type: ${data.action}`);
+        break;
     }
+    return embed;
   }
 
   async formatUserLog(embed, data) {

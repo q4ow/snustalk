@@ -87,6 +87,53 @@ export function setupLoggingEvents(client) {
     });
   });
 
+  client.on("messageReactionAdd", async (reaction, user) => {
+    if (user.bot) return;
+    const message = reaction.message;
+
+    logger.createLog("MESSAGE", {
+      action: "REACTION_ADD",
+      message,
+      user,
+      emoji: reaction.emoji,
+    });
+  });
+
+  client.on("messageReactionRemove", async (reaction, user) => {
+    if (user.bot) return;
+    const message = reaction.message;
+
+    logger.createLog("MESSAGE", {
+      action: "REACTION_REMOVE",
+      message,
+      user,
+      emoji: reaction.emoji,
+    });
+  });
+
+  client.on("channelPinsUpdate", (channel, time) => {
+    logger.createLog("MESSAGE", {
+      action: "PINS_UPDATE",
+      channel,
+      time,
+    });
+  });
+
+  client.on("messageDeleteBulk", (messages) => {
+    logger.createLog("MESSAGE", {
+      action: "BULK_DELETE",
+      channel: messages.first().channel,
+      count: messages.size,
+      authors: [...new Set(messages.map((m) => m.author))],
+      oldestMessage: messages
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+        .first(),
+      newestMessage: messages
+        .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
+        .first(),
+    });
+  });
+
   client.on("voiceStateUpdate", (oldState, newState) => {
     if (!oldState.channelId && newState.channelId) {
       logger.createLog("VOICE", {
