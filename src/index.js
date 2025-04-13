@@ -1,189 +1,207 @@
 import {
-    Client,
-    GatewayIntentBits,
-    Partials,
-    EmbedBuilder,
-    ActivityType,
-} from 'discord.js';
-import dotenv from 'dotenv';
-import { handleVerification } from './handlers/verificationHandler.js';
-import { handleWelcome } from './handlers/welcomeHandler.js';
+  Client,
+  GatewayIntentBits,
+  Partials,
+  EmbedBuilder,
+  ActivityType,
+} from "discord.js";
+import dotenv from "dotenv";
+import { handleVerification } from "./handlers/verificationHandler.js";
+import { handleWelcome } from "./handlers/welcomeHandler.js";
 import {
-    handleTicketCreate,
-    handleTicketClose,
-    handleTicketClaim,
-    handleTicketUnclaim
-} from './handlers/ticketHandler.js';
-import { handleCommand, commands, registerSlashCommands, handleSlashCommand } from './utils/commands.js';
-import { startStatsTracker } from './handlers/statsHandler.js';
+  handleTicketCreate,
+  handleTicketClose,
+  handleTicketClaim,
+  handleTicketUnclaim,
+} from "./handlers/ticketHandler.js";
+import {
+  handleCommand,
+  commands,
+  registerSlashCommands,
+  handleSlashCommand,
+} from "./utils/commands.js";
+import { startStatsTracker } from "./handlers/statsHandler.js";
 
 dotenv.config();
 
 const requiredEnvVars = [
-    'DISCORD_TOKEN',
-    'GUILD_ID',
-    'VERIFICATION_CHANNEL_ID',
-    'WELCOME_CHANNEL_ID',
-    'VERIFIED_ROLE_ID',
-    'UNVERIFIED_ROLE_ID',
-    'TICKET_CATEGORY_ID',
-    'MANAGEMENT_ROLE_ID',
-    'STAFF_ROLE_ID',
-    'TICKET_LOGS_CHANNEL_ID',
-    'EZ_HOST_KEY',
-    'STATS_MEMBERS_CHANNEL_ID',
-    'STATS_BOTS_CHANNEL_ID',
-    'STATS_TOTAL_TICKETS_CHANNEL_ID',
-    'STATS_OPEN_TICKETS_CHANNEL_ID',
+  "DISCORD_TOKEN",
+  "GUILD_ID",
+  "VERIFICATION_CHANNEL_ID",
+  "WELCOME_CHANNEL_ID",
+  "VERIFIED_ROLE_ID",
+  "UNVERIFIED_ROLE_ID",
+  "TICKET_CATEGORY_ID",
+  "MANAGEMENT_ROLE_ID",
+  "STAFF_ROLE_ID",
+  "TICKET_LOGS_CHANNEL_ID",
+  "EZ_HOST_KEY",
+  "STATS_MEMBERS_CHANNEL_ID",
+  "STATS_BOTS_CHANNEL_ID",
+  "STATS_TOTAL_TICKETS_CHANNEL_ID",
+  "STATS_OPEN_TICKETS_CHANNEL_ID",
 ];
 
 for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
 }
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.MessageContent
-    ],
-    partials: [
-        Partials.Message,
-        Partials.Channel,
-        Partials.Reaction,
-        Partials.User,
-        Partials.GuildMember
-    ]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.MessageContent,
+  ],
+  partials: [
+    Partials.Message,
+    Partials.Channel,
+    Partials.Reaction,
+    Partials.User,
+    Partials.GuildMember,
+  ],
 });
 
-client.once('ready', async () => {
-    console.log(`🚀 Bot is online as ${client.user.tag}`);
-    console.log(`👥 Connected to ${client.guilds.cache.size} guild(s)`)
-    console.log(`🔗 Bot ID: ${client.user.id}`)
-    console.log()
+client.once("ready", async () => {
+  console.log(`🚀 Bot is online as ${client.user.tag}`);
+  console.log(`👥 Connected to ${client.guilds.cache.size} guild(s)`);
+  console.log(`🔗 Bot ID: ${client.user.id}`);
+  console.log();
 
-    console.log('Initializing...');
-    await registerSlashCommands(client);
-    console.log('✅ Slash commands registered');
-    console.log('✅ Ticketing handler initialized');
-    console.log('✅ Purge handler initialized');
+  console.log("Initializing...");
+  await registerSlashCommands(client);
+  console.log("✅ Slash commands registered");
+  console.log("✅ Ticketing handler initialized");
+  console.log("✅ Purge handler initialized");
 
-    const guild = client.guilds.cache.first();
-    await startStatsTracker(guild);
-    console.log('✅ Stats tracker initialized');
+  const guild = client.guilds.cache.first();
+  await startStatsTracker(guild);
+  console.log("✅ Stats tracker initialized");
 
-    client.user.setPresence({
-        activities: [{
-            name: 'SnusTalk Central',
-            type: ActivityType.Watching
-        }],
-        status: 'dnd'
-    });
+  client.user.setPresence({
+    activities: [
+      {
+        name: "SnusTalk Central",
+        type: ActivityType.Watching,
+      },
+    ],
+    status: "dnd",
+  });
 
-    try {
-        await setupVerificationMessage();
-        console.log('✅ Verification handler initialized');
+  try {
+    await setupVerificationMessage();
+    console.log("✅ Verification handler initialized");
 
-        const welcomeChannel = await client.channels.fetch(process.env.WELCOME_CHANNEL_ID);
-        if (!welcomeChannel) throw new Error('Welcome channel not found');
+    const welcomeChannel = await client.channels.fetch(
+      process.env.WELCOME_CHANNEL_ID,
+    );
+    if (!welcomeChannel) throw new Error("Welcome channel not found");
 
-        const unverifiedRole = await client.guilds.cache.first().roles.fetch(process.env.UNVERIFIED_ROLE_ID);
-        if (!unverifiedRole) throw new Error('Unverified role not found');
+    const unverifiedRole = await client.guilds.cache
+      .first()
+      .roles.fetch(process.env.UNVERIFIED_ROLE_ID);
+    if (!unverifiedRole) throw new Error("Unverified role not found");
 
-
-        console.log('✅ Welcome handler initialized');
-    } catch (error) {
-        console.error('❌ Failed to initialize systems:', error);
-    }
+    console.log("✅ Welcome handler initialized");
+  } catch (error) {
+    console.error("❌ Failed to initialize systems:", error);
+  }
 });
 
 async function setupVerificationMessage() {
-    const channel = await client.channels.fetch(process.env.VERIFICATION_CHANNEL_ID);
-    if (!channel) throw new Error('Verification channel not found');
+  const channel = await client.channels.fetch(
+    process.env.VERIFICATION_CHANNEL_ID,
+  );
+  if (!channel) throw new Error("Verification channel not found");
 
-    const messages = await channel.messages.fetch({ limit: 10 });
-    const existingVerification = messages.find(msg =>
-        msg.author.id === client.user.id &&
-        msg.embeds.length > 0 &&
-        msg.embeds[0].title === 'Member Verification'
-    );
+  const messages = await channel.messages.fetch({ limit: 10 });
+  const existingVerification = messages.find(
+    (msg) =>
+      msg.author.id === client.user.id &&
+      msg.embeds.length > 0 &&
+      msg.embeds[0].title === "Member Verification",
+  );
 
-    if (existingVerification) {
-        const checkReaction = existingVerification.reactions.cache.get('✅');
-        if (!checkReaction) await existingVerification.react('✅');
-        return;
-    }
+  if (existingVerification) {
+    const checkReaction = existingVerification.reactions.cache.get("✅");
+    if (!checkReaction) await existingVerification.react("✅");
+    return;
+  }
 
-    const verificationEmbed = new EmbedBuilder()
-        .setTitle('Member Verification')
-        .setDescription('React with ✅ to verify yourself and gain access to the server.')
-        .setColor('#00ff00')
-        .setTimestamp();
+  const verificationEmbed = new EmbedBuilder()
+    .setTitle("Member Verification")
+    .setDescription(
+      "React with ✅ to verify yourself and gain access to the server.",
+    )
+    .setColor("#00ff00")
+    .setTimestamp();
 
-    const message = await channel.send({ embeds: [verificationEmbed] });
-    await message.react('✅');
+  const message = await channel.send({ embeds: [verificationEmbed] });
+  await message.react("✅");
 }
 
-client.on('guildMemberAdd', handleWelcome);
-client.on('messageReactionAdd', handleVerification);
+client.on("guildMemberAdd", handleWelcome);
+client.on("messageReactionAdd", handleVerification);
 
-client.on('interactionCreate', async interaction => {
-    try {
-        if (interaction.isCommand()) {
-            await handleSlashCommand(interaction);
-            return;
-        }
-
-        if (interaction.isButton()) {
-            const handlers = {
-                'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
-                'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
-                'claim_ticket': () => handleTicketClaim(interaction),
-                'unclaim_ticket': () => handleTicketUnclaim(interaction),
-                'close_ticket': () => handleTicketClose(interaction)
-            };
-
-            const handler = handlers[interaction.customId];
-            if (handler) await handler();
-        }
-    } catch (error) {
-        console.error('❌ Error handling interaction:', error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({
-                content: 'An error occurred while processing your request.',
-                flags: 64
-            }).catch(() => { });
-        }
+client.on("interactionCreate", async (interaction) => {
+  try {
+    if (interaction.isCommand()) {
+      await handleSlashCommand(interaction);
+      return;
     }
-});
 
-client.on('messageCreate', async message => {
-    if (message.author.bot) return;
-    try {
-        await handleCommand(message, commands);
-    } catch (error) {
-        console.error('❌ Error handling command:', error);
+    if (interaction.isButton()) {
+      const handlers = {
+        create_general_ticket: () => handleTicketCreate(interaction, "GENERAL"),
+        create_management_ticket: () =>
+          handleTicketCreate(interaction, "MANAGEMENT"),
+        claim_ticket: () => handleTicketClaim(interaction),
+        unclaim_ticket: () => handleTicketUnclaim(interaction),
+        close_ticket: () => handleTicketClose(interaction),
+      };
+
+      const handler = handlers[interaction.customId];
+      if (handler) await handler();
     }
+  } catch (error) {
+    console.error("❌ Error handling interaction:", error);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply({
+          content: "An error occurred while processing your request.",
+          flags: 64,
+        })
+        .catch(() => {});
+    }
+  }
 });
 
-client.on('error', error => {
-    console.error('❌ Discord client error:', error);
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  try {
+    await handleCommand(message, commands);
+  } catch (error) {
+    console.error("❌ Error handling command:", error);
+  }
 });
 
-process.on('unhandledRejection', (error) => {
-    console.error('❌ Unhandled promise rejection:', error);
+client.on("error", (error) => {
+  console.error("❌ Discord client error:", error);
 });
 
-process.on('uncaughtException', (error) => {
-    console.error('❌ Uncaught exception:', error);
-    process.exit(1);
+process.on("unhandledRejection", (error) => {
+  console.error("❌ Unhandled promise rejection:", error);
 });
 
-client.login(process.env.DISCORD_TOKEN).catch(error => {
-    console.error('❌ Failed to login:', error);
-    process.exit(1);
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught exception:", error);
+  process.exit(1);
+});
+
+client.login(process.env.DISCORD_TOKEN).catch((error) => {
+  console.error("❌ Failed to login:", error);
+  process.exit(1);
 });
