@@ -64,7 +64,8 @@ client.once('ready', async () => {
     console.log('Initializing systems...');
     await registerSlashCommands(client);
     console.log('✅ Slash commands registered');
-    console.log('✅ Ticketing system initialized');
+    console.log('✅ Ticketing handler initialized');
+    console.log('✅ Purge handler initialized');
 
     client.user.setPresence({
         activities: [{
@@ -76,7 +77,7 @@ client.once('ready', async () => {
 
     try {
         await setupVerificationMessage();
-        console.log('✅ Verification system initialized');
+        console.log('✅ Verification handler initialized');
 
         const welcomeChannel = await client.channels.fetch(process.env.WELCOME_CHANNEL_ID);
         if (!welcomeChannel) throw new Error('Welcome channel not found');
@@ -85,7 +86,7 @@ client.once('ready', async () => {
         if (!unverifiedRole) throw new Error('Unverified role not found');
 
 
-        console.log('✅ Welcome system initialized');
+        console.log('✅ Welcome handler initialized');
     } catch (error) {
         console.error('❌ Failed to initialize systems:', error);
     }
