@@ -41,6 +41,28 @@ export async function handleVerification(reaction, user) {
 
     try {
       await member.roles.add(verifiedRole);
+
+      if (process.env.ADDITIONAL_VERIFIED_ROLE_IDS) {
+        const additionalRoleIds =
+          process.env.ADDITIONAL_VERIFIED_ROLE_IDS.split(",").map((id) =>
+            id.trim(),
+          );
+        for (const roleId of additionalRoleIds) {
+          const role = await guild.roles.fetch(roleId).catch((error) => {
+            console.error(`Failed to fetch additional role ${roleId}:`, error);
+            return null;
+          });
+
+          if (role) {
+            await member.roles.add(role).catch((error) => {
+              console.error(
+                `Failed to add role ${roleId} to member ${member.id}:`,
+                error,
+              );
+            });
+          }
+        }
+      }
       await member.roles.remove(unverifiedRole);
     } catch (error) {
       if (error.code === 50013) {
