@@ -15,7 +15,27 @@ const slashCommands = [
     new SlashCommandBuilder()
         .setName('setup-tickets')
         .setDescription('Sets up the ticket system')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .addStringOption(option =>
+            option.setName('title')
+                .setDescription('Title for the ticket panel')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('description')
+                .setDescription('Description for the ticket panel')
+                .setRequired(false))
+        .addRoleOption(option =>
+            option.setName('moderator_role')
+                .setDescription('Role for ticket moderators')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('color')
+                .setDescription('Color for the embed (hex code)')
+                .setRequired(false))
+        .addBooleanOption(option =>
+            option.setName('enable_claiming')
+                .setDescription('Enable ticket claiming system')
+                .setRequired(false)),
 
     new SlashCommandBuilder()
         .setName('resend-verify')
@@ -130,8 +150,25 @@ export async function handleSlashCommand(interaction) {
     try {
         switch (interaction.commandName) {
             case 'setup-tickets':
-                await setupTicketSystem(interaction.channel);
-                await interaction.reply({ content: '✅ Ticket system has been set up!', flags: 64 });
+                const title = interaction.options.getString('title');
+                const description = interaction.options.getString('description');
+                const moderatorRole = interaction.options.getRole('moderator_role');
+                const color = interaction.options.getString('color');
+                const enableClaiming = interaction.options.getBoolean('enable_claiming');
+
+                const options = {
+                    ...(title && { title }),
+                    ...(description && { description }),
+                    ...(moderatorRole && { moderatorRoleId: moderatorRole.id }),
+                    ...(color && { color }),
+                    ...(enableClaiming !== null && { enableClaiming })
+                };
+
+                await setupTicketSystem(interaction.channel, options);
+                await interaction.reply({
+                    content: '✅ Ticket system has been set up with your custom configuration!',
+                    flags: 64
+                });
                 break;
 
             case 'resend-verify':

@@ -115,12 +115,21 @@ EZ_HOST_KEY=             # API key for EZ.Host (for transcripts)
 ## Usage
 
 ### Bot Commands
+Both slash commands and prefix commands are available:
+
+#### Slash Commands
+- `/setup-tickets` - Creates the ticket panel
+- `/purge <amount>` - Deletes specified number of messages (1-100)
+- `/resend-verify` - Resends verification embed (DEBUG)
+- `/welcome` - Manually triggers welcome message (DEBUG)
+
+#### Prefix Commands
 - `$setup-tickets` - Creates the ticket panel
 - `$purge <number>` - Deletes specified number of messages
+- `$resend-verify` - Resends verification embed (DEBUG)
+- `$welcome` - Manually triggers welcome message (DEBUG)
 
-### Debug Commands
-- `$resend-verify` - Resends verification embed
-- `$welcome` - Manually triggers welcome message
+> **Note**: Slash commands provide better permission handling and parameter validation. They are the recommended way to interact with the bot.
 
 ### Verification Process
 1. Users join the server

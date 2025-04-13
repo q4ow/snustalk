@@ -8,7 +8,12 @@ import {
 import dotenv from 'dotenv';
 import { handleVerification } from './handlers/verificationHandler.js';
 import { handleWelcome } from './handlers/welcomeHandler.js';
-import { handleTicketCreate, handleTicketClose } from './handlers/ticketHandler.js';
+import {
+    handleTicketCreate,
+    handleTicketClose,
+    handleTicketClaim,
+    handleTicketUnclaim
+} from './handlers/ticketHandler.js';
 import { handleCommand, commands, registerSlashCommands, handleSlashCommand } from './utils/commands.js';
 
 dotenv.config();
@@ -127,6 +132,19 @@ client.on('interactionCreate', async interaction => {
             const handlers = {
                 'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
                 'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
+                'close_ticket': () => handleTicketClose(interaction)
+            };
+
+            const handler = handlers[interaction.customId];
+            if (handler) await handler();
+        }
+
+        if (interaction.isButton()) {
+            const handlers = {
+                'create_general_ticket': () => handleTicketCreate(interaction, 'GENERAL'),
+                'create_management_ticket': () => handleTicketCreate(interaction, 'MANAGEMENT'),
+                'claim_ticket': () => handleTicketClaim(interaction),
+                'unclaim_ticket': () => handleTicketUnclaim(interaction),
                 'close_ticket': () => handleTicketClose(interaction)
             };
 
