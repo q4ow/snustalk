@@ -25,6 +25,7 @@ import {
   handleApplicationResponse,
   handleApplicationButton,
 } from "./handlers/applicationHandler.js";
+import { setupLoggingEvents } from './handlers/eventHandler.js';
 
 dotenv.config();
 
@@ -48,6 +49,16 @@ const requiredEnvVars = [
   "APPLICATIONS_CATEGORY_ID",
   "APPLICATIONS_CHANNEL_ID",
   "APPLICATIONS_LOGS_CHANNEL_ID",
+  "MEMBER_LOGS_CHANNEL_ID",
+  "MESSAGE_LOGS_CHANNEL_ID",
+  "MOD_LOGS_CHANNEL_ID",
+  "VOICE_LOGS_CHANNEL_ID",
+  "CHANNEL_LOGS_CHANNEL_ID",
+  "ROLE_LOGS_CHANNEL_ID",
+  "SERVER_LOGS_CHANNEL_ID",
+  "USER_LOGS_CHANNEL_ID",
+  "INVITE_LOGS_CHANNEL_ID",
+  "THREAD_LOGS_CHANNEL_ID",
 ];
 
 for (const envVar of requiredEnvVars) {
@@ -83,11 +94,13 @@ client.once("ready", async () => {
   console.log("Initializing...");
   await registerSlashCommands(client);
   console.log("✅ Slash commands registered");
+  setupLoggingEvents(client);
+  console.log('✅ Logging system initialized');
   console.log("✅ Ticketing handler initialized");
   console.log("✅ Purge handler initialized");
   console.log("✅ Notes handler initialized");
 
-  const guild = client.guilds.cache.first();
+  // const guild = client.guilds.cache.first();
   // await startStatsTracker(guild);
   console.log("✅ Stats tracker initialized");
 
@@ -248,7 +261,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }
 });
