@@ -705,7 +705,7 @@ export async function handleSlashCommand(interaction) {
                         case 'add':
                             const content = interaction.options.getString('content');
                             const noteId = await addNote(interaction.user.id, content);
-                            await interaction.reply({ content: `✅ Note added with ID: ${noteId}`, ephemeral: true });
+                            await interaction.reply({ content: `✅ Note added with ID: ${noteId}`, flags: 64 });
                             break;
 
                         case 'list':
@@ -716,24 +716,24 @@ export async function handleSlashCommand(interaction) {
                                 .setDescription(notes.map(note =>
                                     `**ID:** ${note.id}\n${note.content}\n*Created: <t:${Math.floor(new Date(note.timestamp).getTime() / 1000)}:R>*${note.edited ? `\n*Edited: <t:${Math.floor(new Date(note.edited).getTime() / 1000)}:R>*` : ''}\n`
                                 ).join('\n'));
-                            await interaction.reply({ embeds: [embed], ephemeral: true });
+                            await interaction.reply({ embeds: [embed], flags: 64 });
                             break;
 
                         case 'delete':
                             const deleteId = interaction.options.getString('id');
                             await deleteNote(interaction.user.id, deleteId);
-                            await interaction.reply({ content: '✅ Note deleted successfully.', ephemeral: true });
+                            await interaction.reply({ content: '✅ Note deleted successfully.', flags: 64 });
                             break;
 
                         case 'edit':
                             const editId = interaction.options.getString('id');
                             const newContent = interaction.options.getString('content');
                             await editNote(interaction.user.id, editId, newContent);
-                            await interaction.reply({ content: '✅ Note edited successfully.', ephemeral: true });
+                            await interaction.reply({ content: '✅ Note edited successfully.', flags: 64 });
                             break;
                     }
                 } catch (error) {
-                    await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+                    await interaction.reply({ content: `❌ ${error.message}`, flags: 64 });
                 }
                 break;
         }
