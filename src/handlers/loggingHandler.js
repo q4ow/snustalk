@@ -58,6 +58,12 @@ class LogHandler {
   constructor(client) {
     this.client = client;
     this.channels = new Map();
+    this.blacklistedChannels =
+      process.env.LOGGING_BLACKLIST_CHANNELS?.split(",") || [];
+  }
+
+  isChannelBlacklisted(channelId) {
+    return this.blacklistedChannels.includes(channelId);
   }
 
   async initialize() {
@@ -84,6 +90,21 @@ class LogHandler {
     const channel = this.channels.get(type);
     if (!channel) {
       console.warn(`No channel configured for ${type} logs`);
+      return;
+    }
+
+    if (
+      data.message?.channelId &&
+      this.isChannelBlacklisted(data.message.channelId)
+    ) {
+      console.log(
+        `Skipping log for blacklisted channel: ${data.message.channelId}`,
+      );
+      return;
+    }
+
+    if (data.channel?.id && this.isChannelBlacklisted(data.channel.id)) {
+      console.log(`Skipping log for blacklisted channel: ${data.channel.id}`);
       return;
     }
 

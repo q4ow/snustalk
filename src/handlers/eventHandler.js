@@ -95,6 +95,21 @@ export function setupLoggingEvents(client) {
     });
   });
 
+  client.on("messageDeleteBulk", (messages) => {
+    logger.createLog("MESSAGE", {
+      action: "BULK_DELETE",
+      channel: messages.first().channel,
+      count: messages.size,
+      authors: [...new Set(messages.map((m) => m.author))],
+      oldestMessage: messages
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+        .first(),
+      newestMessage: messages
+        .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
+        .first(),
+    });
+  });
+
   client.on("messageReactionAdd", async (reaction, user) => {
     if (user.bot) return;
     const message = reaction.message;
@@ -124,21 +139,6 @@ export function setupLoggingEvents(client) {
       action: "PINS_UPDATE",
       channel,
       time,
-    });
-  });
-
-  client.on("messageDeleteBulk", (messages) => {
-    logger.createLog("MESSAGE", {
-      action: "BULK_DELETE",
-      channel: messages.first().channel,
-      count: messages.size,
-      authors: [...new Set(messages.map((m) => m.author))],
-      oldestMessage: messages
-        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-        .first(),
-      newestMessage: messages
-        .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
-        .first(),
     });
   });
 
