@@ -18,7 +18,6 @@ export function createHelpEmbed(slashCommands, prefix) {
     ],
     "🎫 Tickets": ["setup-tickets"],
     "🔧 Utility": ["userinfo", "serverinfo", "avatar", "ping"],
-    "📝 Notes": ["note"],
     "⚙️ System": ["resend-verify", "welcome"],
   };
 

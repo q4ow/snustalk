@@ -102,7 +102,6 @@ client.once("ready", async () => {
   console.log("✅ Logging system initialized");
   console.log("✅ Ticketing handler initialized");
   console.log("✅ Purge handler initialized");
-  console.log("✅ Notes handler initialized");
 
   // const guild = client.guilds.cache.first();
   // await startStatsTracker(guild);
@@ -266,7 +265,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     client.emit("interactionError", interaction, error);
