@@ -3,6 +3,7 @@ import { AuditLogEvent } from "discord.js";
 
 export function setupLoggingEvents(client) {
   const logger = new LogHandler(client);
+  const voiceStates = new Map();
 
   logger
     .initialize()
@@ -142,16 +143,22 @@ export function setupLoggingEvents(client) {
   });
 
   client.on("voiceStateUpdate", (oldState, newState) => {
+    const userId = oldState.member.id || newState.member.id;
+
     if (!oldState.channelId && newState.channelId) {
+      voiceStates.set(userId, Date.now());
+
       logger.createLog("VOICE", {
         action: "JOIN",
         member: newState.member,
         channel: newState.channel,
       });
-    } else if (oldState.channelId && !newState.channelId) {
-      const duration = oldState.member.voice.joinedTimestamp
-        ? Date.now() - oldState.member.voice.joinedTimestamp
-        : 0;
+    }
+
+    else if (oldState.channelId && !newState.channelId) {
+      const joinTime = voiceStates.get(userId);
+      const duration = joinTime ? Date.now() - joinTime : 0;
+      voiceStates.delete(userId);
 
       logger.createLog("VOICE", {
         action: "LEAVE",
@@ -159,7 +166,11 @@ export function setupLoggingEvents(client) {
         channel: oldState.channel,
         duration: duration,
       });
-    } else if (oldState.channelId !== newState.channelId) {
+    }
+
+    else if (oldState.channelId !== newState.channelId) {
+      voiceStates.set(userId, Date.now());
+
       logger.createLog("VOICE", {
         action: "MOVE",
         member: newState.member,
