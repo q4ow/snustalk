@@ -149,11 +149,15 @@ export function setupLoggingEvents(client) {
         channel: newState.channel,
       });
     } else if (oldState.channelId && !newState.channelId) {
+      const duration = oldState.member.voice.joinedTimestamp
+        ? Date.now() - oldState.member.voice.joinedTimestamp
+        : 0;
+
       logger.createLog("VOICE", {
         action: "LEAVE",
         member: oldState.member,
         channel: oldState.channel,
-        duration: Date.now() - oldState.member.voice.joinedTimestamp,
+        duration: duration,
       });
     } else if (oldState.channelId !== newState.channelId) {
       logger.createLog("VOICE", {
