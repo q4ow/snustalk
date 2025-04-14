@@ -266,7 +266,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     client.emit("interactionError", interaction, error);
@@ -296,20 +296,25 @@ client.on("interactionError", async (interaction, error) => {
   console.error("Interaction error:", error);
 
   try {
-    const errorMessage = error.code === 'UND_ERR_CONNECT_TIMEOUT'
-      ? 'Connection timeout. Please try again.'
-      : 'An error occurred while processing your request.';
+    const errorMessage =
+      error.code === "UND_ERR_CONNECT_TIMEOUT"
+        ? "Connection timeout. Please try again."
+        : "An error occurred while processing your request.";
 
     if (interaction.deferred) {
-      await interaction.editReply({
-        content: `❌ ${errorMessage}`,
-        flags: 64
-      }).catch(console.error);
+      await interaction
+        .editReply({
+          content: `❌ ${errorMessage}`,
+          flags: 64,
+        })
+        .catch(console.error);
     } else if (!interaction.replied) {
-      await interaction.reply({
-        content: `❌ ${errorMessage}`,
-        flags: 64
-      }).catch(console.error);
+      await interaction
+        .reply({
+          content: `❌ ${errorMessage}`,
+          flags: 64,
+        })
+        .catch(console.error);
     }
   } catch (e) {
     console.error("Error handling interaction error:", e);

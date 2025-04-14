@@ -41,7 +41,7 @@ export async function handleWelcome(member) {
 
     await welcomeChannel.send({
       content: `Hey ${member}!`,
-      embeds: [welcomeEmbed]
+      embeds: [welcomeEmbed],
     });
   } catch (error) {
     console.error("Error in welcome handler:", error);

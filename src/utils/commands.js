@@ -81,7 +81,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
