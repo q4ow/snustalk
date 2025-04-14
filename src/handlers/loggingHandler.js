@@ -66,6 +66,14 @@ class LogHandler {
     return this.blacklistedChannels.includes(channelId);
   }
 
+  isLoggingChannel(channelId) {
+    const loggingChannelIds = Object.values(LOG_TYPES)
+      .map(config => process.env[config.channelEnv])
+      .filter(id => id);
+
+    return loggingChannelIds.includes(channelId);
+  }
+
   async initialize() {
     for (const [type, config] of Object.entries(LOG_TYPES)) {
       const channelId = process.env[config.channelEnv];
@@ -90,6 +98,16 @@ class LogHandler {
     const channel = this.channels.get(type);
     if (!channel) {
       console.warn(`No channel configured for ${type} logs`);
+      return;
+    }
+
+    if (data.message?.channelId && this.isLoggingChannel(data.message.channelId)) {
+      console.log(`Skipping log for logging channel: ${data.message.channelId}`);
+      return;
+    }
+
+    if (data.channel?.id && this.isLoggingChannel(data.channel.id)) {
+      console.log(`Skipping log for logging channel: ${data.channel.id}`);
       return;
     }
 
