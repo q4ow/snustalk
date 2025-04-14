@@ -81,7 +81,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -493,27 +493,53 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "apply":
-        const appChannel = await interaction.guild.channels.fetch(
-          process.env.APPLICATIONS_CHANNEL_ID,
-        );
-        if (!appChannel) {
-          await interaction.reply({
-            content:
-              "❌ Applications channel not found. Please contact an administrator.",
-            flags: 64,
-          });
-          return;
-        }
+        try {
+          let appChannel;
+          try {
+            appChannel = await interaction.guild.channels.fetch(
+              process.env.APPLICATIONS_CHANNEL_ID
+            );
+          } catch (error) {
+            await interaction.reply({
+              content: "❌ I don't have access to the applications channel. Please contact an administrator.",
+              flags: 64
+            });
+            return;
+          }
 
-        if (interaction.channel.id !== process.env.APPLICATIONS_CHANNEL_ID) {
-          await interaction.reply({
-            content: `❌ Please use this command in ${appChannel}`,
-            flags: 64,
-          });
-          return;
-        }
+          if (!appChannel) {
+            await interaction.reply({
+              content: "❌ Applications channel not found. Please contact an administrator.",
+              flags: 64
+            });
+            return;
+          }
 
-        await startApplication(interaction);
+          const permissions = appChannel.permissionsFor(interaction.guild.members.me);
+          if (!permissions?.has(['ViewChannel', 'SendMessages'])) {
+            await interaction.reply({
+              content: "❌ I don't have the required permissions in the applications channel. Please contact an administrator.",
+              flags: 64
+            });
+            return;
+          }
+
+          if (interaction.channel.id !== process.env.APPLICATIONS_CHANNEL_ID) {
+            await interaction.reply({
+              content: `❌ Please use this command in ${appChannel}`,
+              flags: 64
+            });
+            return;
+          }
+
+          await startApplication(interaction);
+        } catch (error) {
+          console.error("Error in apply command:", error);
+          await interaction.reply({
+            content: "❌ An error occurred while processing your application. Please try again later or contact an administrator.",
+            flags: 64
+          });
+        }
         break;
 
       case "embed":

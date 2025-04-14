@@ -157,6 +157,51 @@ export const slashCommands = [
         .setRequired(false),
     ),
   new SlashCommandBuilder()
+    .setName("note")
+    .setDescription("Manage your personal notes")
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("add")
+        .setDescription("Add a new note")
+        .addStringOption((option) =>
+          option
+            .setName("content")
+            .setDescription("The content of your note")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand.setName("list").setDescription("List all your notes"),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("delete")
+        .setDescription("Delete one of your notes")
+        .addStringOption((option) =>
+          option
+            .setName("id")
+            .setDescription("The ID of the note to delete")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("edit")
+        .setDescription("Edit one of your notes")
+        .addStringOption((option) =>
+          option
+            .setName("id")
+            .setDescription("The ID of the note to edit")
+            .setRequired(true),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("content")
+            .setDescription("The new content of your note")
+            .setRequired(true),
+        ),
+    ),
+  new SlashCommandBuilder()
     .setName("warn")
     .setDescription("Warn a user")
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
@@ -298,18 +343,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("apply")
     .setDescription("Start a staff application process")
-    .setDMPermission(false) // TODO figure this shit out
-    .addStringOption((option) =>
-      option
-        .setName("position")
-        .setDescription("The staff position you're applying for")
-        .setRequired(true)
-        .addChoices(
-          { name: "Moderator", value: "moderator" },
-          { name: "Helper", value: "helper" },
-          { name: "Trial Staff", value: "trial" },
-        ),
-    ),
+    .setDMPermission(true), // Allow DM permissions for application process
 
   new SlashCommandBuilder()
     .setName("embed")

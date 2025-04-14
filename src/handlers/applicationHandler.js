@@ -22,28 +22,63 @@ const applicationQuestions = [
 const applications = new Map();
 
 export async function startApplication(interaction) {
-  const dmChannel = await interaction.user.createDM();
-  applications.set(interaction.user.id, {
-    answers: [],
-    startTime: Date.now(),
-    guildJoinDate: interaction.member.joinedAt,
-  });
+  try {
+    try {
+      const dmChannel = await interaction.user.createDM();
+      await dmChannel.send({
+        content: "Testing DM permissions - this message will be deleted.",
+        flags: 64
+      }).then(msg => msg.delete().catch(() => { }));
+    } catch (error) {
+      await interaction.reply({
+        content: "❌ I couldn't send you a DM! Please enable DMs from server members to start the application process.",
+        flags: 64
+      });
+      return;
+    }
 
-  await dmChannel.send({
-    content:
-      "Welcome to the Moderator application process! Please answer each question honestly. Type 'cancel' at any time to cancel the application.",
-    embeds: [
-      new EmbedBuilder()
-        .setTitle("Moderator Application - First Question")
-        .setDescription(applicationQuestions[0])
-        .setColor("#2F3136"),
-    ],
-  });
+    applications.set(interaction.user.id, {
+      answers: [],
+      startTime: Date.now(),
+      guildJoinDate: interaction.member.joinedAt,
+    });
 
-  await interaction.reply({
-    content: "I've sent you a DM to start the Moderator application process!",
-    flags: 64,
-  });
+    try {
+      const dmChannel = await interaction.user.createDM();
+      await dmChannel.send({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Moderator Application - First Question")
+            .setDescription(applicationQuestions[0])
+            .setColor("#2F3136")
+            .setFooter({ text: "Type 'cancel' at any time to cancel the application" })
+        ],
+      });
+
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: "✅ I've sent you a DM to start the Moderator application process!",
+          flags: 64
+        });
+      }
+    } catch (error) {
+      applications.delete(interaction.user.id);
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: "❌ Failed to send application questions. Please make sure your DMs are open.",
+          flags: 64
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in startApplication:", error);
+    if (!interaction.replied) {
+      await interaction.reply({
+        content: "❌ There was an error starting the application process. Please try again later or contact an administrator.",
+        flags: 64
+      });
+    }
+  }
 }
 
 export async function handleApplicationResponse(message) {
@@ -77,51 +112,66 @@ export async function handleApplicationResponse(message) {
 }
 
 async function submitApplication(message, application) {
-  const guild = message.client.guilds.cache.get(process.env.GUILD_ID);
-  const logsChannel = guild.channels.cache.get(
-    process.env.APPLICATIONS_LOGS_CHANNEL_ID,
-  );
+  try {
+    const guild = message.client.guilds.cache.get(process.env.GUILD_ID);
+    if (!guild) {
+      await message.reply("Error: Could not find the server. Please contact an administrator.");
+      return;
+    }
 
-  const duration = Math.floor((Date.now() - application.startTime) / 1000);
-  const joinedAgo = Math.floor((Date.now() - application.guildJoinDate) / 1000);
+    const logsChannel = guild.channels.cache.get(process.env.APPLICATIONS_LOGS_CHANNEL_ID);
+    if (!logsChannel) {
+      await message.reply("Error: Could not find the applications log channel. Please contact an administrator.");
+      return;
+    }
 
-  const applicationEmbed = new EmbedBuilder()
-    .setTitle(`Moderator Application - ${message.author.tag}`)
-    .setDescription("Application for Moderator Position")
-    .setColor("#2F3136")
-    .setTimestamp()
-    .addFields(
-      applicationQuestions.map((question, index) => ({
-        name: question,
-        value: application.answers[index],
-      })),
-    )
-    .addFields([
-      {
-        name: "Application Stats",
-        value:
-          `**User ID:** ${message.author.id}\n` +
-          `**Username:** ${message.author.tag}\n` +
-          `**Duration:** ${duration} seconds\n` +
-          `**Joined Server:** <t:${Math.floor(application.guildJoinDate.getTime() / 1000)}:R>`,
-      },
-    ]);
+    const permissions = logsChannel.permissionsFor(guild.members.me);
+    if (!permissions?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+      await message.reply("Error: I don't have the required permissions in the applications channel. Please contact an administrator.");
+      return;
+    }
 
-  const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`accept_app_${message.author.id}`)
-      .setLabel("Accept")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`deny_app_${message.author.id}`)
-      .setLabel("Deny")
-      .setStyle(ButtonStyle.Danger),
-  );
+    const duration = Math.floor((Date.now() - application.startTime) / 1000);
 
-  await logsChannel.send({ embeds: [applicationEmbed], components: [buttons] });
-  await message.reply(
-    "Your application has been submitted! Staff will review it soon.",
-  );
+    const applicationEmbed = new EmbedBuilder()
+      .setTitle(`Moderator Application - ${message.author.tag}`)
+      .setDescription("Application for Moderator Position")
+      .setColor("#2F3136")
+      .setTimestamp()
+      .addFields(
+        applicationQuestions.map((question, index) => ({
+          name: question,
+          value: application.answers[index],
+        })),
+      )
+      .addFields([
+        {
+          name: "Application Stats",
+          value:
+            `**User ID:** ${message.author.id}\n` +
+            `**Username:** ${message.author.tag}\n` +
+            `**Duration:** ${duration} seconds\n` +
+            `**Joined Server:** <t:${Math.floor(application.guildJoinDate.getTime() / 1000)}:R>`,
+        },
+      ]);
+
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`accept_app_${message.author.id}`)
+        .setLabel("Accept")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`deny_app_${message.author.id}`)
+        .setLabel("Deny")
+        .setStyle(ButtonStyle.Danger),
+    );
+
+    await logsChannel.send({ embeds: [applicationEmbed], components: [buttons] });
+    await message.reply("Your application has been submitted! Staff will review it soon.");
+  } catch (error) {
+    console.error("Error in submitApplication:", error);
+    await message.reply("There was an error submitting your application. Please try again later or contact an administrator.").catch(() => { });
+  }
 }
 
 export async function handleApplicationButton(interaction) {
@@ -228,6 +278,6 @@ export async function handleApplicationButton(interaction) {
         content: "There was an error processing the application response.",
         flags: 64,
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 }

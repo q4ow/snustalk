@@ -3,12 +3,14 @@ const { Pool } = pkg;
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function resetDatabase() {
-  // Connect as postgres user to perform administrative tasks
   const adminPool = new Pool({
     user: "postgres",
     host: "localhost",
@@ -18,41 +20,38 @@ async function resetDatabase() {
 
   try {
     console.log("🗑️ Dropping existing database if it exists...");
-    await adminPool.query("DROP DATABASE IF EXISTS snustalk");
+    await adminPool.query(`DROP DATABASE IF EXISTS ${process.env.DB_NAME}`);
 
     console.log("🆕 Creating new database...");
-    await adminPool.query("CREATE DATABASE snustalk");
+    await adminPool.query(`CREATE DATABASE ${process.env.DB_NAME}`);
 
-    console.log("👤 Granting privileges to keiran user...");
+    console.log(`👤 Granting privileges to ${process.env.DB_USER} user...`);
     await adminPool.query(
-      "GRANT ALL PRIVILEGES ON DATABASE snustalk TO keiran",
+      `GRANT ALL PRIVILEGES ON DATABASE ${process.env.DB_NAME} TO ${process.env.DB_USER}`,
     );
 
-    // Connect to the new database as postgres to set up schema permissions
     const adminSnustalkPool = new Pool({
       user: "postgres",
       host: "localhost",
-      database: "snustalk",
+      database: process.env.DB_NAME,
       port: 5432,
     });
 
     console.log("🔑 Granting schema permissions...");
-    await adminSnustalkPool.query("GRANT ALL ON SCHEMA public TO keiran");
+    await adminSnustalkPool.query(`GRANT ALL ON SCHEMA public TO ${process.env.DB_USER}`);
     await adminSnustalkPool.query(
-      "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO keiran",
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${process.env.DB_USER}`,
     );
     await adminSnustalkPool.end();
 
-    // Switch to connecting as keiran to the new database
     const userPool = new Pool({
-      user: "keiran",
-      host: "localhost",
-      database: "snustalk",
-      password: "clara",
-      port: 5432,
+      user: process.env.DB_USER,
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      password: process.env.DB_PASSWORD,
+      port: process.env.DB_PORT,
     });
 
-    // Read and execute the schema file
     console.log("📝 Initializing database schema...");
     const schemaPath = path.join(__dirname, "sql", "session-table.sql");
     const schema = fs.readFileSync(schemaPath, "utf8");
@@ -68,5 +67,4 @@ async function resetDatabase() {
   }
 }
 
-// Run the reset function
 resetDatabase().catch(console.error);
