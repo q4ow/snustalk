@@ -25,14 +25,17 @@ export async function startApplication(interaction) {
   try {
     try {
       const dmChannel = await interaction.user.createDM();
-      await dmChannel.send({
-        content: "Testing DM permissions - this message will be deleted.",
-        flags: 64
-      }).then(msg => msg.delete().catch(() => { }));
+      await dmChannel
+        .send({
+          content: "Testing DM permissions - this message will be deleted.",
+          flags: 64,
+        })
+        .then((msg) => msg.delete().catch(() => {}));
     } catch (error) {
       await interaction.reply({
-        content: "❌ I couldn't send you a DM! Please enable DMs from server members to start the application process.",
-        flags: 64
+        content:
+          "❌ I couldn't send you a DM! Please enable DMs from server members to start the application process.",
+        flags: 64,
       });
       return;
     }
@@ -51,22 +54,26 @@ export async function startApplication(interaction) {
             .setTitle("Moderator Application - First Question")
             .setDescription(applicationQuestions[0])
             .setColor("#2F3136")
-            .setFooter({ text: "Type 'cancel' at any time to cancel the application" })
+            .setFooter({
+              text: "Type 'cancel' at any time to cancel the application",
+            }),
         ],
       });
 
       if (!interaction.replied) {
         await interaction.reply({
-          content: "✅ I've sent you a DM to start the Moderator application process!",
-          flags: 64
+          content:
+            "✅ I've sent you a DM to start the Moderator application process!",
+          flags: 64,
         });
       }
     } catch (error) {
       applications.delete(interaction.user.id);
       if (!interaction.replied) {
         await interaction.reply({
-          content: "❌ Failed to send application questions. Please make sure your DMs are open.",
-          flags: 64
+          content:
+            "❌ Failed to send application questions. Please make sure your DMs are open.",
+          flags: 64,
         });
       }
     }
@@ -74,8 +81,9 @@ export async function startApplication(interaction) {
     console.error("Error in startApplication:", error);
     if (!interaction.replied) {
       await interaction.reply({
-        content: "❌ There was an error starting the application process. Please try again later or contact an administrator.",
-        flags: 64
+        content:
+          "❌ There was an error starting the application process. Please try again later or contact an administrator.",
+        flags: 64,
       });
     }
   }
@@ -115,19 +123,27 @@ async function submitApplication(message, application) {
   try {
     const guild = message.client.guilds.cache.get(process.env.GUILD_ID);
     if (!guild) {
-      await message.reply("Error: Could not find the server. Please contact an administrator.");
+      await message.reply(
+        "Error: Could not find the server. Please contact an administrator.",
+      );
       return;
     }
 
-    const logsChannel = guild.channels.cache.get(process.env.APPLICATIONS_LOGS_CHANNEL_ID);
+    const logsChannel = guild.channels.cache.get(
+      process.env.APPLICATIONS_LOGS_CHANNEL_ID,
+    );
     if (!logsChannel) {
-      await message.reply("Error: Could not find the applications log channel. Please contact an administrator.");
+      await message.reply(
+        "Error: Could not find the applications log channel. Please contact an administrator.",
+      );
       return;
     }
 
     const permissions = logsChannel.permissionsFor(guild.members.me);
-    if (!permissions?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-      await message.reply("Error: I don't have the required permissions in the applications channel. Please contact an administrator.");
+    if (!permissions?.has(["ViewChannel", "SendMessages", "EmbedLinks"])) {
+      await message.reply(
+        "Error: I don't have the required permissions in the applications channel. Please contact an administrator.",
+      );
       return;
     }
 
@@ -166,11 +182,20 @@ async function submitApplication(message, application) {
         .setStyle(ButtonStyle.Danger),
     );
 
-    await logsChannel.send({ embeds: [applicationEmbed], components: [buttons] });
-    await message.reply("Your application has been submitted! Staff will review it soon.");
+    await logsChannel.send({
+      embeds: [applicationEmbed],
+      components: [buttons],
+    });
+    await message.reply(
+      "Your application has been submitted! Staff will review it soon.",
+    );
   } catch (error) {
     console.error("Error in submitApplication:", error);
-    await message.reply("There was an error submitting your application. Please try again later or contact an administrator.").catch(() => { });
+    await message
+      .reply(
+        "There was an error submitting your application. Please try again later or contact an administrator.",
+      )
+      .catch(() => {});
   }
 }
 
@@ -278,6 +303,6 @@ export async function handleApplicationButton(interaction) {
         content: "There was an error processing the application response.",
         flags: 64,
       })
-      .catch(() => { });
+      .catch(() => {});
   }
 }

@@ -153,9 +153,7 @@ export function setupLoggingEvents(client) {
         member: newState.member,
         channel: newState.channel,
       });
-    }
-
-    else if (oldState.channelId && !newState.channelId) {
+    } else if (oldState.channelId && !newState.channelId) {
       const joinTime = voiceStates.get(userId);
       const duration = joinTime ? Date.now() - joinTime : 0;
       voiceStates.delete(userId);
@@ -166,9 +164,7 @@ export function setupLoggingEvents(client) {
         channel: oldState.channel,
         duration: duration,
       });
-    }
-
-    else if (oldState.channelId !== newState.channelId) {
+    } else if (oldState.channelId !== newState.channelId) {
       voiceStates.set(userId, Date.now());
 
       logger.createLog("VOICE", {

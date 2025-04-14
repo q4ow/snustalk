@@ -285,7 +285,7 @@ export async function handleTicketCreate(interaction, type) {
                   channel,
                   guild,
                   user: client.user,
-                  reply: () => { },
+                  reply: () => {},
                   deferred: false,
                 },
                 true,
@@ -516,9 +516,9 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                  .replace(/[^\x20-\x7E\n]/g, "")
-                  .replace(/<@[!&]?(\d+)>/g, "@user")
-                  .trim()
+                    .replace(/[^\x20-\x7E\n]/g, "")
+                    .replace(/<@[!&]?(\d+)>/g, "@user")
+                    .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })

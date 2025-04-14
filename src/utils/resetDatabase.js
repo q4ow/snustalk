@@ -3,7 +3,7 @@ const { Pool } = pkg;
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -51,7 +51,9 @@ async function resetDatabase() {
     });
 
     console.log("🔑 Granting schema permissions...");
-    await adminSnustalkPool.query(`GRANT ALL ON SCHEMA public TO ${process.env.DB_USER}`);
+    await adminSnustalkPool.query(
+      `GRANT ALL ON SCHEMA public TO ${process.env.DB_USER}`,
+    );
     await adminSnustalkPool.query(
       `ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${process.env.DB_USER}`,
     );

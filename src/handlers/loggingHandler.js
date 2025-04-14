@@ -68,8 +68,8 @@ class LogHandler {
 
   isLoggingChannel(channelId) {
     const loggingChannelIds = Object.values(LOG_TYPES)
-      .map(config => process.env[config.channelEnv])
-      .filter(id => id);
+      .map((config) => process.env[config.channelEnv])
+      .filter((id) => id);
 
     return loggingChannelIds.includes(channelId);
   }
@@ -101,8 +101,13 @@ class LogHandler {
       return;
     }
 
-    if (data.message?.channelId && this.isLoggingChannel(data.message.channelId)) {
-      console.log(`Skipping log for logging channel: ${data.message.channelId}`);
+    if (
+      data.message?.channelId &&
+      this.isLoggingChannel(data.message.channelId)
+    ) {
+      console.log(
+        `Skipping log for logging channel: ${data.message.channelId}`,
+      );
       return;
     }
 

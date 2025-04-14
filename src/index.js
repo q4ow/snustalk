@@ -265,7 +265,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     client.emit("interactionError", interaction, error);
