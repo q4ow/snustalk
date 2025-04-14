@@ -8,6 +8,7 @@ import {
 import dotenv from "dotenv";
 import { handleVerification } from "./handlers/verificationHandler.js";
 import { handleWelcome } from "./handlers/welcomeHandler.js";
+import { handleGoodbye } from "./handlers/goodbyeHandler.js";
 import {
   handleTicketCreate,
   handleTicketClose,
@@ -26,8 +27,6 @@ import {
   handleApplicationButton,
 } from "./handlers/applicationHandler.js";
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
-import express from 'express';
-import { setupAuth } from './auth/auth.js';
 
 dotenv.config();
 
@@ -36,6 +35,7 @@ const requiredEnvVars = [
   "GUILD_ID",
   "VERIFICATION_CHANNEL_ID",
   "WELCOME_CHANNEL_ID",
+  "GOODBYE_CHANNEL_ID",
   "VERIFIED_ROLE_ID",
   "UNVERIFIED_ROLE_ID",
   "TICKET_CATEGORY_ID",
@@ -94,12 +94,6 @@ client.once("ready", async () => {
   console.log(`👥 Connected to ${client.guilds.cache.size} guild(s)`);
   console.log(`🔗 Bot ID: ${client.user.id}`);
   console.log();
-  const app = express();
-  setupAuth(app);
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Auth server running on localhost:${PORT}`);
-  });
 
   console.log("Initializing...");
   await registerSlashCommands(client);
@@ -227,6 +221,7 @@ async function setupVerificationMessage() {
 }
 
 client.on("guildMemberAdd", handleWelcome);
+client.on("guildMemberRemove", handleGoodbye);
 client.on("messageReactionAdd", handleVerification);
 
 client.on("interactionCreate", async (interaction) => {
@@ -273,6 +268,8 @@ client.on("interactionCreate", async (interaction) => {
         })
         .catch(() => { });
     }
+
+    client.emit("interactionError", interaction, error);
   }
 });
 
@@ -293,6 +290,30 @@ client.on("messageCreate", async (message) => {
 
 client.on("error", (error) => {
   console.error("❌ Discord client error:", error);
+});
+
+client.on("interactionError", async (interaction, error) => {
+  console.error("Interaction error:", error);
+
+  try {
+    const errorMessage = error.code === 'UND_ERR_CONNECT_TIMEOUT'
+      ? 'Connection timeout. Please try again.'
+      : 'An error occurred while processing your request.';
+
+    if (interaction.deferred) {
+      await interaction.editReply({
+        content: `❌ ${errorMessage}`,
+        flags: 64
+      }).catch(console.error);
+    } else if (!interaction.replied) {
+      await interaction.reply({
+        content: `❌ ${errorMessage}`,
+        flags: 64
+      }).catch(console.error);
+    }
+  } catch (e) {
+    console.error("Error handling interaction error:", e);
+  }
 });
 
 process.on("unhandledRejection", (error) => {

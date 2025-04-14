@@ -2,6 +2,13 @@
 
 A Discord bot built with discord.js, originally developed for the SnusTalk Central server but available for anyone to use and modify under the MIT license.
 
+## I AM ONLY HUMAN
+I maintain this project in my spare time. I am 16 and my exams are next month, this bot **WILL NOT** get frequent, meaningful updates.
+Although I don't ever plan to abandon this, I make no promises. The project will always be MIT licensed, you will forever have the right
+to copy, edit, redistribute and use this code in any commercial or non-commercial manner. Show some love with a star if it's interesting
+and maybe fork it if you're feeling adventurous. I'm open to pull requests, issues, feature requests and more. If you do something cool
+with my code, I'd love to see it so drop me an email or add me on [Discord](https://discord.com/users/1230319937155760131).
+
 ## Features
 
 ### Currently Implemented
@@ -21,6 +28,8 @@ A Discord bot built with discord.js, originally developed for the SnusTalk Centr
   - Transcript logging
   - Automatic category and permission management
   - Staff role notifications
+  - Auto-close functionality
+  - Customizable ticket settings
 
 - **Server Statistics**
   - Member count tracking
@@ -40,17 +49,40 @@ A Discord bot built with discord.js, originally developed for the SnusTalk Centr
   - Action logging
   - Permission-based access
 
+- **Logging System**
+  - Member events (joins, leaves, nickname changes)
+  - Message events (edits, deletions, bulk deletions)
+  - Moderation actions
+  - Voice channel events
+  - Channel events (create, delete, update)
+  - Role events
+  - Server events
+  - User updates
+  - Invite tracking
+  - Thread monitoring
+  - Customizable logging channels
+  - Channel blacklisting
+
+- **Staff Applications**
+  - Multi-step application process
+  - DM-based questionnaire
+  - Staff review system
+  - Automatic role assignment
+  - Application logging
+
 - **Utility Commands**
   - User information
   - Server information
   - Avatar display
   - Bot latency check
+  - Custom embed creation
 
 ## Setup Instructions
 
 ### Prerequisites
 - Node.js 16.9.0 or higher
 - pnpm (recommended) or npm
+- postgresql
 - A Discord bot token
 - A Discord server with admin permissions
 
@@ -82,34 +114,57 @@ pnpm dev
 Create a .env file in the root directory with the following variables:
 
 ```env
-DISCORD_TOKEN=                  # Your bot's token
-GUILD_ID=                       # Your server ID
+# Bot and Server Configuration
+DISCORD_TOKEN=                   # Your bot's token
+GUILD_ID=                        # Your server ID
+EZ_HOST_KEY=                     # API key for EZ.Host (for transcripts)
 RESTORECORD_LINK=               # Your restorecord link (optional)
-EZ_HOST_KEY=                    # API key for EZ.Host (for transcripts)
+
+# Channel IDs
+WELCOME_CHANNEL_ID=             # Channel ID for welcome messages
+VERIFICATION_CHANNEL_ID=        # Channel ID for verification
+APPLICATIONS_CHANNEL_ID=        # Channel ID for staff applications
+APPLICATIONS_LOGS_CHANNEL_ID=   # Channel ID for application logs
+TICKET_CATEGORY_ID=             # Category ID for tickets
+
+# Role IDs
 VERIFIED_ROLE_ID=               # Role ID for verified members
 UNVERIFIED_ROLE_ID=             # Role ID for unverified members
 MANAGEMENT_ROLE_ID=             # Role ID for management team
+STAFF_APPLICANT_ROLE_IDS=       # Comma-separated role IDs for staff applicants
+MODERATOR_ROLE_ID=              # Role ID for moderators
 STAFF_ROLE_ID=                  # Role ID for staff members
-TICKET_CATEGORY_ID=             # Category ID for tickets
-WELCOME_CHANNEL_ID=             # Channel ID for welcome messages
-VERIFICATION_CHANNEL_ID=        # Channel ID for verification
+MUTED_ROLE_ID=                  # Role ID for muted members
+
+# Logging Channel IDs
 TICKET_LOGS_CHANNEL_ID=         # Channel ID for ticket logs
+MEMBER_LOGS_CHANNEL_ID=         # Channel ID for member events (joins, leaves, etc)
+MESSAGE_LOGS_CHANNEL_ID=        # Channel ID for message events
+MOD_LOGS_CHANNEL_ID=            # Channel ID for moderation actions
+VOICE_LOGS_CHANNEL_ID=          # Channel ID for voice channel events
+CHANNEL_LOGS_CHANNEL_ID=        # Channel ID for channel events
+ROLE_LOGS_CHANNEL_ID=           # Channel ID for role changes
+SERVER_LOGS_CHANNEL_ID=         # Channel ID for server-wide changes
+USER_LOGS_CHANNEL_ID=           # Channel ID for user updates
+INVITE_LOGS_CHANNEL_ID=         # Channel ID for invite tracking
+THREAD_LOGS_CHANNEL_ID=         # Channel ID for thread events
+
+# Statistics Channel IDs
 STATS_MEMBERS_CHANNEL_ID=       # Channel ID for member count
 STATS_BOTS_CHANNEL_ID=          # Channel ID for bot count
 STATS_TOTAL_TICKETS_CHANNEL_ID= # Channel ID for total tickets
 STATS_OPEN_TICKETS_CHANNEL_ID=  # Channel ID for open tickets
+
+# Database Configuration
+DB_USER=                        # Database username
+DB_HOST=                        # Database host
+DB_NAME=                        # Database name
+DB_PASSWORD=                    # Database password
+DB_PORT=                        # Database port
+
+# Session Configuration
+SESSION_SECRET=                 # Secret for session management
 ```
-
-### How to Get These Values
-
-1. **Bot Token**: 
-   - Create a new application at [Discord Developer Portal](https://discord.com/developers/applications)
-   - Go to Bot section and create a bot
-   - Copy the token
-
-2. **IDs**:
-   - Enable Developer Mode in Discord (User Settings > App Settings > Advanced)
-   - Right-click channels/roles/server to copy IDs
 
 ## Server Setup
 
@@ -118,6 +173,7 @@ STATS_OPEN_TICKETS_CHANNEL_ID=  # Channel ID for open tickets
    - Verification channel
    - Ticket logs channel
    - Ticket category
+   - Other logs channels
 
 2. Create required roles:
     - Verified
@@ -202,8 +258,8 @@ All slash commands are also available as prefix commands using `$`:
 ## Roadmap
 
 ### Goals
+- [x] Implement logging system
 - [ ] Add more moderation commands
-- [ ] Implement logging system
 - [ ] Add custom commands feature
 - [ ] Implement auto-moderation features
 - [ ] Add user information tracking system

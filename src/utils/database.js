@@ -30,9 +30,7 @@ const initDb = async () => {
     if (!fs.existsSync(sqlPath)) {
       throw new Error(`SQL file not found at ${sqlPath}`);
     }
-
-    const sqlContent = fs.readFileSync(sqlPath, 'utf8');
-    await client.query(sqlContent);
+    await client.query(fs.readFileSync(sqlPath, 'utf8'));
     console.log('✅ Database tables initialized');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
@@ -138,41 +136,86 @@ export const db = {
     );
   },
 
-  async getUserNotes(userId) {
+  async createTicket(ticketData) {
     const result = await pool.query(
-      'SELECT notes FROM user_notes WHERE user_id = $1',
-      [userId]
+      `INSERT INTO tickets (channel_id, guild_id, creator_id, ticket_number, ticket_type)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [
+        ticketData.channelId,
+        ticketData.guildId,
+        ticketData.creatorId,
+        ticketData.ticketNumber,
+        ticketData.ticketType
+      ]
     );
-    return result.rows[0]?.notes || [];
+    return result.rows[0].id;
   },
 
-  async addUserNote(userId, note) {
+  async closeTicket(channelId, closedBy) {
+    const result = await pool.query(
+      `UPDATE tickets 
+       SET status = 'closed', closed_at = CURRENT_TIMESTAMP, closed_by = $2
+       WHERE channel_id = $1
+       RETURNING id`,
+      [channelId, closedBy]
+    );
+    return result.rows[0]?.id;
+  },
+
+  async getTicketInfo(channelId) {
+    const result = await pool.query(
+      `SELECT * FROM tickets WHERE channel_id = $1`,
+      [channelId]
+    );
+    return result.rows[0];
+  },
+
+  async addTicketMessage(ticketId, message) {
     await pool.query(
-      'INSERT INTO user_notes (user_id, notes) VALUES ($1, ARRAY[$2]) ON CONFLICT (user_id) DO UPDATE SET notes = array_append(user_notes.notes, $2)',
-      [userId, note]
+      `INSERT INTO ticket_messages (ticket_id, author_id, content)
+       VALUES ($1, $2, $3)`,
+      [ticketId, message.authorId, message.content]
     );
-    return true;
   },
 
-  async deleteUserNote(userId, noteId) {
+  async getTicketMessages(ticketId) {
     const result = await pool.query(
-      'UPDATE user_notes SET notes = array_remove(notes, $2) WHERE user_id = $1 RETURNING *',
-      [userId, noteId]
+      `SELECT * FROM ticket_messages 
+       WHERE ticket_id = $1 
+       ORDER BY sent_at ASC`,
+      [ticketId]
     );
-    return result.rowCount > 0;
+    return result.rows;
   },
 
-  async editUserNote(userId, noteId, newContent) {
-    const result = await pool.query(
-      `UPDATE user_notes 
-       SET notes = array_replace(notes, 
-         (SELECT unnest(notes) WHERE (notes->>'id')::text = $2), 
-         jsonb_build_object('id', $2, 'content', $3, 'edited', $4)
-       )
-       WHERE user_id = $1`,
-      [userId, noteId, newContent, new Date().toISOString()]
-    );
-    return result.rowCount > 0;
+  async getGuildTickets(guildId, status = null) {
+    const query = status
+      ? 'SELECT * FROM tickets WHERE guild_id = $1 AND status = $2 ORDER BY created_at DESC'
+      : 'SELECT * FROM tickets WHERE guild_id = $1 ORDER BY created_at DESC';
+    const params = status ? [guildId, status] : [guildId];
+    const result = await pool.query(query, params);
+    return result.rows;
+  },
+
+  async ensureUser(userId, userData = {}) {
+    try {
+      const result = await pool.query(
+        `INSERT INTO users (id, discord_id, username) 
+         VALUES ($1, $1, $2)
+         ON CONFLICT (id) DO UPDATE 
+         SET username = COALESCE($2, users.username),
+             updated_at = CURRENT_TIMESTAMP
+         RETURNING *`,
+        [userId, userData.username || 'Unknown User']
+      );
+
+      console.log(`✅ User ${userId} ${result.command === 'INSERT' ? 'created' : 'updated'}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error('❌ Error ensuring user:', error);
+      throw new Error('Failed to create/update user');
+    }
   },
 
   async addModAction(guildId, action) {
@@ -198,37 +241,4 @@ export const db = {
     );
     return result.rowCount > 0;
   },
-
-  // New OAuth-related functions
-  async createUser(userData) {
-    const result = await pool.query(
-      `INSERT INTO users (discord_id, username, email, avatar, access_token, refresh_token)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (discord_id) 
-       DO UPDATE SET
-         username = $2,
-         email = $3,
-         avatar = $4,
-         access_token = $5,
-         refresh_token = $6
-       RETURNING *`,
-      [
-        userData.id,
-        userData.username,
-        userData.email,
-        userData.avatar,
-        userData.accessToken,
-        userData.refreshToken
-      ]
-    );
-    return result.rows[0];
-  },
-
-  async getUserById(discordId) {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE discord_id = $1',
-      [discordId]
-    );
-    return result.rows[0];
-  }
 };

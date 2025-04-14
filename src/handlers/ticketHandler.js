@@ -201,6 +201,14 @@ export async function handleTicketCreate(interaction, type) {
       ],
     });
 
+    const ticketId = await db.createTicket({
+      channelId: ticketChannel.id,
+      guildId: guild.id,
+      creatorId: interaction.user.id,
+      ticketNumber: parseInt(ticketNumber),
+      ticketType: type
+    });
+
     const embed = new EmbedBuilder()
       .setTitle(`${ticketType.label} Ticket #${ticketNumber}`)
       .setDescription(
@@ -260,12 +268,21 @@ export async function handleTicketCreate(interaction, type) {
               (Date.now() - lastMessage.createdTimestamp) / (1000 * 60 * 60);
 
             if (hoursSinceLastMessage >= settings.autoCloseHours) {
+              const ticketId = await db.closeTicket(channel.id, interaction.user.id);
+
+              if (ticketId) {
+                await db.addTicketMessage(ticketId, {
+                  authorId: 'SYSTEM',
+                  content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`
+                });
+              }
+
               await handleTicketClose(
                 {
                   channel,
                   guild,
                   user: client.user,
-                  reply: () => {},
+                  reply: () => { },
                   deferred: false,
                 },
                 true,
@@ -496,9 +513,9 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                    .replace(/[^\x20-\x7E\n]/g, "")
-                    .replace(/<@[!&]?(\d+)>/g, "@user")
-                    .trim()
+                  .replace(/[^\x20-\x7E\n]/g, "")
+                  .replace(/<@[!&]?(\d+)>/g, "@user")
+                  .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })

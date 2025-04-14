@@ -4,12 +4,6 @@ import { handleWelcome } from "../handlers/welcomeHandler.js";
 import { handlePurge } from "../handlers/purgeHandler.js";
 import { REST, Routes, EmbedBuilder } from "discord.js";
 import {
-  addNote,
-  deleteNote,
-  editNote,
-  listNotes,
-} from "../handlers/notesHandler.js";
-import {
   warnUser,
   kickUser,
   banUser,
@@ -24,131 +18,12 @@ import { createHelpEmbed } from "../embeds/helpEmbed.js";
 import { createUserEmbed } from "../embeds/userEmbed.js";
 import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
-import { createNotesEmbed } from "../embeds/notesEmbed.js";
 import { slashCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
 export const commands = {
-  "setup-tickets": {
-    permissions: ["Administrator"],
-    deleteAfter: true,
-    async execute(message) {
-      await setupTicketSystem(message.channel);
-    },
-    errorMessage: "There was an error setting up the ticket system.",
-  },
-  "resend-verify": {
-    permissions: ["ManageRoles"],
-    deleteAfter: true,
-    async execute(message) {
-      const mockReaction = {
-        message: {
-          channelId: process.env.VERIFICATION_CHANNEL_ID,
-          guild: message.guild,
-          channel: message.channel,
-        },
-        emoji: { name: "✅" },
-      };
-      await handleVerification(mockReaction, message.author);
-      await message.reply(
-        "✅ Verification messages have been sent to your DMs.",
-      );
-    },
-    errorMessage: "❌ An error occurred while sending verification embeds.",
-  },
-  welcome: {
-    permissions: ["ManageRoles"],
-    deleteAfter: true,
-    async execute(message) {
-      await handleWelcome(message.member);
-    },
-    errorMessage: "❌ An error occurred while sending welcome message.",
-  },
-  purge: {
-    permissions: ["ManageMessages"],
-    deleteAfter: true,
-    async execute(message) {
-      const args = message.content.trim().split(/ +/);
-      const amount = args[1];
-      await handlePurge(message, [amount]);
-    },
-    errorMessage: "❌ An error occurred while purging messages.",
-  },
-  userinfo: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message) {
-      const mentionedUser = message.mentions.users.first() || message.author;
-      const member = await message.guild.members.fetch(mentionedUser.id);
-      const userEmbed = createUserEmbed(mentionedUser, member);
-      await message.reply({ embeds: [userEmbed] });
-    },
-    errorMessage: "❌ Could not fetch user information.",
-  },
-
-  serverinfo: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message) {
-      const guild = message.guild;
-      const owner = await guild.fetchOwner();
-      const serverEmbed = createServerEmbed(guild, owner);
-      await message.reply({ embeds: [serverEmbed] });
-    },
-    errorMessage: "❌ Could not fetch server information.",
-  },
-
-  lock: {
-    permissions: ["ManageChannels"],
-    deleteAfter: false,
-    async execute(message) {
-      const channel = message.mentions.channels.first() || message.channel;
-      await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-        SendMessages: false,
-      });
-      await message.reply(`🔒 ${channel} has been locked.`);
-    },
-    errorMessage: "❌ Could not lock the channel.",
-  },
-
-  unlock: {
-    permissions: ["ManageChannels"],
-    deleteAfter: false,
-    async execute(message) {
-      const channel = message.mentions.channels.first() || message.channel;
-      await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-        SendMessages: null,
-      });
-      await message.reply(`🔓 ${channel} has been unlocked.`);
-    },
-    errorMessage: "❌ Could not unlock the channel.",
-  },
-
-  nickname: {
-    permissions: ["ManageNicknames"],
-    deleteAfter: false,
-    async execute(message) {
-      const args = message.content.split(" ").slice(1);
-      const targetUser = message.mentions.members.first();
-      if (!targetUser)
-        return message.reply(
-          "❌ Please mention a user to change their nickname.",
-        );
-
-      const newNickname = args.slice(1).join(" ");
-      if (!newNickname)
-        return message.reply("❌ Please provide a new nickname.");
-
-      await targetUser.setNickname(newNickname);
-      await message.reply(
-        `✅ Changed ${targetUser.user.tag}'s nickname to \`${newNickname}\``,
-      );
-    },
-    errorMessage: "❌ Could not change the nickname.",
-  },
-
   ping: {
     permissions: [],
     deleteAfter: false,
@@ -162,76 +37,6 @@ export const commands = {
       );
     },
     errorMessage: "❌ Could not check ping.",
-  },
-
-  avatar: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message) {
-      const user = message.mentions.users.first() || message.author;
-      const avatarEmbed = createAvatarEmbed(user);
-      await message.reply({ embeds: [avatarEmbed] });
-    },
-    errorMessage: "❌ Could not fetch avatar.",
-  },
-
-  note: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message, args) {
-      if (!args.length) {
-        return message.reply(
-          "Usage: `note <add|list|delete|edit> [content|id]`",
-        );
-      }
-
-      const subcommand = args[0].toLowerCase();
-      const content = args.slice(1).join(" ");
-
-      try {
-        switch (subcommand) {
-          case "add":
-            if (!content) return message.reply("Please provide note content.");
-            const noteId = await addNote(message.author.id, content);
-            return message.reply(`✅ Note added with ID: ${noteId}`);
-
-          case "list":
-            const notes = await listNotes(message.author.id);
-            const embed = createNotesEmbed(notes);
-            return message.reply({ embeds: [embed] });
-
-          case "delete":
-            if (!content) return message.reply("Please provide a note ID.");
-            await deleteNote(message.author.id, content);
-            return message.reply("✅ Note deleted successfully.");
-
-          case "edit":
-            const [id, ...newContent] = args.slice(1);
-            if (!id || !newContent.length)
-              return message.reply(
-                "Please provide both note ID and new content.",
-              );
-            await editNote(message.author.id, id, newContent.join(" "));
-            return message.reply("✅ Note edited successfully.");
-
-          default:
-            return message.reply(
-              "Invalid subcommand. Use `add`, `list`, `delete`, or `edit`.",
-            );
-        }
-      } catch (error) {
-        return message.reply(`❌ ${error.message}`);
-      }
-    },
-  },
-  help: {
-    permissions: [],
-    deleteAfter: false,
-    async execute(message) {
-      const helpEmbed = createHelpEmbed(slashCommands, BOT_PREFIX);
-      await message.reply({ embeds: [helpEmbed] });
-    },
-    errorMessage: "❌ Could not display help information.",
   },
 };
 
@@ -276,7 +81,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -425,52 +230,6 @@ export async function handleSlashCommand(interaction) {
           interaction.options.getUser("user") || interaction.user;
         const avatarEmbed = createAvatarEmbed(avatarUser);
         await interaction.reply({ embeds: [avatarEmbed] });
-        break;
-
-      case "note":
-        const subcommand = interaction.options.getSubcommand();
-        try {
-          switch (subcommand) {
-            case "add":
-              const content = interaction.options.getString("content");
-              const noteId = await addNote(interaction.user.id, content);
-              await interaction.reply({
-                content: `✅ Note added with ID: ${noteId}`,
-                flags: 64,
-              });
-              break;
-
-            case "list":
-              const notes = await listNotes(interaction.user.id);
-              const embed = createNotesEmbed(notes);
-              await interaction.reply({ embeds: [embed], flags: 64 });
-              break;
-
-            case "delete":
-              const deleteId = interaction.options.getString("id");
-              await deleteNote(interaction.user.id, deleteId);
-              await interaction.reply({
-                content: "✅ Note deleted successfully.",
-                flags: 64,
-              });
-              break;
-
-            case "edit":
-              const editId = interaction.options.getString("id");
-              const newContent = interaction.options.getString("content");
-              await editNote(interaction.user.id, editId, newContent);
-              await interaction.reply({
-                content: "✅ Note edited successfully.",
-                flags: 64,
-              });
-              break;
-          }
-        } catch (error) {
-          await interaction.reply({
-            content: `❌ ${error.message}`,
-            flags: 64,
-          });
-        }
         break;
 
       case "warn":

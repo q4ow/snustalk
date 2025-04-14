@@ -2,13 +2,12 @@ import { LogHandler } from "./loggingHandler.js";
 import { AuditLogEvent } from "discord.js";
 
 export function setupLoggingEvents(client) {
-  console.log("Setting up logging events...");
   const logger = new LogHandler(client);
 
   logger
     .initialize()
     .then(() => {
-      console.log("Logger initialized successfully");
+      console.log("✅ Logger initialized successfully");
     })
     .catch((error) => {
       console.error("Failed to initialize logger:", error);

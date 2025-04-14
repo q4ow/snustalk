@@ -547,6 +547,7 @@ class LogHandler {
         );
         break;
 
+      case "DELETE":
       case "ROLE_DELETE":
         embed
           .setTitle("🗑️ Role Deleted")

@@ -6,7 +6,8 @@
     "scripts": {
         "start": "node src/index.js",
         "dev": "nodemon src/index.js",
-        "format": "prettier --write src"
+        "format": "prettier --write src",
+        "db:reset": "node src/utils/resetDatabase.js"
     },
     "dependencies": {
         "connect-pg-simple": "^10.0.0",
