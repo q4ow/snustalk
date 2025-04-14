@@ -84,7 +84,7 @@ class LogHandler {
 
       try {
         const channel = await this.client.channels.fetch(channelId);
-        if (channel) {
+        if (channel && process.env.NODE_ENV === "development") {
           this.channels.set(type, channel);
           console.log(`✅ Initialized ${type} logs channel`);
         }

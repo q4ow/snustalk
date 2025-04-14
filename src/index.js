@@ -142,9 +142,11 @@ client.once("ready", async () => {
       //   guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
       // );
     } else {
-      console.log(
-        `✅ Found unverified role: ${unverifiedRole.name} (${unverifiedRole.id})`,
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `✅ Unverified role (${unverifiedRole.name}) (${unverifiedRole.id}) found in guild ${guild.name}`,
+        );
+      }
     }
 
     const verifiedRole = await guild.roles
@@ -166,9 +168,11 @@ client.once("ready", async () => {
       //   guild.roles.cache.map((r) => `${r.name}: ${r.id}`).join(", "),
       // );
     } else {
-      console.log(
-        `✅ Found verified role: ${verifiedRole.name} (${verifiedRole.id})`,
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `✅ Verified role (${verifiedRole.name}) (${verifiedRole.id}) found in guild ${guild.name}`,
+        );
+      }
     }
 
     await setupVerificationMessage();
@@ -265,7 +269,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     client.emit("interactionError", interaction, error);
