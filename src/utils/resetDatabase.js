@@ -15,6 +15,7 @@ async function resetDatabase() {
     user: "postgres",
     host: "localhost",
     database: "postgres",
+    password: process.env.POSTGRES_PASSWORD,
     port: 5432,
   });
 
@@ -25,6 +26,17 @@ async function resetDatabase() {
     console.log("🆕 Creating new database...");
     await adminPool.query(`CREATE DATABASE ${process.env.DB_NAME}`);
 
+    console.log(`👤 Creating user if not exists...`);
+    await adminPool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_user WHERE usename = '${process.env.DB_USER}') THEN
+          CREATE USER ${process.env.DB_USER} WITH PASSWORD '${process.env.DB_PASSWORD}';
+        END IF;
+      END
+      $$;
+    `);
+
     console.log(`👤 Granting privileges to ${process.env.DB_USER} user...`);
     await adminPool.query(
       `GRANT ALL PRIVILEGES ON DATABASE ${process.env.DB_NAME} TO ${process.env.DB_USER}`,
@@ -34,6 +46,7 @@ async function resetDatabase() {
       user: "postgres",
       host: "localhost",
       database: process.env.DB_NAME,
+      password: process.env.POSTGRES_PASSWORD,
       port: 5432,
     });
 
