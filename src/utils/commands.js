@@ -764,7 +764,7 @@ export async function handleSlashCommand(interaction) {
               ? `🏁 **${topWpm} WPM**`
               : "You haven't submitted a typing score yet!"
           );
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed] });
         break;
       }
 
@@ -791,14 +791,14 @@ export async function handleSlashCommand(interaction) {
       }
 
       case "typinggame": {
-        const url = process.env.TYPING_GAME_URL || "https://your-typing-game-url.com";
+        const url = process.env.TYPING_GAME_URL || "https://snus.slop.sh";
         const embed = new EmbedBuilder()
           .setTitle("SnusTalk Typing Challenge")
           .setDescription(
-            `[Click here to play the typing game!](${url})\n\nCompete for the highest WPM and climb the leaderboard!`
+            `[Click here to play SnusType!](${url})\n\nCompete for the highest WPM and climb the leaderboard!`
           )
           .setColor("#00ff99");
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed] });
         break;
       }
     }
