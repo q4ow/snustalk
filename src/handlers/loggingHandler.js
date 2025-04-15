@@ -109,14 +109,18 @@ class LogHandler {
       data.message?.channelId &&
       this.isLoggingChannel(data.message.channelId)
     ) {
-      console.log(
-        `Skipping log for logging channel: ${data.message.channelId}`,
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `Skipping log for logging channel: ${data.message.channelId}`,
+        );
+      }
       return;
     }
 
     if (data.channel?.id && this.isLoggingChannel(data.channel.id)) {
-      console.log(`Skipping log for logging channel: ${data.channel.id}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`Skipping log for logging channel: ${data.channel.id}`);
+      }
       return;
     }
 
@@ -124,14 +128,18 @@ class LogHandler {
       data.message?.channelId &&
       this.isChannelBlacklisted(data.message.channelId)
     ) {
-      console.log(
-        `Skipping log for blacklisted channel: ${data.message.channelId}`,
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `Skipping log for blacklisted channel: ${data.message.channelId}`,
+        );
+      }
       return;
     }
 
     if (data.channel?.id && this.isChannelBlacklisted(data.channel.id)) {
-      console.log(`Skipping log for blacklisted channel: ${data.channel.id}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`Skipping log for blacklisted channel: ${data.channel.id}`);
+      }
       return;
     }
 
@@ -194,6 +202,37 @@ class LogHandler {
       console.error(`Failed to send ${type} log:`, error);
       console.error("Full error:", error.stack);
     }
+  }
+
+  createMessageDiff(oldContent, newContent) {
+    if (!oldContent && !newContent) return "No text content in either message";
+    if (!oldContent) return `+ ${newContent}`;
+    if (!newContent) return `- ${oldContent}`;
+
+    const lines = [];
+    const oldLines = oldContent.split('\n');
+    const newLines = newContent.split('\n');
+
+    let i = 0, j = 0;
+    while (i < oldLines.length || j < newLines.length) {
+      if (i >= oldLines.length) {
+        lines.push(`+ ${newLines[j]}`);
+        j++;
+      } else if (j >= newLines.length) {
+        lines.push(`- ${oldLines[i]}`);
+        i++;
+      } else if (oldLines[i] === newLines[j]) {
+        lines.push(`  ${oldLines[i]}`);
+        i++;
+        j++;
+      } else {
+        lines.push(`- ${oldLines[i]}`);
+        lines.push(`+ ${newLines[j]}`);
+        i++;
+        j++;
+      }
+    }
+    return lines.join('\n');
   }
 
   formatChannelLog(embed, data) {
@@ -388,13 +427,13 @@ class LogHandler {
         break;
 
       case "EDIT":
+        const diff = this.createMessageDiff(data.oldContent, data.newContent);
         embed
           .setTitle("✏️ Message Edited")
           .addFields(
             { name: "Author", value: `${data.message.author}`, inline: true },
             { name: "Channel", value: `${data.message.channel}`, inline: true },
-            { name: "Before", value: data.oldContent || "Empty message" },
-            { name: "After", value: data.newContent || "Empty message" },
+            { name: "Changes", value: `\`\`\`diff\n${diff}\n\`\`\`` }
           );
         break;
 
@@ -557,6 +596,7 @@ class LogHandler {
 
   formatRoleLog(embed, data) {
     switch (data.action) {
+      case "CREATE":
       case "ROLE_CREATE":
         embed.setTitle("✨ Role Created").addFields(
           { name: "Name", value: data.role.name, inline: true },
@@ -584,38 +624,41 @@ class LogHandler {
           );
         break;
 
+      case "UPDATE":
       case "ROLE_UPDATE":
-        embed.setTitle("📝 Role Updated").addFields(
-          { name: "Role", value: data.role.name, inline: true },
-          {
-            name: "Changes",
-            value: Object.entries(data.changes)
-              .map(([key, value]) => `${key}: ${value.old} → ${value.new}`)
-              .join("\n"),
-          },
-        );
+        const fields = [];
+        if (data.changes.name) fields.push({ name: "Name", value: `${data.changes.name.old} → ${data.changes.name.new}`, inline: true });
+        if (data.changes.color) fields.push({ name: "Color", value: `${data.changes.color.old} → ${data.changes.color.new}`, inline: true });
+        if (data.changes.hoist) fields.push({ name: "Hoisted", value: `${data.changes.hoist.old} → ${data.changes.hoist.new}`, inline: true });
+        if (data.changes.mentionable) fields.push({ name: "Mentionable", value: `${data.changes.mentionable.old} → ${data.changes.mentionable.new}`, inline: true });
+        if (data.changes.permissions) {
+          const added = data.changes.permissions.added.join(", ") || "None";
+          const removed = data.changes.permissions.removed.join(", ") || "None";
+          fields.push(
+            { name: "Added Permissions", value: added },
+            { name: "Removed Permissions", value: removed }
+          );
+        }
+
+        embed.setTitle("📝 Role Updated")
+          .addFields(
+            { name: "Role", value: data.role.toString(), inline: true },
+            { name: "Updated By", value: data.executor ? `${data.executor}` : "Unknown", inline: true },
+            ...fields
+          );
         break;
 
-      case "MEMBER_ROLE_ADD":
-        embed.setTitle("➕ Role Added to Member").addFields(
-          { name: "Member", value: `${data.member}`, inline: true },
-          { name: "Added By", value: `${data.moderator}`, inline: true },
-          {
-            name: "Roles Added",
-            value: data.roles.map((role) => role.name).join(", "),
-          },
-        );
-        break;
+      case "MEMBER_ROLES_UPDATE":
+        const addedRoles = data.added?.map(r => r.toString()).join(", ") || "None";
+        const removedRoles = data.removed?.map(r => r.toString()).join(", ") || "None";
 
-      case "MEMBER_ROLE_REMOVE":
-        embed.setTitle("➖ Role Removed from Member").addFields(
-          { name: "Member", value: `${data.member}`, inline: true },
-          { name: "Removed By", value: `${data.moderator}`, inline: true },
-          {
-            name: "Roles Removed",
-            value: data.roles.map((role) => role.name).join(", "),
-          },
-        );
+        embed.setTitle("👤 Member Roles Updated")
+          .addFields(
+            { name: "Member", value: data.member.toString(), inline: true },
+            { name: "Updated By", value: data.executor ? `${data.executor}` : "Unknown", inline: true },
+            { name: "Added Roles", value: addedRoles },
+            { name: "Removed Roles", value: removedRoles }
+          );
         break;
 
       default:

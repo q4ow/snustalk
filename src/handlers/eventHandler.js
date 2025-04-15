@@ -46,6 +46,25 @@ export function setupLoggingEvents(client) {
         moderator: moderator,
       });
     }
+
+    const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
+    const removedRoles = oldMember.roles.cache.filter(role => !newMember.roles.cache.has(role.id));
+
+    if (addedRoles.size > 0 || removedRoles.size > 0) {
+      const auditLogs = await newMember.guild.fetchAuditLogs({
+        type: AuditLogEvent.MemberRoleUpdate,
+        limit: 1,
+      });
+      const executor = auditLogs.entries.first()?.executor;
+
+      logger.createLog("ROLE", {
+        action: "MEMBER_ROLES_UPDATE",
+        member: newMember,
+        added: addedRoles.size > 0 ? [...addedRoles.values()] : null,
+        removed: removedRoles.size > 0 ? [...removedRoles.values()] : null,
+        executor
+      });
+    }
   });
 
   client.on("userUpdate", (oldUser, newUser) => {
@@ -87,11 +106,14 @@ export function setupLoggingEvents(client) {
     if (oldMessage.author?.bot) return;
     if (oldMessage.content === newMessage.content) return;
 
+    const oldContent = oldMessage.content || "Empty message";
+    const newContent = newMessage.content || "Empty message";
+
     logger.createLog("MESSAGE", {
       action: "EDIT",
       message: newMessage,
-      oldContent: oldMessage.content,
-      newContent: newMessage.content,
+      oldContent: oldContent,
+      newContent: newContent,
     });
   });
 
@@ -274,21 +296,41 @@ export function setupLoggingEvents(client) {
     }
   });
 
-  client.on("roleCreate", (role) => {
+  client.on("roleCreate", async (role) => {
+    const auditLogs = await role.guild.fetchAuditLogs({
+      type: AuditLogEvent.RoleCreate,
+      limit: 1,
+    });
+    const executor = auditLogs.entries.first()?.executor;
+
     logger.createLog("ROLE", {
       action: "CREATE",
       role,
+      executor
     });
   });
 
-  client.on("roleDelete", (role) => {
+  client.on("roleDelete", async (role) => {
+    const auditLogs = await role.guild.fetchAuditLogs({
+      type: AuditLogEvent.RoleDelete,
+      limit: 1,
+    });
+    const executor = auditLogs.entries.first()?.executor;
+
     logger.createLog("ROLE", {
       action: "DELETE",
       role,
+      executor
     });
   });
 
-  client.on("roleUpdate", (oldRole, newRole) => {
+  client.on("roleUpdate", async (oldRole, newRole) => {
+    const auditLogs = await newRole.guild.fetchAuditLogs({
+      type: AuditLogEvent.RoleUpdate,
+      limit: 1,
+    });
+    const executor = auditLogs.entries.first()?.executor;
+
     const changes = {};
     if (oldRole.name !== newRole.name) {
       changes.name = { old: oldRole.name, new: newRole.name };
@@ -296,10 +338,18 @@ export function setupLoggingEvents(client) {
     if (oldRole.color !== newRole.color) {
       changes.color = { old: oldRole.hexColor, new: newRole.hexColor };
     }
+    if (oldRole.hoist !== newRole.hoist) {
+      changes.hoist = { old: oldRole.hoist, new: newRole.hoist };
+    }
+    if (oldRole.mentionable !== newRole.mentionable) {
+      changes.mentionable = { old: oldRole.mentionable, new: newRole.mentionable };
+    }
     if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
+      const oldPerms = oldRole.permissions.toArray();
+      const newPerms = newRole.permissions.toArray();
       changes.permissions = {
-        old: oldRole.permissions.toArray().join(", "),
-        new: newRole.permissions.toArray().join(", "),
+        added: newPerms.filter(p => !oldPerms.includes(p)),
+        removed: oldPerms.filter(p => !newPerms.includes(p))
       };
     }
 
@@ -308,6 +358,7 @@ export function setupLoggingEvents(client) {
         action: "UPDATE",
         role: newRole,
         changes,
+        executor
       });
     }
   });
