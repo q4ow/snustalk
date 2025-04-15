@@ -40,7 +40,7 @@ const DEFAULT_SETTINGS = {
       blacklist: [],
     },
   },
-  exemptRoles: [],
+  exemptRoles: ["1352272188262318212", "1351231148000411658"],
   exemptChannels: [],
   logChannel: null,
 };
