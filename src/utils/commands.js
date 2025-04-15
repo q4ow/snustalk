@@ -86,7 +86,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -98,7 +98,7 @@ export async function handleSlashCommand(interaction) {
     if (
       ["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)
     ) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: 64 });
     }
 
     switch (interaction.commandName) {
