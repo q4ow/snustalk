@@ -95,8 +95,8 @@ client.once("ready", async () => {
   console.log(`🚀 Bot is online as ${client.user.tag}`);
   console.log(`👥 Connected to ${client.guilds.cache.size} guild(s)`);
   console.log(`🔗 Bot ID: ${client.user.id}`);
-  console.log("\n");
-  console.log("🔧 Initializing systems...");
+  console.log("");
+  console.log(`🔧 Initializing Snussy v${process.env.VERSION}...`);
 
   await registerSlashCommands(client);
   console.log("✅ Slash commands registered");
@@ -277,7 +277,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     client.emit("interactionError", interaction, error);
