@@ -210,10 +210,11 @@ class LogHandler {
     if (!newContent) return `- ${oldContent}`;
 
     const lines = [];
-    const oldLines = oldContent.split('\n');
-    const newLines = newContent.split('\n');
+    const oldLines = oldContent.split("\n");
+    const newLines = newContent.split("\n");
 
-    let i = 0, j = 0;
+    let i = 0,
+      j = 0;
     while (i < oldLines.length || j < newLines.length) {
       if (i >= oldLines.length) {
         lines.push(`+ ${newLines[j]}`);
@@ -232,7 +233,7 @@ class LogHandler {
         j++;
       }
     }
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   formatChannelLog(embed, data) {
@@ -433,7 +434,7 @@ class LogHandler {
           .addFields(
             { name: "Author", value: `${data.message.author}`, inline: true },
             { name: "Channel", value: `${data.message.channel}`, inline: true },
-            { name: "Changes", value: `\`\`\`diff\n${diff}\n\`\`\`` }
+            { name: "Changes", value: `\`\`\`diff\n${diff}\n\`\`\`` },
           );
         break;
 
@@ -627,38 +628,66 @@ class LogHandler {
       case "UPDATE":
       case "ROLE_UPDATE":
         const fields = [];
-        if (data.changes.name) fields.push({ name: "Name", value: `${data.changes.name.old} → ${data.changes.name.new}`, inline: true });
-        if (data.changes.color) fields.push({ name: "Color", value: `${data.changes.color.old} → ${data.changes.color.new}`, inline: true });
-        if (data.changes.hoist) fields.push({ name: "Hoisted", value: `${data.changes.hoist.old} → ${data.changes.hoist.new}`, inline: true });
-        if (data.changes.mentionable) fields.push({ name: "Mentionable", value: `${data.changes.mentionable.old} → ${data.changes.mentionable.new}`, inline: true });
+        if (data.changes.name)
+          fields.push({
+            name: "Name",
+            value: `${data.changes.name.old} → ${data.changes.name.new}`,
+            inline: true,
+          });
+        if (data.changes.color)
+          fields.push({
+            name: "Color",
+            value: `${data.changes.color.old} → ${data.changes.color.new}`,
+            inline: true,
+          });
+        if (data.changes.hoist)
+          fields.push({
+            name: "Hoisted",
+            value: `${data.changes.hoist.old} → ${data.changes.hoist.new}`,
+            inline: true,
+          });
+        if (data.changes.mentionable)
+          fields.push({
+            name: "Mentionable",
+            value: `${data.changes.mentionable.old} → ${data.changes.mentionable.new}`,
+            inline: true,
+          });
         if (data.changes.permissions) {
           const added = data.changes.permissions.added.join(", ") || "None";
           const removed = data.changes.permissions.removed.join(", ") || "None";
           fields.push(
             { name: "Added Permissions", value: added },
-            { name: "Removed Permissions", value: removed }
+            { name: "Removed Permissions", value: removed },
           );
         }
 
-        embed.setTitle("📝 Role Updated")
-          .addFields(
-            { name: "Role", value: data.role.toString(), inline: true },
-            { name: "Updated By", value: data.executor ? `${data.executor}` : "Unknown", inline: true },
-            ...fields
-          );
+        embed.setTitle("📝 Role Updated").addFields(
+          { name: "Role", value: data.role.toString(), inline: true },
+          {
+            name: "Updated By",
+            value: data.executor ? `${data.executor}` : "Unknown",
+            inline: true,
+          },
+          ...fields,
+        );
         break;
 
       case "MEMBER_ROLES_UPDATE":
-        const addedRoles = data.added?.map(r => r.toString()).join(", ") || "None";
-        const removedRoles = data.removed?.map(r => r.toString()).join(", ") || "None";
+        const addedRoles =
+          data.added?.map((r) => r.toString()).join(", ") || "None";
+        const removedRoles =
+          data.removed?.map((r) => r.toString()).join(", ") || "None";
 
-        embed.setTitle("👤 Member Roles Updated")
-          .addFields(
-            { name: "Member", value: data.member.toString(), inline: true },
-            { name: "Updated By", value: data.executor ? `${data.executor}` : "Unknown", inline: true },
-            { name: "Added Roles", value: addedRoles },
-            { name: "Removed Roles", value: removedRoles }
-          );
+        embed.setTitle("👤 Member Roles Updated").addFields(
+          { name: "Member", value: data.member.toString(), inline: true },
+          {
+            name: "Updated By",
+            value: data.executor ? `${data.executor}` : "Unknown",
+            inline: true,
+          },
+          { name: "Added Roles", value: addedRoles },
+          { name: "Removed Roles", value: removedRoles },
+        );
         break;
 
       default:

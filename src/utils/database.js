@@ -251,14 +251,14 @@ export const db = {
   async saveAutomodSettings(guildId, settings) {
     await pool.query(
       "INSERT INTO automod_settings (guild_id, settings) VALUES ($1, $2) ON CONFLICT (guild_id) DO UPDATE SET settings = $2",
-      [guildId, settings]
+      [guildId, settings],
     );
   },
 
   async getAutomodSettings(guildId) {
     const result = await pool.query(
       "SELECT settings FROM automod_settings WHERE guild_id = $1",
-      [guildId]
+      [guildId],
     );
     return result.rows[0]?.settings;
   },

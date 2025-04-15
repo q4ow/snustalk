@@ -19,54 +19,55 @@ async function sendModActionDM(guild, target, action) {
         {
           name: "Time",
           value: `<t:${Math.floor(new Date(action.timestamp).getTime() / 1000)}:R>`,
-          inline: true
-        }
+          inline: true,
+        },
       )
       .setFooter({ text: guild.name, iconURL: guild.iconURL() })
       .setTimestamp();
 
-    // Add duration for timeouts
     if (action.duration) {
       embed.addFields({
         name: "Duration",
         value: formatDuration(action.duration),
-        inline: true
+        inline: true,
       });
     }
 
-    // Add consequence information based on action type
     let consequenceText = "";
     switch (action.type) {
       case MOD_ACTIONS.WARN:
-        consequenceText = "Further violations may result in more severe actions such as timeouts or bans.";
+        consequenceText =
+          "Further violations may result in more severe actions such as timeouts or bans.";
         break;
       case MOD_ACTIONS.KICK:
-        consequenceText = "You may rejoin the server, but further violations may result in a permanent ban.";
+        consequenceText =
+          "You may rejoin the server, but further violations may result in a permanent ban.";
         break;
       case MOD_ACTIONS.BAN:
-        consequenceText = "This is a permanent ban from the server. If you believe this was in error, you may appeal this decision.";
+        consequenceText =
+          "This is a permanent ban from the server. If you believe this was in error, you may appeal this decision.";
         break;
       case MOD_ACTIONS.TIMEOUT:
-        consequenceText = "During your timeout, you cannot send messages or join voice channels. Further violations may result in longer timeouts or bans.";
+        consequenceText =
+          "During your timeout, you cannot send messages or join voice channels. Further violations may result in longer timeouts or bans.";
         break;
     }
 
     if (consequenceText) {
       embed.addFields({
         name: "⚠️ Warning",
-        value: consequenceText
+        value: consequenceText,
       });
     }
 
-    // Add server rules reminder
     embed.addFields({
       name: "📜 Reminder",
-      value: "Please review our server rules to avoid future incidents. Being a positive member of our community is important to us."
+      value:
+        "Please review our server rules to avoid future incidents. Being a positive member of our community is important to us.",
     });
 
     const user = await guild.client.users.fetch(action.targetId);
     await user.send({ embeds: [embed] });
-
   } catch (error) {
     console.error("Failed to send moderation DM:", error);
   }

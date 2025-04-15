@@ -20,7 +20,11 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { slashCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
-import { setupAutomod, getAutomodSettings, updateAutomodSettings } from "../handlers/automodHandler.js";
+import {
+  setupAutomod,
+  getAutomodSettings,
+  updateAutomodSettings,
+} from "../handlers/automodHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -82,7 +86,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -91,8 +95,9 @@ export async function handleCommand(message, commands) {
 
 export async function handleSlashCommand(interaction) {
   try {
-    // Add initial deferral for potentially slow commands
-    if (["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)) {
+    if (
+      ["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)
+    ) {
       await interaction.deferReply({ ephemeral: true });
     }
 
@@ -368,9 +373,14 @@ export async function handleSlashCommand(interaction) {
           const targetTimeoutUser = interaction.options.getUser("user");
           const timeoutReason = interaction.options.getString("reason");
           const durationStr = interaction.options.getString("duration");
-          const timeoutMember = await interaction.guild.members.fetch(targetTimeoutUser.id);
+          const timeoutMember = await interaction.guild.members.fetch(
+            targetTimeoutUser.id,
+          );
 
-          if (timeoutMember.roles.highest.position >= interaction.member.roles.highest.position) {
+          if (
+            timeoutMember.roles.highest.position >=
+            interaction.member.roles.highest.position
+          ) {
             await interaction.editReply({
               content: "❌ You cannot timeout this user due to role hierarchy.",
               flags: 64,
@@ -381,7 +391,8 @@ export async function handleSlashCommand(interaction) {
           const duration = parseDuration(durationStr);
           if (!duration) {
             await interaction.editReply({
-              content: "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
+              content:
+                "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
               flags: 64,
             });
             return;
@@ -402,9 +413,10 @@ export async function handleSlashCommand(interaction) {
         } catch (error) {
           console.error("Error in timeout command:", error);
           await interaction.editReply({
-            content: error.code === "UND_ERR_CONNECT_TIMEOUT"
-              ? "❌ Connection timeout. Please try again."
-              : "❌ Failed to timeout user. Please try again.",
+            content:
+              error.code === "UND_ERR_CONNECT_TIMEOUT"
+                ? "❌ Connection timeout. Please try again."
+                : "❌ Failed to timeout user. Please try again.",
             flags: 64,
           });
         }
@@ -414,11 +426,17 @@ export async function handleSlashCommand(interaction) {
         try {
           const untimeoutUser = interaction.options.getUser("user");
           const untimeoutReason = interaction.options.getString("reason");
-          const untimeoutMember = await interaction.guild.members.fetch(untimeoutUser.id);
+          const untimeoutMember = await interaction.guild.members.fetch(
+            untimeoutUser.id,
+          );
 
-          if (untimeoutMember.roles.highest.position >= interaction.member.roles.highest.position) {
+          if (
+            untimeoutMember.roles.highest.position >=
+            interaction.member.roles.highest.position
+          ) {
             await interaction.editReply({
-              content: "❌ You cannot remove timeout from this user due to role hierarchy.",
+              content:
+                "❌ You cannot remove timeout from this user due to role hierarchy.",
               flags: 64,
             });
             return;
@@ -438,9 +456,10 @@ export async function handleSlashCommand(interaction) {
         } catch (error) {
           console.error("Error in untimeout command:", error);
           await interaction.editReply({
-            content: error.code === "UND_ERR_CONNECT_TIMEOUT"
-              ? "❌ Connection timeout. Please try again."
-              : "❌ Failed to remove timeout. Please try again.",
+            content:
+              error.code === "UND_ERR_CONNECT_TIMEOUT"
+                ? "❌ Connection timeout. Please try again."
+                : "❌ Failed to remove timeout. Please try again.",
             flags: 64,
           });
         }
@@ -648,7 +667,9 @@ export async function handleSlashCommand(interaction) {
 
           case "logchannel":
             const logChannel = interaction.options.getChannel("channel");
-            await updateAutomodSettings(interaction.guild.id, { logChannel: logChannel.id });
+            await updateAutomodSettings(interaction.guild.id, {
+              logChannel: logChannel.id,
+            });
             await interaction.reply({
               content: `✅ Automod logs will now be sent to ${logChannel}.`,
               flags: 64,
@@ -667,7 +688,9 @@ export async function handleSlashCommand(interaction) {
                 }
                 break;
               case "remove_role":
-                settings.exemptRoles = settings.exemptRoles.filter(id => id !== target);
+                settings.exemptRoles = settings.exemptRoles.filter(
+                  (id) => id !== target,
+                );
                 break;
               case "add_channel":
                 if (!settings.exemptChannels.includes(target)) {
@@ -675,7 +698,9 @@ export async function handleSlashCommand(interaction) {
                 }
                 break;
               case "remove_channel":
-                settings.exemptChannels = settings.exemptChannels.filter(id => id !== target);
+                settings.exemptChannels = settings.exemptChannels.filter(
+                  (id) => id !== target,
+                );
                 break;
             }
 
@@ -692,7 +717,9 @@ export async function handleSlashCommand(interaction) {
             const filterEnabled = interaction.options.getBoolean("enabled");
             const filterSettings = interaction.options.getString("settings");
 
-            const currentSettings = await getAutomodSettings(interaction.guild.id);
+            const currentSettings = await getAutomodSettings(
+              interaction.guild.id,
+            );
 
             let updatedFilter = {
               ...currentSettings.filters[filterType],
@@ -728,22 +755,30 @@ export async function handleSlashCommand(interaction) {
         break;
     }
   } catch (error) {
-    console.error(`Error executing slash command ${interaction.commandName}:`, error);
+    console.error(
+      `Error executing slash command ${interaction.commandName}:`,
+      error,
+    );
 
-    const errorMessage = error.code === "UND_ERR_CONNECT_TIMEOUT"
-      ? "❌ Connection timeout. Please try again."
-      : "❌ An error occurred while executing the command.";
+    const errorMessage =
+      error.code === "UND_ERR_CONNECT_TIMEOUT"
+        ? "❌ Connection timeout. Please try again."
+        : "❌ An error occurred while executing the command.";
 
     if (interaction.deferred) {
-      await interaction.editReply({
-        content: errorMessage,
-        flags: 64,
-      }).catch(console.error);
+      await interaction
+        .editReply({
+          content: errorMessage,
+          flags: 64,
+        })
+        .catch(console.error);
     } else if (!interaction.replied) {
-      await interaction.reply({
-        content: errorMessage,
-        flags: 64,
-      }).catch(console.error);
+      await interaction
+        .reply({
+          content: errorMessage,
+          flags: 64,
+        })
+        .catch(console.error);
     }
   }
 }

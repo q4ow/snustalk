@@ -47,8 +47,12 @@ export function setupLoggingEvents(client) {
       });
     }
 
-    const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
-    const removedRoles = oldMember.roles.cache.filter(role => !newMember.roles.cache.has(role.id));
+    const addedRoles = newMember.roles.cache.filter(
+      (role) => !oldMember.roles.cache.has(role.id),
+    );
+    const removedRoles = oldMember.roles.cache.filter(
+      (role) => !newMember.roles.cache.has(role.id),
+    );
 
     if (addedRoles.size > 0 || removedRoles.size > 0) {
       const auditLogs = await newMember.guild.fetchAuditLogs({
@@ -62,7 +66,7 @@ export function setupLoggingEvents(client) {
         member: newMember,
         added: addedRoles.size > 0 ? [...addedRoles.values()] : null,
         removed: removedRoles.size > 0 ? [...removedRoles.values()] : null,
-        executor
+        executor,
       });
     }
   });
@@ -306,7 +310,7 @@ export function setupLoggingEvents(client) {
     logger.createLog("ROLE", {
       action: "CREATE",
       role,
-      executor
+      executor,
     });
   });
 
@@ -320,7 +324,7 @@ export function setupLoggingEvents(client) {
     logger.createLog("ROLE", {
       action: "DELETE",
       role,
-      executor
+      executor,
     });
   });
 
@@ -342,14 +346,17 @@ export function setupLoggingEvents(client) {
       changes.hoist = { old: oldRole.hoist, new: newRole.hoist };
     }
     if (oldRole.mentionable !== newRole.mentionable) {
-      changes.mentionable = { old: oldRole.mentionable, new: newRole.mentionable };
+      changes.mentionable = {
+        old: oldRole.mentionable,
+        new: newRole.mentionable,
+      };
     }
     if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
       const oldPerms = oldRole.permissions.toArray();
       const newPerms = newRole.permissions.toArray();
       changes.permissions = {
-        added: newPerms.filter(p => !oldPerms.includes(p)),
-        removed: oldPerms.filter(p => !newPerms.includes(p))
+        added: newPerms.filter((p) => !oldPerms.includes(p)),
+        removed: oldPerms.filter((p) => !newPerms.includes(p)),
       };
     }
 
@@ -358,7 +365,7 @@ export function setupLoggingEvents(client) {
         action: "UPDATE",
         role: newRole,
         changes,
-        executor
+        executor,
       });
     }
   });
