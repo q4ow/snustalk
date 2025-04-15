@@ -466,4 +466,16 @@ export const slashCommands = [
             .setRequired(false),
         ),
     ),
+
+  new SlashCommandBuilder()
+    .setName("typingscore")
+    .setDescription("Show your top typing speed (WPM)"),
+
+  new SlashCommandBuilder()
+    .setName("typingleaderboard")
+    .setDescription("Show the typing leaderboard for the server"),
+
+  new SlashCommandBuilder()
+    .setName("typinggame")
+    .setDescription("Get the URL to play the SnusTalk typing game"),
 ];

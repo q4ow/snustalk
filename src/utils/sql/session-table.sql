@@ -25,24 +25,24 @@ CREATE TABLE IF NOT EXISTS ticket_actions (
 );
 
 CREATE TABLE IF NOT EXISTS tickets (
-    id SERIAL PRIMARY KEY,
-    channel_id TEXT NOT NULL UNIQUE,
-    guild_id TEXT NOT NULL,
-    creator_id TEXT NOT NULL,
-    ticket_number INTEGER NOT NULL,
-    ticket_type TEXT NOT NULL,
-    status TEXT DEFAULT 'open',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    closed_at TIMESTAMP,
-    closed_by TEXT
+  id SERIAL PRIMARY KEY,
+  channel_id TEXT NOT NULL UNIQUE,
+  guild_id TEXT NOT NULL,
+  creator_id TEXT NOT NULL,
+  ticket_number INTEGER NOT NULL,
+  ticket_type TEXT NOT NULL,
+  status TEXT DEFAULT 'open',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  closed_at TIMESTAMP,
+  closed_by TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ticket_messages (
-    id SERIAL PRIMARY KEY,
-    ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
-    author_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+  author_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS mod_actions (
@@ -63,6 +63,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS automod_settings (
-    guild_id TEXT PRIMARY KEY,
-    settings JSONB
+  guild_id TEXT PRIMARY KEY,
+  settings JSONB
+);
+
+CREATE TABLE IF NOT EXISTS typing_scores (
+  user_id TEXT PRIMARY KEY,
+  top_wpm INTEGER NOT NULL,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -21,10 +21,10 @@ import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { slashCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
 import {
-  setupAutomod,
   getAutomodSettings,
   updateAutomodSettings,
 } from "../handlers/automodHandler.js";
+import { db } from "./database.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -753,6 +753,54 @@ export async function handleSlashCommand(interaction) {
             break;
         }
         break;
+
+      case "typingscore": {
+        const topWpm = await db.getTypingScore(interaction.user.id);
+        const embed = new EmbedBuilder()
+          .setTitle("Your Top Typing Speed")
+          .setColor("#00bfff")
+          .setDescription(
+            topWpm
+              ? `🏁 **${topWpm} WPM**`
+              : "You haven't submitted a typing score yet!"
+          );
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        break;
+      }
+
+      case "typingleaderboard": {
+        const leaderboard = await db.getTypingLeaderboard(10);
+        const embed = new EmbedBuilder()
+          .setTitle("🏆 Typing Leaderboard")
+          .setColor("#FFD700");
+
+        if (!leaderboard.length) {
+          embed.setDescription("No scores on the leaderboard yet!");
+        } else {
+          embed.setDescription(
+            leaderboard
+              .map(
+                (row, i) =>
+                  `\`${i + 1}.\` <@${row.user_id}> — **${row.top_wpm} WPM**`
+              )
+              .join("\n")
+          );
+        }
+        await interaction.reply({ embeds: [embed] });
+        break;
+      }
+
+      case "typinggame": {
+        const url = process.env.TYPING_GAME_URL || "https://your-typing-game-url.com";
+        const embed = new EmbedBuilder()
+          .setTitle("SnusTalk Typing Challenge")
+          .setDescription(
+            `[Click here to play the typing game!](${url})\n\nCompete for the highest WPM and climb the leaderboard!`
+          )
+          .setColor("#00ff99");
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        break;
+      }
     }
   } catch (error) {
     console.error(

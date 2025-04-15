@@ -262,4 +262,28 @@ export const db = {
     );
     return result.rows[0]?.settings;
   },
+
+  async saveTypingScore(userId, wpm) {
+    await pool.query(
+      `INSERT INTO typing_scores (user_id, top_wpm) VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET top_wpm = GREATEST(typing_scores.top_wpm, $2), last_updated = CURRENT_TIMESTAMP`,
+      [userId, wpm]
+    );
+  },
+
+  async getTypingScore(userId) {
+    const result = await pool.query(
+      "SELECT top_wpm FROM typing_scores WHERE user_id = $1",
+      [userId]
+    );
+    return result.rows[0]?.top_wpm || null;
+  },
+
+  async getTypingLeaderboard(limit = 10) {
+    const result = await pool.query(
+      "SELECT user_id, top_wpm FROM typing_scores ORDER BY top_wpm DESC, last_updated ASC LIMIT $1",
+      [limit]
+    );
+    return result.rows;
+  },
 };

@@ -28,6 +28,7 @@ import {
 } from "./handlers/applicationHandler.js";
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
 import { handleMessage as handleAutomod } from "./handlers/automodHandler.js";
+import { startTypingApi } from "./api/typing.js";
 
 dotenv.config();
 
@@ -101,6 +102,8 @@ client.once("ready", async () => {
   console.log("✅ Slash commands registered");
   setupLoggingEvents(client);
   console.log("✅ Logging system initialized");
+  startTypingApi();
+  console.log("✅ Typing API initialized");
   console.log("✅ Ticketing handler initialized");
   console.log("✅ Purge handler initialized");
   console.log("✅ Automod initialized");
@@ -274,7 +277,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     client.emit("interactionError", interaction, error);
