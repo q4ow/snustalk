@@ -27,6 +27,7 @@ import {
   handleApplicationButton,
 } from "./handlers/applicationHandler.js";
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
+import { handleMessage as handleAutomod } from "./handlers/automodHandler.js";
 
 dotenv.config();
 
@@ -102,6 +103,8 @@ client.once("ready", async () => {
   console.log("✅ Logging system initialized");
   console.log("✅ Ticketing handler initialized");
   console.log("✅ Purge handler initialized");
+  console.log("✅ Automod initialized");
+  console.log("✅ Application handler initialized");
 
   // const guild = client.guilds.cache.first();
   // await startStatsTracker(guild);
@@ -112,6 +115,8 @@ client.once("ready", async () => {
       {
         name: "SnusTalk Central",
         type: ActivityType.Watching,
+        state: "Snussy v1.0.0",
+        url: "https://github.com/q4ow/snustalk"
       },
     ],
     status: "dnd",
@@ -269,7 +274,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     client.emit("interactionError", interaction, error);
@@ -278,6 +283,9 @@ client.on("interactionCreate", async (interaction) => {
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  // Handle automod first
+  await handleAutomod(message);
 
   if (message.channel.type === 1) {
     await handleApplicationResponse(message);

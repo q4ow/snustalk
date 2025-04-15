@@ -20,6 +20,7 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { slashCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
+import { setupAutomod, getAutomodSettings, updateAutomodSettings } from "../handlers/automodHandler.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -81,7 +82,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -90,6 +91,11 @@ export async function handleCommand(message, commands) {
 
 export async function handleSlashCommand(interaction) {
   try {
+    // Add initial deferral for potentially slow commands
+    if (["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)) {
+      await interaction.deferReply({ ephemeral: true });
+    }
+
     switch (interaction.commandName) {
       case "setup-tickets":
         const title = interaction.options.getString("title");
@@ -358,77 +364,86 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "timeout":
-        const targetTimeoutUser = interaction.options.getUser("user");
-        const timeoutReason = interaction.options.getString("reason");
-        const durationStr = interaction.options.getString("duration");
-        const timeoutMember = await interaction.guild.members.fetch(
-          targetTimeoutUser.id,
-        );
+        try {
+          const targetTimeoutUser = interaction.options.getUser("user");
+          const timeoutReason = interaction.options.getString("reason");
+          const durationStr = interaction.options.getString("duration");
+          const timeoutMember = await interaction.guild.members.fetch(targetTimeoutUser.id);
 
-        if (
-          timeoutMember.roles.highest.position >=
-          interaction.member.roles.highest.position
-        ) {
-          await interaction.reply({
-            content: "❌ You cannot timeout this user due to role hierarchy.",
+          if (timeoutMember.roles.highest.position >= interaction.member.roles.highest.position) {
+            await interaction.editReply({
+              content: "❌ You cannot timeout this user due to role hierarchy.",
+              flags: 64,
+            });
+            return;
+          }
+
+          const duration = parseDuration(durationStr);
+          if (!duration) {
+            await interaction.editReply({
+              content: "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
+              flags: 64,
+            });
+            return;
+          }
+
+          const timeout = await timeoutUser(
+            interaction.guild,
+            interaction.user,
+            timeoutMember,
+            duration,
+            timeoutReason,
+          );
+
+          await interaction.editReply({
+            embeds: [createModActionEmbed(timeout, interaction.guild)],
             flags: 64,
           });
-          return;
-        }
-
-        const duration = parseDuration(durationStr);
-        if (!duration) {
-          await interaction.reply({
-            content: "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
+        } catch (error) {
+          console.error("Error in timeout command:", error);
+          await interaction.editReply({
+            content: error.code === "UND_ERR_CONNECT_TIMEOUT"
+              ? "❌ Connection timeout. Please try again."
+              : "❌ Failed to timeout user. Please try again.",
             flags: 64,
           });
-          return;
         }
-
-        const timeout = await timeoutUser(
-          interaction.guild,
-          interaction.user,
-          timeoutMember,
-          duration,
-          timeoutReason,
-        );
-
-        await interaction.reply({
-          embeds: [createModActionEmbed(timeout, interaction.guild)],
-          flags: 64,
-        });
         break;
 
       case "untimeout":
-        const untimeoutUser = interaction.options.getUser("user");
-        const untimeoutReason = interaction.options.getString("reason");
-        const untimeoutMember = await interaction.guild.members.fetch(
-          untimeoutUser.id,
-        );
+        try {
+          const untimeoutUser = interaction.options.getUser("user");
+          const untimeoutReason = interaction.options.getString("reason");
+          const untimeoutMember = await interaction.guild.members.fetch(untimeoutUser.id);
 
-        if (
-          untimeoutMember.roles.highest.position >=
-          interaction.member.roles.highest.position
-        ) {
-          await interaction.reply({
-            content:
-              "❌ You cannot remove timeout from this user due to role hierarchy.",
+          if (untimeoutMember.roles.highest.position >= interaction.member.roles.highest.position) {
+            await interaction.editReply({
+              content: "❌ You cannot remove timeout from this user due to role hierarchy.",
+              flags: 64,
+            });
+            return;
+          }
+
+          const untimeout = await removeTimeout(
+            interaction.guild,
+            interaction.user,
+            untimeoutMember,
+            untimeoutReason,
+          );
+
+          await interaction.editReply({
+            embeds: [createModActionEmbed(untimeout, interaction.guild)],
             flags: 64,
           });
-          return;
+        } catch (error) {
+          console.error("Error in untimeout command:", error);
+          await interaction.editReply({
+            content: error.code === "UND_ERR_CONNECT_TIMEOUT"
+              ? "❌ Connection timeout. Please try again."
+              : "❌ Failed to remove timeout. Please try again.",
+            flags: 64,
+          });
         }
-
-        const untimeout = await removeTimeout(
-          interaction.guild,
-          interaction.user,
-          untimeoutMember,
-          untimeoutReason,
-        );
-
-        await interaction.reply({
-          embeds: [createModActionEmbed(untimeout, interaction.guild)],
-          flags: 64,
-        });
         break;
 
       case "warnings":
@@ -617,16 +632,119 @@ export async function handleSlashCommand(interaction) {
           });
         }
         break;
+
+      case "automod":
+        const subcommand = interaction.options.getSubcommand();
+
+        switch (subcommand) {
+          case "toggle":
+            const enabled = interaction.options.getBoolean("enabled");
+            await updateAutomodSettings(interaction.guild.id, { enabled });
+            await interaction.reply({
+              content: `✅ Automod has been ${enabled ? "enabled" : "disabled"}.`,
+              flags: 64,
+            });
+            break;
+
+          case "logchannel":
+            const logChannel = interaction.options.getChannel("channel");
+            await updateAutomodSettings(interaction.guild.id, { logChannel: logChannel.id });
+            await interaction.reply({
+              content: `✅ Automod logs will now be sent to ${logChannel}.`,
+              flags: 64,
+            });
+            break;
+
+          case "exempt":
+            const type = interaction.options.getString("type");
+            const target = interaction.options.getString("target");
+            const settings = await getAutomodSettings(interaction.guild.id);
+
+            switch (type) {
+              case "add_role":
+                if (!settings.exemptRoles.includes(target)) {
+                  settings.exemptRoles.push(target);
+                }
+                break;
+              case "remove_role":
+                settings.exemptRoles = settings.exemptRoles.filter(id => id !== target);
+                break;
+              case "add_channel":
+                if (!settings.exemptChannels.includes(target)) {
+                  settings.exemptChannels.push(target);
+                }
+                break;
+              case "remove_channel":
+                settings.exemptChannels = settings.exemptChannels.filter(id => id !== target);
+                break;
+            }
+
+            await updateAutomodSettings(interaction.guild.id, settings);
+            await interaction.reply({
+              content: `✅ Automod exemption settings updated.`,
+              flags: 64,
+            });
+            break;
+
+          case "filter":
+            const filterType = interaction.options.getString("type");
+            const filterAction = interaction.options.getString("action");
+            const filterEnabled = interaction.options.getBoolean("enabled");
+            const filterSettings = interaction.options.getString("settings");
+
+            const currentSettings = await getAutomodSettings(interaction.guild.id);
+
+            let updatedFilter = {
+              ...currentSettings.filters[filterType],
+              enabled: filterEnabled,
+              action: filterAction,
+            };
+
+            if (filterSettings) {
+              try {
+                const parsedSettings = JSON.parse(filterSettings);
+                updatedFilter = {
+                  ...updatedFilter,
+                  ...parsedSettings,
+                };
+              } catch (error) {
+                await interaction.reply({
+                  content: "❌ Invalid JSON format for filter settings.",
+                  flags: 64,
+                });
+                return;
+              }
+            }
+
+            currentSettings.filters[filterType] = updatedFilter;
+            await updateAutomodSettings(interaction.guild.id, currentSettings);
+
+            await interaction.reply({
+              content: `✅ ${filterType} filter has been updated.`,
+              flags: 64,
+            });
+            break;
+        }
+        break;
     }
   } catch (error) {
-    console.error(
-      `Error executing slash command ${interaction.commandName}:`,
-      error,
-    );
-    await interaction.reply({
-      content: "❌ An error occurred while executing the command.",
-      flags: 64,
-    });
+    console.error(`Error executing slash command ${interaction.commandName}:`, error);
+
+    const errorMessage = error.code === "UND_ERR_CONNECT_TIMEOUT"
+      ? "❌ Connection timeout. Please try again."
+      : "❌ An error occurred while executing the command.";
+
+    if (interaction.deferred) {
+      await interaction.editReply({
+        content: errorMessage,
+        flags: 64,
+      }).catch(console.error);
+    } else if (!interaction.replied) {
+      await interaction.reply({
+        content: errorMessage,
+        flags: 64,
+      }).catch(console.error);
+    }
   }
 }
 

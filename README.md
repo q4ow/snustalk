@@ -37,6 +37,19 @@ with my code, I'd love to see it so drop me an email or add me on [Discord](http
   - Total tickets tracking
   - Open tickets tracking
 
+- **Automod System**
+  - Configurable message filters
+  - Spam detection and prevention
+  - Mass mention protection
+  - Excessive caps filtering
+  - Link control with whitelisting
+  - Discord invite blocking
+  - Word/phrase blacklisting
+  - Configurable actions (delete/warn/timeout)
+  - Role and channel exemptions
+  - Detailed violation logging
+  - Per-filter settings
+
 - **Moderation**
   - Message purging command
   - Channel lock/unlock
@@ -213,6 +226,10 @@ Both slash commands and prefix commands are available:
 - `/untimeout <user> [reason]` - Removes timeout from a user
 - `/warnings <user>` - Views warnings for a user
 - `/modlogs <user>` - Views moderation history for a user
+- `/automod toggle <enabled>` - Enable or disable the automod system
+- `/automod logchannel <channel>` - Set the channel for automod logs
+- `/automod exempt <type> <target>` - Add/remove role/channel exemptions
+- `/automod filter <type> <action> <enabled> [settings]` - Configure automod filters
 
 #### Prefix Commands
 All slash commands are also available as prefix commands using `$`:
@@ -236,12 +253,19 @@ All slash commands are also available as prefix commands using `$`:
 - `$untimeout @user [reason]` - Removes timeout from a user
 - `$warnings @user` - Views warnings for a user
 - `$modlogs @user` - Views moderation history for a user
+- `$automod toggle <enabled>` - Enable or disable the automod system
+- `$automod logchannel <channel>` - Set the channel for automod logs
+- `$automod exempt <type> <target>` - Add/remove role/channel exemptions
+- `$automod filter <type> <action> <enabled> [settings]` - Configure automod filters
 
 > **Note**: 
 > - `<>` indicates required parameters
 > - `[]` indicates optional parameters
 > - Duration format for timeout: `1m`, `1h`, `1d` (minutes, hours, days)
 > - All moderation commands require appropriate permissions
+> - Filter types: spam, invites, mentions, caps, links, words
+> - Filter actions: delete, warn, timeout
+> - Filter settings can be provided in JSON format for advanced configuration
 
 ### Verification Process
 1. Users join the server
@@ -255,13 +279,33 @@ All slash commands are also available as prefix commands using `$`:
 - Staff members are automatically notified
 - Transcripts are saved when tickets are closed
 
+### Automod System
+1. Enable/disable the system:
+   `/automod toggle enabled:true`
+
+2. Configure log channel:
+   `/automod logchannel #channel`
+
+3. Set up filters:
+   - Spam: `/automod filter type:spam action:timeout enabled:true settings:{"maxMessages":5,"timeWindow":5000}`
+   - Mentions: `/automod filter type:mentions action:warn enabled:true settings:{"maxMentions":3}`
+   - Caps: `/automod filter type:caps action:delete enabled:true settings:{"percentage":70,"minLength":10}`
+   - Links: `/automod filter type:links action:delete enabled:true settings:{"whitelist":["discord.com","github.com"]}`
+   - Words: `/automod filter type:words action:delete enabled:true settings:{"blacklist":["badword1","badword2"]}`
+
+4. Add exemptions:
+   - Roles: `/automod exempt type:add_role target:ROLE_ID`
+   - Channels: `/automod exempt type:add_channel target:CHANNEL_ID`
+
+> **Note**: All automod commands require the Manage Server permission.
+
 ## Roadmap
 
 ### Goals
 - [x] Implement logging system
+- [x] Implement auto-moderation features
 - [ ] Add more moderation commands
 - [ ] Add custom commands feature
-- [ ] Implement auto-moderation features
 - [ ] Add user information tracking system
 - [ ] Create server statistics dashboard
 - [ ] Enhance ticket system with priority levels

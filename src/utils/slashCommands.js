@@ -298,7 +298,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("apply")
     .setDescription("Start a staff application process")
-    .setDMPermission(true), // Allow DM permissions for application process
+    .setDMPermission(true),
 
   new SlashCommandBuilder()
     .setName("embed")
@@ -370,5 +370,98 @@ export const slashCommands = [
         .setDescription("Add timestamp? (yes/no)")
         .setRequired(false)
         .addChoices({ name: "Yes", value: "yes" }, { name: "No", value: "no" }),
+    ),
+
+  new SlashCommandBuilder()
+    .setName("automod")
+    .setDescription("Manage auto-moderation settings")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("toggle")
+        .setDescription("Enable or disable automod")
+        .addBooleanOption(option =>
+          option
+            .setName("enabled")
+            .setDescription("Whether to enable or disable automod")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("logchannel")
+        .setDescription("Set the channel for automod logs")
+        .addChannelOption(option =>
+          option
+            .setName("channel")
+            .setDescription("The channel to send automod logs to")
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("exempt")
+        .setDescription("Add/remove role/channel exemptions")
+        .addStringOption(option =>
+          option
+            .setName("type")
+            .setDescription("What to exempt")
+            .setRequired(true)
+            .addChoices(
+              { name: "Add Role", value: "add_role" },
+              { name: "Remove Role", value: "remove_role" },
+              { name: "Add Channel", value: "add_channel" },
+              { name: "Remove Channel", value: "remove_channel" }
+            )
+        )
+        .addStringOption(option =>
+          option
+            .setName("target")
+            .setDescription("The role/channel ID to exempt")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("filter")
+        .setDescription("Configure automod filters")
+        .addStringOption(option =>
+          option
+            .setName("type")
+            .setDescription("The filter to configure")
+            .setRequired(true)
+            .addChoices(
+              { name: "Spam", value: "spam" },
+              { name: "Invites", value: "invites" },
+              { name: "Mentions", value: "mentions" },
+              { name: "Caps", value: "caps" },
+              { name: "Links", value: "links" },
+              { name: "Words", value: "words" }
+            )
+        )
+        .addStringOption(option =>
+          option
+            .setName("action")
+            .setDescription("Action to take when filter is triggered")
+            .setRequired(true)
+            .addChoices(
+              { name: "Delete Message", value: "delete" },
+              { name: "Warn User", value: "warn" },
+              { name: "Timeout User", value: "timeout" }
+            )
+        )
+        .addBooleanOption(option =>
+          option
+            .setName("enabled")
+            .setDescription("Enable or disable this filter")
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName("settings")
+            .setDescription("Filter-specific settings in JSON format (optional)")
+            .setRequired(false)
+        )
     ),
 ];
