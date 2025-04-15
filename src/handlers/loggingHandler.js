@@ -84,9 +84,13 @@ class LogHandler {
 
       try {
         const channel = await this.client.channels.fetch(channelId);
-        if (channel && process.env.NODE_ENV === "development") {
+        if (channel) {
           this.channels.set(type, channel);
-          console.log(`✅ Initialized ${type} logs channel`);
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              `✅ Initialized ${type} logs channel: ${channel.name} (${channel.id})`,
+            );
+          }
         }
       } catch (error) {
         console.error(`Failed to initialize ${type} logs channel:`, error);
