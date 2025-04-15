@@ -263,18 +263,35 @@ export const db = {
     return result.rows[0]?.settings;
   },
 
-  async saveTypingScore(userId, wpm) {
+  async saveTypingScore(userId, wpm, accuracy, testDuration) {
     await pool.query(
-      `INSERT INTO typing_scores (user_id, top_wpm) VALUES ($1, $2)
-       ON CONFLICT (user_id) DO UPDATE SET top_wpm = GREATEST(typing_scores.top_wpm, $2), last_updated = CURRENT_TIMESTAMP`,
-      [userId, wpm]
+      `
+        INSERT INTO typing_scores 
+            (user_id, top_wpm, accuracy, test_duration, total_tests, average_wpm, last_submission) 
+        VALUES ($1, $2, $3, $4, 1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id) DO UPDATE SET 
+            top_wpm = GREATEST(typing_scores.top_wpm, $2),
+            accuracy = CASE 
+                WHEN typing_scores.top_wpm < $2 THEN $3 
+                ELSE typing_scores.accuracy 
+            END,
+            test_duration = CASE 
+                WHEN typing_scores.top_wpm < $2 THEN $4 
+                ELSE typing_scores.test_duration 
+            END,
+            total_tests = typing_scores.total_tests + 1,
+            average_wpm = ((typing_scores.average_wpm * typing_scores.total_tests) + $2) / (typing_scores.total_tests + 1),
+            last_submission = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+    `,
+      [userId, wpm, accuracy, testDuration],
     );
   },
 
   async getTypingScore(userId) {
     const result = await pool.query(
       "SELECT top_wpm FROM typing_scores WHERE user_id = $1",
-      [userId]
+      [userId],
     );
     return result.rows[0]?.top_wpm || null;
   },
@@ -282,7 +299,7 @@ export const db = {
   async getTypingLeaderboard(limit = 10) {
     const result = await pool.query(
       "SELECT user_id, top_wpm FROM typing_scores ORDER BY top_wpm DESC, last_updated ASC LIMIT $1",
-      [limit]
+      [limit],
     );
     return result.rows;
   },

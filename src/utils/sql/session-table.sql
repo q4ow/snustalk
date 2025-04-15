@@ -70,5 +70,13 @@ CREATE TABLE IF NOT EXISTS automod_settings (
 CREATE TABLE IF NOT EXISTS typing_scores (
   user_id TEXT PRIMARY KEY,
   top_wpm INTEGER NOT NULL,
-  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  accuracy FLOAT,
+  test_duration INTEGER,
+  total_tests INTEGER DEFAULT 0,
+  average_wpm FLOAT,
+  last_submission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_typing_scores_wpm ON typing_scores(top_wpm DESC);

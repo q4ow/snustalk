@@ -86,7 +86,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -762,7 +762,7 @@ export async function handleSlashCommand(interaction) {
           .setDescription(
             topWpm
               ? `🏁 **${topWpm} WPM**`
-              : "You haven't submitted a typing score yet!"
+              : "You haven't submitted a typing score yet!",
           );
         await interaction.reply({ embeds: [embed] });
         break;
@@ -781,9 +781,9 @@ export async function handleSlashCommand(interaction) {
             leaderboard
               .map(
                 (row, i) =>
-                  `\`${i + 1}.\` <@${row.user_id}> — **${row.top_wpm} WPM**`
+                  `\`${i + 1}.\` <@${row.user_id}> — **${row.top_wpm} WPM**`,
               )
-              .join("\n")
+              .join("\n"),
           );
         }
         await interaction.reply({ embeds: [embed] });
@@ -795,7 +795,7 @@ export async function handleSlashCommand(interaction) {
         const embed = new EmbedBuilder()
           .setTitle("SnusTalk Typing Challenge")
           .setDescription(
-            `[Click here to play SnusType!](${url})\n\nCompete for the highest WPM and climb the leaderboard!`
+            `[Click here to play SnusType!](${url})\n\nCompete for the highest WPM and climb the leaderboard!`,
           )
           .setColor("#00ff99");
         await interaction.reply({ embeds: [embed] });
