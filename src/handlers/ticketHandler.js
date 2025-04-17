@@ -49,7 +49,6 @@ async function canManageTicket(member, ticketType) {
   try {
     if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
 
-    const settings = await db.getTicketSettings(member.guild.id);
     const roleType = ticketType === "MANAGEMENT" ? "management" : "staff";
     const moderatorRoleId = await db.getRoleId(member.guild.id, roleType);
 

@@ -768,6 +768,9 @@ export const slashCommands = [
             )
         )
     ),
+  new SlashCommandBuilder()
+    .setName('dashboard')
+    .setDescription('Generate or view your dashboard API key'),
 ];
 
 export const automodCommands = [

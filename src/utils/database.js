@@ -226,10 +226,16 @@ export const db = {
 
   async addTicketAction(channelId, action) {
     try {
+      const actionObject = {
+        text: action,
+        timestamp: new Date().toISOString()
+      };
+
       await dbPool.query(
         "INSERT INTO ticket_actions (channel_id, action) VALUES ($1, $2)",
-        [channelId, action],
+        [channelId, JSON.stringify(actionObject)]
       );
+      return true;
     } catch (error) {
       console.error(`Error adding ticket action for channel ${channelId}:`, error);
       throw error;
@@ -309,31 +315,42 @@ export const db = {
     }
   },
 
-  async closeTicket(channelId, closedBy) {
+  async closeTicket(ticketId, closedBy) {
     try {
       const result = await dbPool.query(
         `UPDATE tickets 
-         SET status = 'closed', closed_at = CURRENT_TIMESTAMP, closed_by = $2
-         WHERE channel_id = $1
-         RETURNING id`,
-        [channelId, closedBy],
+             SET closed_by = $2, 
+                 closed_at = CURRENT_TIMESTAMP,
+                 status = 'CLOSED'
+             WHERE id = $1
+             RETURNING id`,
+        [ticketId, closedBy]
       );
+
       return result.rows[0]?.id;
     } catch (error) {
-      console.error(`Error closing ticket for channel ${channelId}:`, error);
+      console.error(`Error closing ticket ${ticketId}:`, error);
       throw error;
     }
   },
 
-  async getTicketInfo(channelId) {
+  async getTicketInfo(ticketId) {
     try {
       const result = await dbPool.query(
-        `SELECT * FROM tickets WHERE channel_id = $1`,
-        [channelId],
+        `SELECT t.*, 
+                    tc.moderator_id as claimed_by,
+                    u.discord_id as creator_id,
+                    u.username as creator_name
+             FROM tickets t
+             LEFT JOIN ticket_claims tc ON t.channel_id = tc.channel_id
+             LEFT JOIN users u ON t.creator_id = u.discord_id
+             WHERE t.id = $1`,
+        [ticketId]
       );
+
       return result.rows[0];
     } catch (error) {
-      console.error(`Error getting ticket info for channel ${channelId}:`, error);
+      console.error(`Error getting ticket info for ticket ${ticketId}:`, error);
       throw error;
     }
   },
@@ -383,22 +400,25 @@ export const db = {
   async ensureUser(userId, userData = {}) {
     try {
       const result = await dbPool.query(
-        `INSERT INTO users (id, discord_id, username) 
-         VALUES ($1, $1, $2)
-         ON CONFLICT (id) DO UPDATE 
-         SET username = COALESCE($2, users.username),
-             updated_at = CURRENT_TIMESTAMP
-         RETURNING *`,
-        [userId, userData.username || "Unknown User"],
+        `INSERT INTO users (discord_id, username) 
+             VALUES ($1, $2)
+             ON CONFLICT (discord_id) 
+             DO UPDATE SET 
+                username = COALESCE($2, users.username),
+                updated_at = CURRENT_TIMESTAMP
+             RETURNING *`,
+        [userId, userData.username || "Unknown User"]
       );
 
-      console.log(
-        `✅ User ${userId} ${result.command === "INSERT" ? "created" : "updated"}`,
-      );
+      if (!result.rows[0]) {
+        throw new Error('Failed to create/update user');
+      }
+
+      console.log(`✅ User ${userId} ${result.command === "INSERT" ? "created" : "updated"}`);
       return result.rows[0];
     } catch (error) {
       console.error("❌ Error ensuring user:", error);
-      throw new Error("Failed to create/update user");
+      throw error;
     }
   },
 
@@ -782,6 +802,49 @@ export const db = {
       return result.rows[0]?.link;
     } catch (error) {
       console.error(`Error getting external link for guild ${guildId} and link name ${linkName}:`, error);
+      throw error;
+    }
+  },
+
+  async generateApiKey(userId) {
+    try {
+      const apiKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      await dbPool.query(
+        'UPDATE users SET api_key = $1, updated_at = CURRENT_TIMESTAMP WHERE discord_id = $2 RETURNING api_key',
+        [apiKey, userId]
+      );
+      return apiKey;
+    } catch (error) {
+      console.error(`Error generating API key for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  async verifyApiKey(apiKey) {
+    try {
+      const result = await dbPool.query(
+        'SELECT discord_id, username FROM users WHERE api_key = $1',
+        [apiKey]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error(`Error verifying API key:`, error);
+      throw error;
+    }
+  },
+
+  async getApiKeyByUserId(userId) {
+    try {
+      const result = await dbPool.query(
+        'SELECT api_key FROM users WHERE discord_id = $1',
+        [userId]
+      );
+      return result.rows[0]?.api_key || null;
+    } catch (error) {
+      console.error(`Error getting API key for user ${userId}:`, error);
       throw error;
     }
   },

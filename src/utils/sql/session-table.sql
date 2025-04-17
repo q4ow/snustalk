@@ -79,13 +79,14 @@ CREATE TABLE IF NOT EXISTS mod_actions (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   discord_id TEXT UNIQUE,
   username TEXT,
   email TEXT,
   avatar TEXT,
   access_token TEXT,
   refresh_token TEXT,
+  api_key TEXT UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

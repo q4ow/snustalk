@@ -24,6 +24,7 @@ import {
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
 import { handleMessage as handleAutomod } from "./handlers/automodHandler.js";
 import { startTypingApi } from "./api/typing.js";
+import { startApiServer } from "./api/server.js";
 import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
@@ -149,6 +150,7 @@ client.once("ready", async () => {
 
   try {
     startTypingApi();
+    startApiServer(client);
 
     await registerSlashCommands(client);
 

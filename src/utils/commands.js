@@ -29,6 +29,7 @@ import {
   handleAutomodListWhitelists,
 } from "../handlers/automodHandler.js";
 import { db } from "./database.js";
+import { generateApiKey } from "./generateApiKey.js";
 
 const BOT_PREFIX = process.env.BOT_PREFIX || "$";
 
@@ -998,12 +999,41 @@ Ping Roles: ${pingRoles}`;
           const entryMentions = entries.map(e => `<@${e.user_id}>`).join(", ");
           await interaction.reply({ content: `Entries (${entries.length}):\n${entryMentions}`, flags: 64 });
         }
-        // ...existing code for end, reroll, blacklist...
         break;
+
+
       }
 
       case "settings":
         await handleSettingsCommand(interaction);
+        break;
+
+      case "dashboard":
+        try {
+          const result = await generateApiKey(interaction.user.id);
+          if (!result.success && result.key) {
+            await interaction.reply({
+              content: `Your existing API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
+              ephemeral: true
+            });
+          } else if (result.success) {
+            await interaction.reply({
+              content: `Your new API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
+              ephemeral: true
+            });
+          } else {
+            await interaction.reply({
+              content: '❌ Failed to generate API key. Please try again later.',
+              ephemeral: true
+            });
+          }
+        } catch (error) {
+          console.error('Error generating API key:', error);
+          await interaction.reply({
+            content: '❌ An error occurred while generating your API key.',
+            ephemeral: true
+          });
+        }
         break;
 
     }
