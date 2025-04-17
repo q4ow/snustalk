@@ -46,7 +46,6 @@ export async function handleReactionRole(interaction) {
         const roleId = interaction.customId.replace('role_', '');
         const member = interaction.member;
 
-        // Get role configuration from database
         const roleConfig = await db.getReactionRole(interaction.message.id, roleId);
         if (!roleConfig) {
             await interaction.reply({

@@ -888,5 +888,8 @@ export const db = {
       console.error('Database health check failed:', error);
       return false;
     }
-  }
+  },
+
+  createReactionRoles: (...args) => dbPool.createReactionRoles(...args),
+  getReactionRole: (...args) => dbPool.getReactionRole(...args),
 };
