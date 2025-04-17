@@ -4,7 +4,13 @@ import { db } from '../utils/database.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors(
+    {
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    }
+));
 
 async function authenticate(req, res, next) {
     const apiKey = req.headers.authorization?.replace('Bearer ', '');
