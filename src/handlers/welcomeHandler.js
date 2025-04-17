@@ -1,15 +1,17 @@
 import { EmbedBuilder } from "discord.js";
+import { db } from "../utils/database.js";
 
 export async function handleWelcome(member) {
   try {
     const { guild } = member;
 
-    const unverifiedRole = await guild.roles.fetch(
-      process.env.UNVERIFIED_ROLE_ID,
-    );
-    if (unverifiedRole) {
+    const unverifiedRoleId = await db.getRoleId(guild.id, "unverified");
+    if (unverifiedRoleId) {
       try {
-        await member.roles.add(unverifiedRole);
+        const unverifiedRole = await guild.roles.fetch(unverifiedRoleId);
+        if (unverifiedRole) {
+          await member.roles.add(unverifiedRole);
+        }
       } catch (error) {
         if (error.code === 50013) {
           console.log(
@@ -23,9 +25,10 @@ export async function handleWelcome(member) {
       }
     }
 
-    const welcomeChannel = await guild.channels.fetch(
-      process.env.WELCOME_CHANNEL_ID,
-    );
+    const welcomeChannelId = await db.getChannelId(guild.id, "welcome");
+    if (!welcomeChannelId) return;
+
+    const welcomeChannel = await guild.channels.fetch(welcomeChannelId);
     if (!welcomeChannel) return;
 
     const memberCount = guild.memberCount;
@@ -37,10 +40,10 @@ export async function handleWelcome(member) {
       })
       .setDescription(
         `Hey ${member.user.username.charAt(0).toUpperCase() + member.user.username.slice(1)}, welcome to our community! 🎉\n\n` +
-          `You are our **${memberCount}${getSuffix(memberCount)}** member\n\n` +
-          `📜 Please read our rules and guidelines\n` +
-          `🎭 Get your roles in our roles channel\n` +
-          `💬 Introduce yourself to the community`,
+        `You are our **${memberCount}${getSuffix(memberCount)}** member\n\n` +
+        `📜 Please read our rules and guidelines\n` +
+        `🎭 Get your roles in our roles channel\n` +
+        `💬 Introduce yourself to the community`,
       )
       .setColor("#2B82E4")
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 1024 }))

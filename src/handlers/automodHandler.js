@@ -1,6 +1,5 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { db } from "../utils/database.js";
-import { MOD_ACTIONS } from "../utils/moderation.js";
 import { warnUser, timeoutUser } from "./moderationHandler.js";
 
 const DEFAULT_SETTINGS = {
@@ -12,32 +11,38 @@ const DEFAULT_SETTINGS = {
       timeWindow: 5000,
       action: "timeout",
       duration: 300000,
+      whitelistRoles: [],
     },
     invites: {
       enabled: true,
       action: "delete",
       whitelist: [],
+      whitelistRoles: [],
     },
     mentions: {
       enabled: true,
       maxMentions: 3,
       action: "warn",
+      whitelistRoles: [],
     },
     caps: {
       enabled: true,
       percentage: 70,
       minLength: 10,
       action: "delete",
+      whitelistRoles: [],
     },
     links: {
       enabled: true,
       action: "delete",
       whitelist: [],
+      whitelistRoles: [],
     },
     words: {
       enabled: true,
       action: "delete",
       blacklist: [],
+      whitelistRoles: [],
     },
   },
   exemptRoles: ["1352272188262318212", "1351231148000411658"],
@@ -57,9 +62,21 @@ export async function setupAutomod(guild, settings = {}) {
   return automodSettings;
 }
 
+async function migrateWhitelistRoles(settings) {
+  const filters = ['spam', 'invites', 'mentions', 'caps', 'links', 'words'];
+
+  filters.forEach(filter => {
+    if (!settings.filters[filter].whitelistRoles) {
+      settings.filters[filter].whitelistRoles = [];
+    }
+  });
+
+  return settings;
+}
+
 export async function getAutomodSettings(guildId) {
-  const settings = await db.getAutomodSettings(guildId);
-  return settings || DEFAULT_SETTINGS;
+  const settings = await db.getAutomodSettings(guildId) || DEFAULT_SETTINGS;
+  return await migrateWhitelistRoles(settings);
 }
 
 export async function updateAutomodSettings(guildId, settings) {
@@ -72,14 +89,10 @@ export async function updateAutomodSettings(guildId, settings) {
   return updatedSettings;
 }
 
-async function isExempt(message) {
+async function isExempt(message, filterType = null) {
   const settings = await getAutomodSettings(message.guild.id);
 
-  if (
-    settings.exemptRoles.some((roleId) =>
-      message.member.roles.cache.has(roleId),
-    )
-  ) {
+  if (settings.exemptRoles.some((roleId) => message.member.roles.cache.has(roleId))) {
     return true;
   }
 
@@ -89,6 +102,14 @@ async function isExempt(message) {
 
   if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
     return true;
+  }
+
+  if (filterType && settings.filters[filterType]) {
+    const filterSettings = settings.filters[filterType];
+    if (filterSettings.whitelistRoles &&
+      filterSettings.whitelistRoles.some(roleId => message.member.roles.cache.has(roleId))) {
+      return true;
+    }
   }
 
   return false;
@@ -147,6 +168,7 @@ async function handleViolation(message, type, action, duration = null) {
 async function checkSpam(message) {
   const settings = await getAutomodSettings(message.guild.id);
   if (!settings.filters.spam.enabled) return false;
+  if (await isExempt(message, 'spam')) return false;
 
   const { maxMessages, timeWindow } = settings.filters.spam;
   const key = `${message.author.id}-${message.channel.id}`;
@@ -180,6 +202,7 @@ async function checkSpam(message) {
 async function checkMentions(message) {
   const settings = await getAutomodSettings(message.guild.id);
   if (!settings.filters.mentions.enabled) return false;
+  if (await isExempt(message, 'mentions')) return false;
 
   const mentions = message.mentions.users.size + message.mentions.roles.size;
   if (mentions > settings.filters.mentions.maxMentions) {
@@ -201,6 +224,7 @@ async function checkCaps(message) {
     message.content.length < settings.filters.caps.minLength
   )
     return false;
+  if (await isExempt(message, 'caps')) return false;
 
   const upperCount = message.content.replace(/[^A-Z]/g, "").length;
   const totalCount = message.content.replace(/[^A-Za-z]/g, "").length;
@@ -221,6 +245,7 @@ async function checkCaps(message) {
 async function checkLinks(message) {
   const settings = await getAutomodSettings(message.guild.id);
   if (!settings.filters.links.enabled) return false;
+  if (await isExempt(message, 'links')) return false;
 
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const links = message.content.match(urlRegex);
@@ -248,6 +273,7 @@ async function checkLinks(message) {
 async function checkInvites(message) {
   const settings = await getAutomodSettings(message.guild.id);
   if (!settings.filters.invites.enabled) return false;
+  if (await isExempt(message, 'invites')) return false;
 
   const inviteRegex =
     /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[^\s]+/g;
@@ -268,6 +294,7 @@ async function checkInvites(message) {
 async function checkWords(message) {
   const settings = await getAutomodSettings(message.guild.id);
   if (!settings.filters.words.enabled) return false;
+  if (await isExempt(message, 'words')) return false;
 
   const containsBlacklisted = settings.filters.words.blacklist.some((word) =>
     message.content.toLowerCase().includes(word.toLowerCase()),
@@ -305,4 +332,104 @@ export async function handleMessage(message) {
   for (const check of checks) {
     if (await check(message)) break;
   }
+}
+
+export async function handleAutomodWhitelistRole(interaction) {
+  const filter = interaction.options.getString('filter');
+  const role = interaction.options.getRole('role');
+  const settings = await getAutomodSettings(interaction.guild.id);
+
+  if (!settings.filters[filter]) {
+    return interaction.reply({ content: 'Invalid filter type.', flags: 64 });
+  }
+
+  if (!settings.filters[filter].whitelistRoles) {
+    settings.filters[filter].whitelistRoles = [];
+  }
+
+  if (settings.filters[filter].whitelistRoles.includes(role.id)) {
+    return interaction.reply({
+      content: `Role ${role.name} is already whitelisted for the ${filter} filter.`,
+      flags: 64
+    });
+  }
+
+  settings.filters[filter].whitelistRoles.push(role.id);
+  await updateAutomodSettings(interaction.guild.id, settings);
+
+  return interaction.reply({
+    content: `Added ${role.name} to the ${filter} filter whitelist.`,
+    flags: 64
+  });
+}
+
+export async function handleAutomodUnwhitelistRole(interaction) {
+  const filter = interaction.options.getString('filter');
+  const role = interaction.options.getRole('role');
+  const settings = await getAutomodSettings(interaction.guild.id);
+
+  if (!settings.filters[filter]) {
+    return interaction.reply({ content: 'Invalid filter type.', flags: 64 });
+  }
+
+  if (!settings.filters[filter].whitelistRoles) {
+    return interaction.reply({
+      content: `No whitelisted roles found for the ${filter} filter.`,
+      flags: 64
+    });
+  }
+
+  const index = settings.filters[filter].whitelistRoles.indexOf(role.id);
+  if (index === -1) {
+    return interaction.reply({
+      content: `Role ${role.name} is not whitelisted for the ${filter} filter.`,
+      flags: 64
+    });
+  }
+
+  settings.filters[filter].whitelistRoles.splice(index, 1);
+  await updateAutomodSettings(interaction.guild.id, settings);
+
+  return interaction.reply({
+    content: `Removed ${role.name} from the ${filter} filter whitelist.`,
+    flags: 64
+  });
+}
+
+export async function handleAutomodListWhitelists(interaction) {
+  const filter = interaction.options.getString('filter');
+  const settings = await getAutomodSettings(interaction.guild.id);
+
+  if (filter) {
+    if (!settings.filters[filter]) {
+      return interaction.reply({ content: 'Invalid filter type.', flags: 64 });
+    }
+
+    const whitelistedRoles = settings.filters[filter].whitelistRoles || [];
+    const roleNames = whitelistedRoles.map(roleId => {
+      const role = interaction.guild.roles.cache.get(roleId);
+      return role ? role.name : 'Unknown Role';
+    });
+
+    return interaction.reply({
+      content: `Whitelisted roles for ${filter} filter:\n${roleNames.length ? roleNames.join('\n') : 'No roles whitelisted'}`,
+      flags: 64
+    });
+  }
+
+  const allWhitelists = Object.entries(settings.filters)
+    .map(([filterName, filterSettings]) => {
+      const whitelistedRoles = filterSettings.whitelistRoles || [];
+      const roleNames = whitelistedRoles.map(roleId => {
+        const role = interaction.guild.roles.cache.get(roleId);
+        return role ? role.name : 'Unknown Role';
+      });
+      return `${filterName}: ${roleNames.length ? roleNames.join(', ') : 'None'}`;
+    })
+    .join('\n');
+
+  return interaction.reply({
+    content: `Current whitelist settings:\n${allWhitelists}`,
+    flags: 64
+  });
 }

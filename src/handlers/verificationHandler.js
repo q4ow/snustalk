@@ -4,49 +4,43 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
+import { db } from "../utils/database.js";
 
 export async function handleVerification(reaction, user) {
   try {
     if (user.bot) return;
-    if (reaction.message.channelId !== process.env.VERIFICATION_CHANNEL_ID)
-      return;
+
+    const verificationChannelId = await db.getChannelId(reaction.message.guild.id, "verification");
+    if (reaction.message.channelId !== verificationChannelId) return;
     if (reaction.emoji.name !== "✅") return;
 
     const guild = reaction.message.guild;
     const member = await guild.members.fetch(user.id);
 
-    const verifiedRole = await guild.roles
-      .fetch(process.env.VERIFIED_ROLE_ID)
-      .catch((error) => {
-        console.error(`Failed to fetch verified role:`, error);
-        return null;
-      });
+    const verifiedRoleId = await db.getRoleId(guild.id, "verified");
+    const unverifiedRoleId = await db.getRoleId(guild.id, "unverified");
+    const additionalRoleIds = (await db.getGuildSettings(guild.id))?.role_ids?.additional_verified || [];
 
-    const unverifiedRole = await guild.roles
-      .fetch(process.env.UNVERIFIED_ROLE_ID)
-      .catch((error) => {
-        console.error(`Failed to fetch unverified role:`, error);
-        return null;
+    if (!verifiedRoleId || !unverifiedRoleId) {
+      console.error("Required roles not found:", {
+        verifiedRole: verifiedRoleId ? "Found" : "Missing",
+        unverifiedRole: unverifiedRoleId ? "Found" : "Missing",
       });
+      return;
+    }
+
+    const verifiedRole = await guild.roles.fetch(verifiedRoleId);
+    const unverifiedRole = await guild.roles.fetch(unverifiedRoleId);
 
     if (!verifiedRole || !unverifiedRole) {
-      console.error("Required roles not found:", {
-        verifiedRole: verifiedRole ? "Found" : "Missing",
-        unverifiedRole: unverifiedRole ? "Found" : "Missing",
-        verifiedRoleId: process.env.VERIFIED_ROLE_ID,
-        unverifiedRoleId: process.env.UNVERIFIED_ROLE_ID,
-      });
+      console.error("Required roles do not exist in the server");
       return;
     }
 
     try {
       await member.roles.add(verifiedRole);
 
-      if (process.env.ADDITIONAL_VERIFIED_ROLE_IDS) {
-        const additionalRoleIds =
-          process.env.ADDITIONAL_VERIFIED_ROLE_IDS.split(",").map((id) =>
-            id.trim(),
-          );
+      if (additionalRoleIds.length > 0) {
         for (const roleId of additionalRoleIds) {
           const role = await guild.roles.fetch(roleId).catch((error) => {
             console.error(`Failed to fetch additional role ${roleId}:`, error);
@@ -99,7 +93,8 @@ export async function handleVerification(reaction, user) {
       let embeds = [verificationEmbed];
       let components = [];
 
-      if (process.env.RESTORECORD_LINK) {
+      const restoreRecordLink = await db.getExternalLink(guild.id, "restorecord");
+      if (restoreRecordLink) {
         const backupEmbed = new EmbedBuilder()
           .setTitle("🛡️ Optional Security Measure")
           .setDescription(
@@ -121,7 +116,7 @@ export async function handleVerification(reaction, user) {
 
         const restoreButton = new ButtonBuilder()
           .setLabel("Backup Access (Optional)")
-          .setURL(process.env.RESTORECORD_LINK)
+          .setURL(restoreRecordLink)
           .setStyle(ButtonStyle.Link);
 
         const row = new ActionRowBuilder().addComponents(restoreButton);

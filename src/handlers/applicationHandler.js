@@ -7,6 +7,12 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
+import {
+  handleAutomodWhitelistRole,
+  handleAutomodUnwhitelistRole,
+  handleAutomodListWhitelists
+} from './automodHandler.js';
+import { db } from "../utils/database.js";
 
 const applicationQuestions = [
   "How long have you been a member of our Discord server?",
@@ -30,7 +36,7 @@ export async function startApplication(interaction) {
           content: "Testing DM permissions - this message will be deleted.",
           flags: 64,
         })
-        .then((msg) => msg.delete().catch(() => {}));
+        .then((msg) => msg.delete().catch(() => { }));
     } catch (error) {
       await interaction.reply({
         content:
@@ -121,7 +127,7 @@ export async function handleApplicationResponse(message) {
 
 async function submitApplication(message, application) {
   try {
-    const guild = message.client.guilds.cache.get(process.env.GUILD_ID);
+    const guild = message.client.guilds.cache.get(message.guild?.id);
     if (!guild) {
       await message.reply(
         "Error: Could not find the server. Please contact an administrator.",
@@ -129,9 +135,15 @@ async function submitApplication(message, application) {
       return;
     }
 
-    const logsChannel = guild.channels.cache.get(
-      process.env.APPLICATIONS_LOGS_CHANNEL_ID,
-    );
+    const logsChannelId = await db.getChannelId(guild.id, "applications_logs");
+    if (!logsChannelId) {
+      await message.reply(
+        "Error: Applications log channel not found. Please contact an administrator.",
+      );
+      return;
+    }
+
+    const logsChannel = await guild.channels.fetch(logsChannelId);
     if (!logsChannel) {
       await message.reply(
         "Error: Could not find the applications log channel. Please contact an administrator.",
@@ -195,7 +207,7 @@ async function submitApplication(message, application) {
       .reply(
         "There was an error submitting your application. Please try again later or contact an administrator.",
       )
-      .catch(() => {});
+      .catch(() => { });
   }
 }
 
@@ -241,11 +253,20 @@ export async function handleApplicationButton(interaction) {
 
     if (action === "accept") {
       try {
-        const moderatorRole = await guild.roles.fetch(
-          process.env.MODERATOR_ROLE_ID,
-        );
-        if (!moderatorRole) {
+        const moderatorRoleId = await db.getRoleId(guild.id, "moderator");
+        if (!moderatorRoleId) {
           console.error("Moderator role not found");
+          await modalResponse.reply({
+            content:
+              "Failed to assign moderator role, but the application was accepted.",
+            flags: 64,
+          });
+          return;
+        }
+
+        const moderatorRole = await guild.roles.fetch(moderatorRoleId);
+        if (!moderatorRole) {
+          console.error("Moderator role not found in guild");
           await modalResponse.reply({
             content:
               "Failed to assign moderator role, but the application was accepted.",
@@ -303,6 +324,20 @@ export async function handleApplicationButton(interaction) {
         content: "There was an error processing the application response.",
         flags: 64,
       })
-      .catch(() => {});
+      .catch(() => { });
+  }
+}
+
+export async function handleCommand(interaction) {
+  switch (interaction.commandName) {
+    case 'automod-whitelist-role':
+      await handleAutomodWhitelistRole(interaction);
+      break;
+    case 'automod-unwhitelist-role':
+      await handleAutomodUnwhitelistRole(interaction);
+      break;
+    case 'automod-list-whitelists':
+      await handleAutomodListWhitelists(interaction);
+      break;
   }
 }

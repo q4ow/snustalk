@@ -18,11 +18,15 @@ import { createHelpEmbed } from "../embeds/helpEmbed.js";
 import { createUserEmbed } from "../embeds/userEmbed.js";
 import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
-import { slashCommands } from "./slashCommands.js";
+import { slashCommands, automodCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
+import { handleSettingsCommand } from "../handlers/settingsHandler.js";
 import {
   getAutomodSettings,
   updateAutomodSettings,
+  handleAutomodWhitelistRole,
+  handleAutomodUnwhitelistRole,
+  handleAutomodListWhitelists,
 } from "../handlers/automodHandler.js";
 import { db } from "./database.js";
 
@@ -86,14 +90,14 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
   return true;
 }
 
-export async function handleSlashCommand(interaction) {
+export async function handleSlashCommand(interaction, client) {
   try {
     if (
       ["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)
@@ -131,19 +135,29 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "resend-verify":
-        const mockReaction = {
-          message: {
-            channelId: process.env.VERIFICATION_CHANNEL_ID,
-            guild: interaction.guild,
-            channel: interaction.channel,
-          },
-          emoji: { name: "✅" },
-        };
-        await handleVerification(mockReaction, interaction.user);
-        await interaction.reply({
-          content: "✅ Verification embeds have been sent!",
-          flags: 64,
-        });
+        try {
+          const mockReaction = {
+            message: {
+              channelId: process.env.VERIFICATION_CHANNEL_ID,
+              guild: interaction.guild,
+              channel: interaction.channel,
+            },
+            emoji: { name: "✅" },
+          };
+          await handleVerification(mockReaction, interaction.user);
+          await interaction.reply({
+            content: "✅ Verification embeds have been sent!",
+            flags: 64,
+          });
+        } catch (error) {
+          console.error(error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+              content: "❌ Failed to send verification embeds.",
+              flags: 64,
+            });
+          }
+        }
         break;
 
       case "welcome":
@@ -653,9 +667,9 @@ export async function handleSlashCommand(interaction) {
         break;
 
       case "automod":
-        const subcommand = interaction.options.getSubcommand();
+        const automodSubcommand = interaction.options.getSubcommand();
 
-        switch (subcommand) {
+        switch (automodSubcommand) {
           case "toggle":
             const enabled = interaction.options.getBoolean("enabled");
             await updateAutomodSettings(interaction.guild.id, { enabled });
@@ -754,6 +768,20 @@ export async function handleSlashCommand(interaction) {
         }
         break;
 
+      case "automod-whitelist-role":
+      case "automod-unwhitelist-role":
+      case "automod-list-whitelists":
+        const handler = {
+          "automod-whitelist-role": handleAutomodWhitelistRole,
+          "automod-unwhitelist-role": handleAutomodUnwhitelistRole,
+          "automod-list-whitelists": handleAutomodListWhitelists
+        }[interaction.commandName];
+
+        if (handler) {
+          await handler(interaction);
+        }
+        break;
+
       case "typingscore": {
         const topWpm = await db.getTypingScore(interaction.user.id);
         const embed = new EmbedBuilder()
@@ -801,6 +829,183 @@ export async function handleSlashCommand(interaction) {
         await interaction.reply({ embeds: [embed] });
         break;
       }
+
+      case "logs":
+        const logsSubcommand = interaction.options.getSubcommand();
+
+        switch (logsSubcommand) {
+          case "setup": {
+            const type = interaction.options.getString("type");
+            const channel = interaction.options.getChannel("channel");
+            const allowedRoles = interaction.options.getRole("allowed_roles");
+            const pingRoles = interaction.options.getRole("ping_roles");
+
+            const settings = {
+              channel_id: channel.id,
+              allowed_roles: allowedRoles ? [allowedRoles.id] : [],
+              ping_roles: pingRoles ? [pingRoles.id] : [],
+              enabled: true
+            };
+
+            await db.updateLoggingSettings(interaction.guild.id, type, settings);
+
+            await channel.permissionOverwrites.edit(interaction.guild.members.me, {
+              ViewChannel: true,
+              SendMessages: true,
+              EmbedLinks: true
+            });
+
+            if (allowedRoles) {
+              await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+                ViewChannel: false
+              });
+              await channel.permissionOverwrites.edit(allowedRoles, {
+                ViewChannel: true
+              });
+            }
+
+            await interaction.reply({
+              content: `✅ Successfully set up ${type} logs in ${channel}`,
+              flags: 64
+            });
+            break;
+          }
+
+          case "disable": {
+            const type = interaction.options.getString("type");
+            await db.updateLoggingSettings(interaction.guild.id, type, {
+              enabled: false
+            });
+
+            await interaction.reply({
+              content: `✅ Disabled ${type} logs`,
+              flags: 64
+            });
+            break;
+          }
+
+          case "view": {
+            const settings = await db.getLoggingSettings(interaction.guild.id);
+            if (!settings || settings.length === 0) {
+              await interaction.reply({
+                content: "❌ No logging settings configured for this server",
+                flags: 64
+              });
+              return;
+            }
+
+            const embed = new EmbedBuilder()
+              .setTitle("📝 Logging Settings")
+              .setColor("#00ff00")
+              .setDescription(
+                settings
+                  .map(setting => {
+                    const channel = interaction.guild.channels.cache.get(setting.channel_id);
+                    const allowedRoles = setting.allowed_roles
+                      .map(id => `<@&${id}>`)
+                      .join(", ") || "None";
+                    const pingRoles = setting.ping_roles
+                      .map(id => `<@&${id}>`)
+                      .join(", ") || "None";
+
+                    return `**${setting.log_type}**
+Channel: ${channel ? channel.toString() : "Invalid Channel"}
+Enabled: ${setting.enabled ? "Yes" : "No"}
+Allowed Roles: ${allowedRoles}
+Ping Roles: ${pingRoles}`;
+                  })
+                  .join("\n\n")
+              );
+
+            await interaction.reply({ embeds: [embed], flags: 64 });
+            break;
+          }
+        }
+        break;
+
+      case "giveaway": {
+        const sub = interaction.options.getSubcommand();
+        if (sub === "create") {
+          const prize = interaction.options.getString("prize");
+          const durationStr = interaction.options.getString("duration");
+          const winnerCount = interaction.options.getInteger("winners") || 1;
+          const description = interaction.options.getString("description");
+          const channel = interaction.options.getChannel("channel") || interaction.channel;
+          const requiredRole = interaction.options.getRole("required_role");
+          const minAccountAge = interaction.options.getString("min_account_age");
+          const minServerAge = interaction.options.getString("min_server_age");
+          const buttonLabel = interaction.options.getString("button_label") || "Enter Giveaway 🎉";
+          const embedColor = interaction.options.getString("embed_color") || "#FF69B4";
+          const image = interaction.options.getString("image");
+          const endMessage = interaction.options.getString("end_message");
+
+          const requirements = {};
+          if (requiredRole) requirements.roles = [requiredRole.id];
+          if (minAccountAge) {
+            const duration = parseDuration(minAccountAge);
+            if (!duration) {
+              await interaction.reply({ content: "❌ Invalid account age format. Use format like: 1d, 1w", flags: 64 });
+              return;
+            }
+            requirements.min_account_age = duration;
+          }
+          if (minServerAge) {
+            const duration = parseDuration(minServerAge);
+            if (!duration) {
+              await interaction.reply({ content: "❌ Invalid server age format. Use format like: 1d, 1w", flags: 64 });
+              return;
+            }
+            requirements.min_server_age = duration;
+          }
+
+          const duration = parseDuration(durationStr);
+          if (!duration) {
+            await interaction.reply({ content: "❌ Invalid duration format. Use format like: 1h, 1d, 1w", flags: 64 });
+            return;
+          }
+
+          try {
+            await client.giveaways.createGiveaway({
+              guild_id: interaction.guildId,
+              channel_id: channel.id,
+              host_id: interaction.user.id,
+              prize,
+              description,
+              duration,
+              winner_count: winnerCount,
+              requirements,
+              button_label: buttonLabel,
+              embed_color: embedColor,
+              image,
+              end_message: endMessage
+            });
+            await interaction.reply({ content: `✅ Created giveaway for **${prize}** in ${channel}`, flags: 64 });
+          } catch (error) {
+            await interaction.reply({ content: `❌ Failed to create giveaway: ${error.message}`, flags: 64 });
+          }
+        } else if (sub === "entries") {
+          const messageId = interaction.options.getString("message_id");
+          const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+          if (!giveaway) {
+            await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+            return;
+          }
+          const entries = await db.getGiveawayEntries(giveaway.id);
+          if (!entries.length) {
+            await interaction.reply({ content: "No entries yet!", flags: 64 });
+            return;
+          }
+          const entryMentions = entries.map(e => `<@${e.user_id}>`).join(", ");
+          await interaction.reply({ content: `Entries (${entries.length}):\n${entryMentions}`, flags: 64 });
+        }
+        // ...existing code for end, reroll, blacklist...
+        break;
+      }
+
+      case "settings":
+        await handleSettingsCommand(interaction);
+        break;
+
     }
   } catch (error) {
     console.error(
@@ -866,9 +1071,13 @@ export async function registerSlashCommands(client) {
       process.env.DISCORD_TOKEN,
     );
 
+    const allCommands = [...slashCommands.map(command => command.toJSON()), ...automodCommands];
+
     await rest.put(Routes.applicationCommands(client.user.id), {
-      body: slashCommands.map((command) => command.toJSON()),
+      body: allCommands,
     });
+
+    console.log("✅ Slash commands registered");
   } catch (error) {
     console.error("Error registering slash commands:", error);
   }

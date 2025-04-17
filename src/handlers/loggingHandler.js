@@ -1,144 +1,65 @@
 import { EmbedBuilder } from "discord.js";
 import { formatDuration } from "../utils/moderation.js";
+import { db } from "../utils/database.js";
 
 const LOG_TYPES = {
-  MEMBER: {
-    color: "#3498db",
-    channelEnv: "MEMBER_LOGS_CHANNEL_ID",
-    emoji: "👥",
-  },
-  MESSAGE: {
-    color: "#e74c3c",
-    channelEnv: "MESSAGE_LOGS_CHANNEL_ID",
-    emoji: "📝",
-  },
-  MOD: {
-    color: "#e67e22",
-    channelEnv: "MOD_LOGS_CHANNEL_ID",
-    emoji: "🔨",
-  },
-  VOICE: {
-    color: "#2ecc71",
-    channelEnv: "VOICE_LOGS_CHANNEL_ID",
-    emoji: "🎤",
-  },
-  CHANNEL: {
-    color: "#9b59b6",
-    channelEnv: "CHANNEL_LOGS_CHANNEL_ID",
-    emoji: "#️⃣",
-  },
-  ROLE: {
-    color: "#f1c40f",
-    channelEnv: "ROLE_LOGS_CHANNEL_ID",
-    emoji: "🎭",
-  },
-  SERVER: {
-    color: "#34495e",
-    channelEnv: "SERVER_LOGS_CHANNEL_ID",
-    emoji: "🖥️",
-  },
-  USER: {
-    color: "#1abc9c",
-    channelEnv: "USER_LOGS_CHANNEL_ID",
-    emoji: "👤",
-  },
-  INVITE: {
-    color: "#8e44ad",
-    channelEnv: "INVITE_LOGS_CHANNEL_ID",
-    emoji: "📨",
-  },
-  THREAD: {
-    color: "#2c3e50",
-    channelEnv: "THREAD_LOGS_CHANNEL_ID",
-    emoji: "🧵",
-  },
+  MEMBER: { color: "#3498db", emoji: "👥" },
+  MESSAGE: { color: "#e74c3c", emoji: "📝" },
+  MOD: { color: "#e67e22", emoji: "🔨" },
+  VOICE: { color: "#2ecc71", emoji: "🎤" },
+  CHANNEL: { color: "#9b59b6", emoji: "#️⃣" },
+  ROLE: { color: "#f1c40f", emoji: "🎭" },
+  SERVER: { color: "#34495e", emoji: "🖥️" },
+  USER: { color: "#1abc9c", emoji: "👤" },
+  INVITE: { color: "#8e44ad", emoji: "📨" },
+  THREAD: { color: "#2c3e50", emoji: "🧵" }
 };
 
 class LogHandler {
   constructor(client) {
     this.client = client;
     this.channels = new Map();
-    this.blacklistedChannels =
-      process.env.LOGGING_BLACKLIST_CHANNELS?.split(",") || [];
+    this.blacklistedChannels = [];
+  }
+
+  async initialize() {
+    console.log("✅ Logging handler initialized");
   }
 
   isChannelBlacklisted(channelId) {
     return this.blacklistedChannels.includes(channelId);
   }
 
-  isLoggingChannel(channelId) {
-    const loggingChannelIds = Object.values(LOG_TYPES)
-      .map((config) => process.env[config.channelEnv])
-      .filter((id) => id);
-
-    return loggingChannelIds.includes(channelId);
-  }
-
-  async initialize() {
-    for (const [type, config] of Object.entries(LOG_TYPES)) {
-      const channelId = process.env[config.channelEnv];
-      if (!channelId) {
-        console.warn(`Warning: No channel ID configured for ${type} logs`);
-        continue;
-      }
-
-      try {
-        const channel = await this.client.channels.fetch(channelId);
-        if (channel) {
-          this.channels.set(type, channel);
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              `✅ Initialized ${type} logs channel: ${channel.name} (${channel.id})`,
-            );
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to initialize ${type} logs channel:`, error);
-      }
-    }
+  async isLoggingChannel(channelId) {
+    const allSettings = await db.getLoggingSettings(this.client.guilds.cache.first().id);
+    return allSettings.some(setting => setting.channel_id === channelId);
   }
 
   async createLog(type, data) {
-    const channel = this.channels.get(type);
+    if (!LOG_TYPES[type]) {
+      console.warn(`Unknown log type: ${type}`);
+      return;
+    }
+
+    const guildId = data.guild?.id || data.message?.guild?.id || this.client.guilds.cache.first().id;
+    const settings = await db.getLoggingSettings(guildId, type);
+
+    if (!settings || !settings.enabled) {
+      if (process.env.NODE_ENV === "development") {
+        console.log(`Logging disabled for ${type} in guild ${guildId}`);
+      }
+      return;
+    }
+
+    const channel = await this.client.channels.fetch(settings.channel_id).catch(() => null);
     if (!channel) {
-      console.warn(`No channel configured for ${type} logs`);
+      console.warn(`Could not find logging channel for ${type} logs`);
       return;
     }
 
-    if (
-      data.message?.channelId &&
-      this.isLoggingChannel(data.message.channelId)
-    ) {
+    if (data.message?.channelId === settings.channel_id || data.channel?.id === settings.channel_id) {
       if (process.env.NODE_ENV === "development") {
-        console.log(
-          `Skipping log for logging channel: ${data.message.channelId}`,
-        );
-      }
-      return;
-    }
-
-    if (data.channel?.id && this.isLoggingChannel(data.channel.id)) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`Skipping log for logging channel: ${data.channel.id}`);
-      }
-      return;
-    }
-
-    if (
-      data.message?.channelId &&
-      this.isChannelBlacklisted(data.message.channelId)
-    ) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(
-          `Skipping log for blacklisted channel: ${data.message.channelId}`,
-        );
-      }
-      return;
-    }
-
-    if (data.channel?.id && this.isChannelBlacklisted(data.channel.id)) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`Skipping log for blacklisted channel: ${data.channel.id}`);
+        console.log(`Skipping log for logging channel: ${settings.channel_id}`);
       }
       return;
     }
@@ -185,9 +106,6 @@ class LogHandler {
         case "THREAD":
           this.formatThreadLog(embed, data);
           break;
-        default:
-          console.warn(`Unknown log type: ${type}`);
-          return;
       }
 
       if (!embed.data.title || !embed.data.fields?.length) {
@@ -195,12 +113,14 @@ class LogHandler {
         return;
       }
 
-      console.log(`Attempting to send ${type} log to channel ${channel.name}`);
-      await channel.send({ embeds: [embed] });
+      const content = settings.ping_roles?.length
+        ? settings.ping_roles.map(id => `<@&${id}>`).join(" ")
+        : "";
+
+      await channel.send({ content, embeds: [embed] });
       console.log(`Successfully sent ${type} log`);
     } catch (error) {
       console.error(`Failed to send ${type} log:`, error);
-      console.error("Full error:", error.stack);
     }
   }
 

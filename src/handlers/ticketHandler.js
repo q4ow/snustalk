@@ -7,22 +7,20 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
-import dotenv from "dotenv";
 import { db } from "../utils/database.js";
-
-dotenv.config();
+import { fetchWithRetry } from "../utils/requests.js";
 
 const ticketTypes = {
   GENERAL: {
     name: "general",
     label: "General Support",
-    roleId: process.env.STAFF_ROLE_ID,
+    roleType: "staff",
     color: "#5865F2",
   },
   MANAGEMENT: {
     name: "management",
     label: "Management Support",
-    roleId: process.env.MANAGEMENT_ROLE_ID,
+    roleType: "management",
     color: "#EB459E",
   },
 };
@@ -48,13 +46,18 @@ const TICKET_DEFAULTS = {
 };
 
 async function canManageTicket(member, ticketType) {
-  if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
+  try {
+    if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
 
-  const settings = await db.getTicketSettings(member.guild.id);
-  const moderatorRoleId =
-    settings?.moderatorRoleId || process.env[`${ticketType}_ROLE_ID`];
+    const settings = await db.getTicketSettings(member.guild.id);
+    const roleType = ticketType === "MANAGEMENT" ? "management" : "staff";
+    const moderatorRoleId = await db.getRoleId(member.guild.id, roleType);
 
-  return member.roles.cache.has(moderatorRoleId);
+    return member.roles.cache.has(moderatorRoleId);
+  } catch (error) {
+    console.error("Error checking ticket permissions:", error);
+    return false;
+  }
 }
 
 async function getNextTicketNumber(guild) {
@@ -68,9 +71,10 @@ async function logTicketAction(guild, channelId, action) {
   try {
     await db.addTicketAction(channelId, action);
 
-    const logChannel = await guild.channels.fetch(
-      process.env.TICKET_LOGS_CHANNEL_ID,
-    );
+    const logChannelId = await db.getChannelId(guild.id, "ticket_logs");
+    if (!logChannelId) return;
+
+    const logChannel = await guild.channels.fetch(logChannelId);
     if (!logChannel) return;
 
     const embed = new EmbedBuilder()
@@ -158,18 +162,21 @@ export async function handleTicketCreate(interaction, type) {
     const ticketNumber = await getNextTicketNumber(guild);
     const channelName = `ticket-${ticketNumber}-${member.user.username.toLowerCase()}`;
 
-    if (!ticketType.roleId) {
+    const supportRoleId = await db.getRoleId(guild.id, ticketType.roleType);
+    if (!supportRoleId) {
       throw new Error(`Role ID not configured for ticket type: ${type}`);
     }
 
-    const supportRole = await guild.roles.fetch(ticketType.roleId);
+    const supportRole = await guild.roles.fetch(supportRoleId);
     if (!supportRole) {
       throw new Error(
-        `Support role with ID ${ticketType.roleId} does not exist in the server.`,
+        `Support role with ID ${supportRoleId} does not exist in the server.`,
       );
     }
 
-    const category = await guild.channels.fetch(process.env.TICKET_CATEGORY_ID);
+    const category = await guild.channels.fetch(
+      await db.getChannelId(guild.id, "ticket_category"),
+    );
     if (!category) throw new Error("Ticket category not found");
 
     const ticketChannel = await guild.channels.create({
@@ -285,7 +292,7 @@ export async function handleTicketCreate(interaction, type) {
                   channel,
                   guild,
                   user: client.user,
-                  reply: () => {},
+                  reply: () => { },
                   deferred: false,
                 },
                 true,
@@ -471,20 +478,29 @@ export async function handleTicketUnclaim(interaction) {
 export async function handleTicketClose(interaction) {
   try {
     if (interaction.deferred) return;
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.channel;
-    const logChannel = await interaction.guild.channels.fetch(
-      process.env.TICKET_LOGS_CHANNEL_ID,
-    );
+    const logChannelId = await db.getChannelId(interaction.guild.id, "ticket_logs");
+    if (!logChannelId) {
+      throw new Error("Log channel not found");
+    }
 
+    const logChannel = await interaction.guild.channels.fetch(logChannelId);
     if (!logChannel) {
       throw new Error("Log channel not found");
     }
 
-    const messages = await channel.messages.fetch({ limit: 100 });
-    const ticketHistory = [];
+    const messages = await fetchWithRetry(
+      `https://discord.com/api/v10/channels/${channel.id}/messages?limit=100`,
+      {
+        headers: {
+          Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
+        },
+      }
+    ).then(res => res.json());
 
+    const ticketHistory = [];
     const creationTime = channel.createdAt.toLocaleString();
     ticketHistory.push(`[${creationTime}] SYSTEM: Ticket created`);
 
@@ -495,10 +511,9 @@ export async function handleTicketClose(interaction) {
       });
     }
 
-    const messageHistory = Array.from(messages.values())
-      .reverse()
-      .map((msg) => {
-        const time = msg.createdAt.toLocaleString();
+    for (const msg of messages) {
+      try {
+        const time = new Date(msg.timestamp).toLocaleString();
         const author = msg.author.tag;
         let content = msg.content || "";
 
@@ -508,7 +523,7 @@ export async function handleTicketClose(interaction) {
           .replace(/[^\x20-\x7E\n]/g, "")
           .trim();
 
-        if (msg.embeds.length > 0) {
+        if (msg.embeds?.length > 0) {
           content += msg.embeds
             .map((embed) => {
               const title = embed.title
@@ -516,49 +531,40 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                    .replace(/[^\x20-\x7E\n]/g, "")
-                    .replace(/<@[!&]?(\d+)>/g, "@user")
-                    .trim()
+                  .replace(/[^\x20-\x7E\n]/g, "")
+                  .replace(/<@[!&]?(\d+)>/g, "@user")
+                  .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })
             .join("\n");
         }
 
-        if (msg.attachments.size > 0) {
-          content +=
-            "\nAttachments: " +
-            Array.from(msg.attachments.values())
-              .map((att) => att.name)
-              .join(", ");
+        if (content) {
+          ticketHistory.push(`[${time}] ${author}: ${content}`);
         }
+      } catch (error) {
+        console.error("Error processing message:", error);
+        continue;
+      }
+    }
 
-        return `[${time}] ${author}: ${content}`;
-      });
-
-    const transcript = [
-      `=== TICKET TRANSCRIPT: ${channel.name} ===`,
-      `Created at: ${creationTime}`,
-      `Closed by: ${interaction.user.tag}`,
-      `Closed at: ${new Date().toLocaleString()}`,
-      "\n=== TICKET HISTORY ===",
-      ...ticketHistory.map((line) => line.replace(/[^\x20-\x7E\n]/g, "")),
-      "\n=== MESSAGE HISTORY ===",
-      ...messageHistory,
-    ].join("\n");
-
-    const cleanTranscript = transcript
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-      .replace(/\r\n/g, "\n")
+    const cleanTranscript = ticketHistory
+      .reverse()
+      .join("\n")
       .replace(/\n{3,}/g, "\n\n")
       .slice(0, 50000);
 
-    console.log("Sending transcript to API...");
-    const response = await fetch("https://api.e-z.host/paste", {
+    const ezHostKey = await db.getApiKey(interaction.guild.id, "ez_host");
+    if (!ezHostKey) {
+      throw new Error("EZ Host API key not configured");
+    }
+
+    const response = await fetchWithRetry("https://api.e-z.host/paste", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        key: process.env.EZ_HOST_KEY,
+        key: ezHostKey,
         Accept: "application/json",
       },
       body: JSON.stringify({
@@ -569,23 +575,15 @@ export async function handleTicketClose(interaction) {
       }),
     });
 
-    console.log("API Response Status:", response.status);
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        `API returned status ${response.status}: ${JSON.stringify(data)}`,
-      );
-    }
-
     if (!data.rawUrl) {
-      throw new Error(`API response missing rawUrl: ${JSON.stringify(data)}`);
+      throw new Error("API response missing rawUrl");
     }
 
     const embed = new EmbedBuilder()
       .setTitle("Ticket Closed")
       .setDescription(
-        `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`,
+        `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`
       )
       .setColor("#ED4245")
       .setTimestamp();
@@ -594,18 +592,30 @@ export async function handleTicketClose(interaction) {
     await interaction.editReply({
       content: "Ticket closed and transcript saved.",
     });
+
+    const ticketId = await db.closeTicket(channel.id, interaction.user.id);
+    if (ticketId) {
+      await db.addTicketMessage(ticketId, {
+        authorId: "SYSTEM",
+        content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`,
+      });
+    }
+
     await db.clearTicketActions(channel.id);
-    await channel.delete();
+    await channel.delete().catch(error => {
+      console.error("Error deleting channel:", error);
+      throw new Error("Failed to delete ticket channel");
+    });
   } catch (error) {
     console.error("Error closing ticket:", error);
     console.error("Full error details:", {
       message: error.message,
       stack: error.stack,
-      apiKey: process.env.EZ_HOST_KEY ? "Present" : "Missing",
     });
 
-    const errorMessage =
-      "There was an error closing the ticket. Please contact an administrator.";
+    const errorMessage = error.code === "UND_ERR_CONNECT_TIMEOUT"
+      ? "Connection timeout while closing ticket. Please try again."
+      : "There was an error closing the ticket. Please contact an administrator.";
 
     if (interaction.deferred) {
       await interaction.editReply({ content: errorMessage });
