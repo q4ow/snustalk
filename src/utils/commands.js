@@ -984,6 +984,69 @@ Ping Roles: ${pingRoles}`;
           } catch (error) {
             await interaction.reply({ content: `❌ Failed to create giveaway: ${error.message}`, flags: 64 });
           }
+        } else if (sub === "end") {
+          const messageId = interaction.options.getString("message_id");
+          try {
+            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            if (!giveaway) {
+              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              return;
+            }
+            
+            const winners = await client.giveaways.endGiveaway(giveaway.id, true);
+            await interaction.reply({ 
+              content: winners.length > 0 
+                ? `✅ Giveaway ended! Winners: ${winners.map(id => `<@${id}>`).join(", ")}`
+                : "✅ Giveaway ended! No valid winners.",
+              flags: 64 
+            });
+          } catch (error) {
+            await interaction.reply({ content: `❌ Failed to end giveaway: ${error.message}`, flags: 64 });
+          }
+        } else if (sub === "reroll") {
+          const messageId = interaction.options.getString("message_id");
+          const winnerCount = interaction.options.getInteger("winners");
+          
+          try {
+            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            if (!giveaway) {
+              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              return;
+            }
+            if (!giveaway.ended) {
+              await interaction.reply({ content: "❌ This giveaway hasn't ended yet", flags: 64 });
+              return;
+            }
+            
+            const winners = await client.giveaways.rerollGiveaway(giveaway.id, winnerCount);
+            await interaction.reply({ 
+              content: winners.length > 0 
+                ? `🎉 New winner${winners.length > 1 ? 's' : ''}: ${winners.map(id => `<@${id}>`).join(", ")}!`
+                : "❌ Could not determine new winner(s). No valid entries found.",
+              flags: 64 
+            });
+          } catch (error) {
+            await interaction.reply({ content: `❌ Failed to reroll giveaway: ${error.message}`, flags: 64 });
+          }
+        } else if (sub === "blacklist") {
+          const messageId = interaction.options.getString("message_id");
+          const user = interaction.options.getUser("user");
+          
+          try {
+            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            if (!giveaway) {
+              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              return;
+            }
+            
+            await client.giveaways.blacklistUser(giveaway.id, user.id);
+            await interaction.reply({ 
+              content: `✅ ${user.tag} has been blacklisted from the giveaway.`,
+              flags: 64 
+            });
+          } catch (error) {
+            await interaction.reply({ content: `❌ Failed to blacklist user: ${error.message}`, flags: 64 });
+          }
         } else if (sub === "entries") {
           const messageId = interaction.options.getString("message_id");
           const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
@@ -1000,8 +1063,6 @@ Ping Roles: ${pingRoles}`;
           await interaction.reply({ content: `Entries (${entries.length}):\n${entryMentions}`, flags: 64 });
         }
         break;
-
-
       }
 
       case "settings":
