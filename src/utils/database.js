@@ -140,7 +140,7 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
     try {
       await this.query(
         `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
-         VALUES (?, ?, ?)`,
+         VALUES ($1, $2, $3)`,
         [messageId, channelId, JSON.stringify(roles)]
       );
     } catch (error) {
@@ -151,14 +151,12 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
 
   async getReactionRole(messageId, roleId) {
     try {
-      const [rows] = await this.query(
-        `SELECT roles_data FROM reaction_roles WHERE message_id = ?`,
+      const result = await this.query(
+        `SELECT roles_data FROM reaction_roles WHERE message_id = $1`,
         [messageId]
       );
-      
-      if (!rows || rows.length === 0) return null;
-      
-      const roles = JSON.parse(rows[0].roles_data);
+      if (!result.rows || result.rows.length === 0) return null;
+      const roles = JSON.parse(result.rows[0].roles_data);
       return roles.find(r => r.id === roleId) || null;
     } catch (error) {
       console.error("Error getting reaction role:", error);
