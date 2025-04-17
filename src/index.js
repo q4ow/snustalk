@@ -325,53 +325,6 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isCommand()) return;
-
-  try {
-    if (interaction.isCommand()) {
-      await handleSlashCommand(interaction);
-      return;
-    }
-
-    if (interaction.isButton()) {
-      const handlers = {
-        create_general_ticket: () => handleTicketCreate(interaction, "GENERAL"),
-        create_management_ticket: () =>
-          handleTicketCreate(interaction, "MANAGEMENT"),
-        claim_ticket: () => handleTicketClaim(interaction),
-        unclaim_ticket: () => handleTicketUnclaim(interaction),
-        close_ticket: () => handleTicketClose(interaction),
-      };
-
-      if (
-        interaction.customId.startsWith("accept_app_") ||
-        interaction.customId.startsWith("deny_app_")
-      ) {
-        await handleApplicationButton(interaction);
-        return;
-      }
-
-      const handler = handlers[interaction.customId];
-      if (handler) await handler();
-    }
-
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId.includes("_app_modal_")) {
-        return;
-      }
-    }
-  } catch (error) {
-    console.error("Error handling command:", error);
-    const errorMessage = "An error occurred while executing this command.";
-    if (interaction.deferred) {
-      await interaction.editReply({ content: errorMessage });
-    } else if (!interaction.replied) {
-      await interaction.reply({ content: errorMessage, flags: 64 });
-    }
-  }
-});
-
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
