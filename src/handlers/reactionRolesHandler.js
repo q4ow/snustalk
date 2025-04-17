@@ -50,7 +50,7 @@ export async function handleReactionRole(interaction) {
         if (!roleConfig) {
             await interaction.reply({
                 content: "❌ This role configuration no longer exists.",
-                ephemeral: true
+                flags: 64
             });
             return;
         }
@@ -59,7 +59,7 @@ export async function handleReactionRole(interaction) {
         if (!role) {
             await interaction.reply({
                 content: "❌ This role no longer exists.",
-                ephemeral: true
+                flags: 64
             });
             return;
         }
@@ -70,26 +70,26 @@ export async function handleReactionRole(interaction) {
                 await member.roles.remove(role);
                 await interaction.reply({
                     content: `✅ Removed the ${role.name} role!`,
-                    ephemeral: true
+                    flags: 64
                 });
             } else {
                 await member.roles.add(role);
                 await interaction.reply({
                     content: `✅ Added the ${role.name} role!`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
         } catch (error) {
             await interaction.reply({
                 content: "❌ I don't have permission to manage this role.",
-                ephemeral: true
+                flags: 64
             });
         }
     } catch (error) {
         console.error("Error handling reaction role:", error);
         await interaction.reply({
             content: "❌ An error occurred while managing your role.",
-            ephemeral: true
+            flags: 64
         });
     }
 }

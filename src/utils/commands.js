@@ -1075,24 +1075,24 @@ Ping Roles: ${pingRoles}`;
           if (!result.success && result.key) {
             await interaction.reply({
               content: `Your existing API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
-              ephemeral: true
+              flags: 64
             });
           } else if (result.success) {
             await interaction.reply({
               content: `Your new API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
-              ephemeral: true
+              flags: 64
             });
           } else {
             await interaction.reply({
               content: '❌ Failed to generate API key. Please try again later.',
-              ephemeral: true
+              flags: 64
             });
           }
         } catch (error) {
           console.error('Error generating API key:', error);
           await interaction.reply({
             content: '❌ An error occurred while generating your API key.',
-            ephemeral: true
+            flags: 64
           });
         }
         break;
