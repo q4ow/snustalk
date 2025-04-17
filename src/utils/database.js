@@ -156,7 +156,8 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
         [messageId]
       );
       if (!result.rows || result.rows.length === 0) return null;
-      const roles = JSON.parse(result.rows[0].roles_data);
+      const rolesData = result.rows[0].roles_data;
+      const roles = typeof rolesData === "string" ? JSON.parse(rolesData) : rolesData;
       return roles.find(r => r.id === roleId) || null;
     } catch (error) {
       console.error("Error getting reaction role:", error);
