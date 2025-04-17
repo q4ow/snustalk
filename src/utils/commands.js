@@ -992,13 +992,13 @@ Ping Roles: ${pingRoles}`;
               await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
               return;
             }
-            
+
             const winners = await client.giveaways.endGiveaway(giveaway.id, true);
-            await interaction.reply({ 
-              content: winners.length > 0 
+            await interaction.reply({
+              content: winners.length > 0
                 ? `✅ Giveaway ended! Winners: ${winners.map(id => `<@${id}>`).join(", ")}`
                 : "✅ Giveaway ended! No valid winners.",
-              flags: 64 
+              flags: 64
             });
           } catch (error) {
             await interaction.reply({ content: `❌ Failed to end giveaway: ${error.message}`, flags: 64 });
@@ -1006,7 +1006,7 @@ Ping Roles: ${pingRoles}`;
         } else if (sub === "reroll") {
           const messageId = interaction.options.getString("message_id");
           const winnerCount = interaction.options.getInteger("winners");
-          
+
           try {
             const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
             if (!giveaway) {
@@ -1017,13 +1017,13 @@ Ping Roles: ${pingRoles}`;
               await interaction.reply({ content: "❌ This giveaway hasn't ended yet", flags: 64 });
               return;
             }
-            
+
             const winners = await client.giveaways.rerollGiveaway(giveaway.id, winnerCount);
-            await interaction.reply({ 
-              content: winners.length > 0 
+            await interaction.reply({
+              content: winners.length > 0
                 ? `🎉 New winner${winners.length > 1 ? 's' : ''}: ${winners.map(id => `<@${id}>`).join(", ")}!`
                 : "❌ Could not determine new winner(s). No valid entries found.",
-              flags: 64 
+              flags: 64
             });
           } catch (error) {
             await interaction.reply({ content: `❌ Failed to reroll giveaway: ${error.message}`, flags: 64 });
@@ -1031,18 +1031,18 @@ Ping Roles: ${pingRoles}`;
         } else if (sub === "blacklist") {
           const messageId = interaction.options.getString("message_id");
           const user = interaction.options.getUser("user");
-          
+
           try {
             const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
             if (!giveaway) {
               await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
               return;
             }
-            
+
             await client.giveaways.blacklistUser(giveaway.id, user.id);
-            await interaction.reply({ 
+            await interaction.reply({
               content: `✅ ${user.tag} has been blacklisted from the giveaway.`,
-              flags: 64 
+              flags: 64
             });
           } catch (error) {
             await interaction.reply({ content: `❌ Failed to blacklist user: ${error.message}`, flags: 64 });
@@ -1096,6 +1096,51 @@ Ping Roles: ${pingRoles}`;
           });
         }
         break;
+
+      case "reactionroles": {
+        const channel = interaction.options.getChannel("channel");
+        const title = interaction.options.getString("title");
+        const description = interaction.options.getString("description");
+        const rolesJson = interaction.options.getString("roles");
+        const color = interaction.options.getString("color");
+        const { createReactionRoles } = await import("../handlers/reactionRolesHandler.js");
+        try {
+          const roles = JSON.parse(rolesJson);
+          if (!Array.isArray(roles)) {
+            await interaction.reply({
+              content: "❌ Roles must be provided as an array.",
+              flags: 64
+            });
+            return;
+          }
+          for (const role of roles) {
+            if (!role.id || !interaction.guild.roles.cache.has(role.id)) {
+              await interaction.reply({
+                content: `❌ Invalid role ID: ${role.id}`,
+                flags: 64
+              });
+              return;
+            }
+          }
+          await createReactionRoles(channel, {
+            title,
+            description,
+            roles,
+            color
+          });
+          await interaction.reply({
+            content: `✅ Reaction roles message created in ${channel}`,
+            flags: 64
+          });
+        } catch (error) {
+          console.error("Error creating reaction roles:", error);
+          await interaction.reply({
+            content: "❌ Invalid JSON format for roles. Example format:\n```json\n[\n  {\n    \"id\": \"role_id\",\n    \"label\": \"Display Name\",\n    \"emoji\": \"👍\",\n    \"style\": \"Primary\"\n  }\n]```\nValid styles: Primary, Secondary, Success, Danger",
+            flags: 64
+          });
+        }
+        break;
+      }
 
     }
   } catch (error) {
