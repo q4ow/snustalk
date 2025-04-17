@@ -90,6 +90,33 @@ with my code, I'd love to see it so drop me an email or add me on [Discord](http
   - Bot latency check
   - Custom embed creation
 
+- **Giveaway System**
+  - Create customizable giveaways with requirements
+  - Multiple winner support
+  - Role requirements
+  - Account age requirements
+  - Button-based entry system
+  - Easy rerolling system
+  - Blacklist system
+  - Customizable end messages
+  - Winner announcement system
+  - Entry tracking
+
+- **Typing Game Integration**
+  - Built-in typing speed game
+  - WPM tracking and leaderboards
+  - Personal best tracking
+  - Web-based interface
+  - Real-time score updates
+
+- **API System**
+  - RESTful API for bot interaction
+  - Secure authentication system
+  - User-specific API keys
+  - Dashboard integration ready
+  - Session management
+  - Database integration
+
 ## Setup Instructions
 
 ### Prerequisites
@@ -177,6 +204,14 @@ DB_PORT=                        # Database port
 
 # Session Configuration
 SESSION_SECRET=                 # Secret for session management
+
+# Game Integration
+TYPING_GAME_URL=                 # URL for the typing game (defaults to https://snus.slop.sh)
+
+# API Configuration
+API_PORT=                        # Port for the API server
+API_HOST=                        # Host for the API server
+API_KEY_SECRET=                  # Secret for API key generation
 ```
 
 ## Server Setup
@@ -230,6 +265,16 @@ Both slash commands and prefix commands are available:
 - `/automod logchannel <channel>` - Set the channel for automod logs
 - `/automod exempt <type> <target>` - Add/remove role/channel exemptions
 - `/automod filter <type> <action> <enabled> [settings]` - Configure automod filters
+- `/giveaway create` - Creates a new giveaway
+- `/giveaway end` - Ends an active giveaway
+- `/giveaway reroll` - Rerolls winners for a giveaway
+- `/giveaway blacklist` - Blacklists a user from a giveaway
+- `/giveaway entries` - Lists all entries for a giveaway
+- `/typingscore` - Shows your best typing speed
+- `/typingleaderboard` - Shows typing speed leaderboard
+- `/typinggame` - Get link to the typing game
+- `/dashboard` - Get your API key for dashboard access
+- `/embed` - Create a custom embed message
 
 #### Prefix Commands
 All slash commands are also available as prefix commands using `$`:
@@ -257,6 +302,16 @@ All slash commands are also available as prefix commands using `$`:
 - `$automod logchannel <channel>` - Set the channel for automod logs
 - `$automod exempt <type> <target>` - Add/remove role/channel exemptions
 - `$automod filter <type> <action> <enabled> [settings]` - Configure automod filters
+- `$giveaway create` - Creates a new giveaway
+- `$giveaway end` - Ends an active giveaway
+- `$giveaway reroll` - Rerolls winners for a giveaway
+- `$giveaway blacklist` - Blacklists a user from a giveaway
+- `$giveaway entries` - Lists all entries for a giveaway
+- `$typingscore` - Shows your best typing speed
+- `$typingleaderboard` - Shows typing speed leaderboard
+- `$typinggame` - Get link to the typing game
+- `$dashboard` - Get your API key for dashboard access
+- `$embed` - Create a custom embed message
 
 > **Note**: 
 > - `<>` indicates required parameters
