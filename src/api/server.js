@@ -245,7 +245,7 @@ app.patch('/api/guilds/:guildId/logs/:logType', authenticate, async (req, res) =
     }
 });
 
-export function startApiServer(client, port = process.env.API_PORT || 3000) {
+export function startApiServer(client, port = process.env.API_PORT || 3090) {
     app.set('client', client);
 
     app.listen(port, () => {
