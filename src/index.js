@@ -41,6 +41,8 @@ const requiredEnvVars = [
   "DB_PORT"
 ];
 
+const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     throw new Error(`Missing required environment variable: ${envVar}`);
@@ -132,9 +134,11 @@ export async function runHealthCheck() {
         {
           name: `${client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
+          state: `Snussy v${SNUSSY_VERSION}`,
+          url: "https://github.com/q4ow/snustalk"
         },
       ],
-      status: "online",
+      status: "dnd",
     });
 
   } catch (error) {
