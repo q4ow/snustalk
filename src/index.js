@@ -28,6 +28,7 @@ import { startApiServer } from "./api/server.js";
 import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
+import { handleApplicationResponse } from "./handlers/applicationHandler.js";
 
 dotenv.config();
 
