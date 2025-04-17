@@ -293,10 +293,24 @@ export async function handleApplicationButton(interaction) {
     }
 
     const responseEmbed = new EmbedBuilder()
-      .setTitle(`Application ${action === "accept" ? "Accepted" : "Denied"}`)
-      .setDescription(`**Reason:** ${reason}`)
+      .setTitle(`Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`)
+      .setDescription(`Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`)
+      .addFields(
+        { name: "Reason", value: reason, inline: false },
+        { name: "Decision Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+        { name: "Staff Member", value: interaction.user.tag, inline: true }
+      )
       .setColor(action === "accept" ? "#00FF00" : "#FF0000")
+      .setFooter({ text: interaction.guild.name, iconURL: interaction.guild.iconURL() })
       .setTimestamp();
+
+    if (action === "accept") {
+      responseEmbed.addFields({
+        name: "Next Steps",
+        value: "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
+        inline: false
+      });
+    }
 
     await user.send({ embeds: [responseEmbed] }).catch(() => {
       console.log(`Failed to DM user ${user.tag}`);
