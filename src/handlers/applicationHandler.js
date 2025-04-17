@@ -50,7 +50,7 @@ export async function startApplication(interaction) {
       answers: [],
       startTime: Date.now(),
       guildJoinDate: interaction.member.joinedAt,
-      guildId: interaction.guildId // Store the guild ID
+      guildId: interaction.guildId
     });
 
     try {

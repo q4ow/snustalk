@@ -141,7 +141,7 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
       await this.query(
         `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
          VALUES ($1, $2, $3)`,
-        [messageId, channelId, JSON.stringify(roles)]
+        [messageId, channelId, roles]
       );
     } catch (error) {
       console.error("Error creating reaction roles:", error);
