@@ -411,4 +411,21 @@ export function setupLoggingEvents(client) {
       uses: invite.uses,
     });
   });
+
+  client.on("messageCreate", async (message) => {
+    if (
+      message.attachments &&
+      message.attachments.size > 0 &&
+      !message.author.bot
+    ) {
+      logger.createLog("FILE", {
+        action: "UPLOAD",
+        user: message.author,
+        channel: message.channel,
+        files: message.attachments.map(att => ({ name: att.name, url: att.url })),
+        messageContent: message.content,
+        message,
+      });
+    }
+  });
 }

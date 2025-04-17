@@ -501,7 +501,8 @@ export const slashCommands = [
               { name: 'Server Events', value: 'SERVER' },
               { name: 'User Events', value: 'USER' },
               { name: 'Invite Events', value: 'INVITE' },
-              { name: 'Thread Events', value: 'THREAD' }
+              { name: 'Thread Events', value: 'THREAD' },
+              { name: 'File Events', value: 'FILE' }
             )
         )
         .addChannelOption(option =>
@@ -539,7 +540,8 @@ export const slashCommands = [
               { name: 'Server Events', value: 'SERVER' },
               { name: 'User Events', value: 'USER' },
               { name: 'Invite Events', value: 'INVITE' },
-              { name: 'Thread Events', value: 'THREAD' }
+              { name: 'Thread Events', value: 'THREAD' },
+              { name: 'File Events', value: 'FILE' }
             )
         )
     )

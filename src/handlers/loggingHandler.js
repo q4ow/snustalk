@@ -12,7 +12,8 @@ const LOG_TYPES = {
   SERVER: { color: "#34495e", emoji: "🖥️" },
   USER: { color: "#1abc9c", emoji: "👤" },
   INVITE: { color: "#8e44ad", emoji: "📨" },
-  THREAD: { color: "#2c3e50", emoji: "🧵" }
+  THREAD: { color: "#2c3e50", emoji: "🧵" },
+  FILE: { color: "#95a5a6", emoji: "📁" },
 };
 
 class LogHandler {
@@ -105,6 +106,9 @@ class LogHandler {
           break;
         case "THREAD":
           this.formatThreadLog(embed, data);
+          break;
+        case "FILE":
+          this.formatFileLog(embed, data);
           break;
       }
 
@@ -736,6 +740,19 @@ class LogHandler {
           );
         break;
     }
+  }
+
+  formatFileLog(embed, data) {
+    embed.setTitle("📁 File Uploaded").addFields(
+      { name: "User", value: `${data.user}` },
+      { name: "Channel", value: `${data.channel}` },
+      { name: "Filename(s)", value: data.files.map(f => f.name).join(", ") },
+      { name: "File URL(s)", value: data.files.map(f => `[${f.name}](${f.url})`).join("\n") }
+    );
+    if (data.messageContent) {
+      embed.addFields({ name: "Message Content", value: data.messageContent });
+    }
+    return embed;
   }
 }
 
