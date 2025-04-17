@@ -50,6 +50,7 @@ export async function startApplication(interaction) {
       answers: [],
       startTime: Date.now(),
       guildJoinDate: interaction.member.joinedAt,
+      guildId: interaction.guildId // Store the guild ID
     });
 
     try {
@@ -127,7 +128,7 @@ export async function handleApplicationResponse(message) {
 
 async function submitApplication(message, application) {
   try {
-    const guild = message.client.guilds.cache.get(message.guild?.id);
+    const guild = message.client.guilds.cache.get(application.guildId);
     if (!guild) {
       await message.reply(
         "Error: Could not find the server. Please contact an administrator.",
