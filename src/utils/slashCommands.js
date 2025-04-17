@@ -636,62 +636,38 @@ export const slashCommands = [
     .addSubcommand(subcommand =>
       subcommand
         .setName('end')
-        .setDescription('End a giveaway early')
+        .setDescription('End a giveaway')
         .addStringOption(option =>
-          option
-            .setName('message_id')
-            .setDescription('The message ID of the giveaway')
-            .setRequired(true)
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('reroll')
-        .setDescription('Reroll a giveaway')
-        .addStringOption(option =>
-          option
-            .setName('message_id')
-            .setDescription('The message ID of the giveaway')
-            .setRequired(true)
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('winners')
-            .setDescription('Number of new winners to select')
-            .setMinValue(1)
-            .setMaxValue(20)
-            .setRequired(false)
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('blacklist')
-        .setDescription('Blacklist a user from a giveaway')
-        .addStringOption(option =>
-          option
-            .setName('message_id')
-            .setDescription('The message ID of the giveaway')
-            .setRequired(true)
-        )
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to blacklist')
-            .setRequired(true)
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('entries')
-        .setDescription('View users who have entered a giveaway')
-        .addStringOption(option =>
-          option
-            .setName('message_id')
-            .setDescription('The message ID of the giveaway')
-            .setRequired(true)
-        )
+          option.setName('message_id').setDescription('The message ID of the giveaway').setRequired(true))
     ),
-
+  new SlashCommandBuilder()
+    .setName('reactionroles')
+    .setDescription('Create a reaction roles message')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .addChannelOption(option =>
+      option.setName('channel')
+        .setDescription('The channel to send the reaction roles message in')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('title')
+        .setDescription('The title of the embed')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('description')
+        .setDescription('The description of the embed')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('roles')
+        .setDescription('Role configurations in JSON format')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('color')
+        .setDescription('The color of the embed (hex code)')
+    ),
   new SlashCommandBuilder()
     .setName("settings")
     .setDescription("Manage bot settings for the server")

@@ -29,6 +29,7 @@ import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
 import { handleApplicationResponse, handleApplicationButton } from "./handlers/applicationHandler.js";
+import { createReactionRoles, handleReactionRole } from "./handlers/reactionRolesHandler.js";
 
 dotenv.config();
 
@@ -300,11 +301,8 @@ client.on("interactionCreate", async (interaction) => {
         }
       };
 
-      if (
-        interaction.customId.startsWith("accept_app_") ||
-        interaction.customId.startsWith("deny_app_")
-      ) {
-        await handleApplicationButton(interaction);
+      if (interaction.customId.startsWith('role_')) {
+        await handleReactionRole(interaction);
         return;
       }
 

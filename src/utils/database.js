@@ -135,6 +135,36 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
       this.pool = null;
     }
   }
+
+  async createReactionRoles(messageId, channelId, roles) {
+    try {
+      await this.query(
+        `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
+         VALUES (?, ?, ?)`,
+        [messageId, channelId, JSON.stringify(roles)]
+      );
+    } catch (error) {
+      console.error("Error creating reaction roles:", error);
+      throw error;
+    }
+  }
+
+  async getReactionRole(messageId, roleId) {
+    try {
+      const [rows] = await this.query(
+        `SELECT roles_data FROM reaction_roles WHERE message_id = ?`,
+        [messageId]
+      );
+      
+      if (!rows || rows.length === 0) return null;
+      
+      const roles = JSON.parse(rows[0].roles_data);
+      return roles.find(r => r.id === roleId) || null;
+    } catch (error) {
+      console.error("Error getting reaction role:", error);
+      throw error;
+    }
+  }
 }
 
 const dbPool = new DatabasePool();

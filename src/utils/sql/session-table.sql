@@ -144,3 +144,12 @@ CREATE TABLE IF NOT EXISTS giveaway_entries (
     entered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (giveaway_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS reaction_roles (
+    id SERIAL PRIMARY KEY,
+    message_id VARCHAR(255) NOT NULL,
+    channel_id VARCHAR(255) NOT NULL,
+    roles_data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(message_id)
+);
