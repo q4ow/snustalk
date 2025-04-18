@@ -28,8 +28,14 @@ import { startApiServer } from "./api/server.js";
 import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
-import { handleApplicationResponse, handleApplicationButton } from "./handlers/applicationHandler.js";
-import { createReactionRoles, handleReactionRole } from "./handlers/reactionRolesHandler.js";
+import {
+  handleApplicationResponse,
+  handleApplicationButton,
+} from "./handlers/applicationHandler.js";
+import {
+  createReactionRoles,
+  handleReactionRole,
+} from "./handlers/reactionRolesHandler.js";
 
 dotenv.config();
 
@@ -39,7 +45,7 @@ const requiredEnvVars = [
   "DB_PASSWORD",
   "DB_NAME",
   "DB_HOST",
-  "DB_PORT"
+  "DB_PORT",
 ];
 
 const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
@@ -112,7 +118,7 @@ export async function runHealthCheck() {
           "EmbedLinks",
           "AttachFiles",
           "ReadMessageHistory",
-          "AddReactions"
+          "AddReactions",
         ];
 
         for (const perm of requiredPermissions) {
@@ -122,9 +128,10 @@ export async function runHealthCheck() {
         }
 
         if (missingPermissions.length > 0) {
-          console.warn(`⚠️ Missing permissions in ${guild.name}: ${missingPermissions.join(", ")}`);
+          console.warn(
+            `⚠️ Missing permissions in ${guild.name}: ${missingPermissions.join(", ")}`,
+          );
         }
-
       } catch (error) {
         console.error(`❌ Error checking guild ${guildId}:`, error);
       }
@@ -136,12 +143,11 @@ export async function runHealthCheck() {
           name: `${client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
           state: `Snussy v${SNUSSY_VERSION}`,
-          url: "https://github.com/q4ow/snustalk"
+          url: "https://github.com/q4ow/snustalk",
         },
       ],
       status: "dnd",
     });
-
   } catch (error) {
     console.error("❌ Health check failed:", error);
   }
@@ -193,7 +199,9 @@ client.once("ready", async () => {
 
         const settings = await db.getGuildSettings(guildId);
         const verificationChannel = settings.channel_ids?.verification
-          ? await client.channels.fetch(settings.channel_ids.verification).catch(() => null)
+          ? await client.channels
+              .fetch(settings.channel_ids.verification)
+              .catch(() => null)
           : null;
 
         if (verificationChannel) {
@@ -202,22 +210,29 @@ client.once("ready", async () => {
         }
 
         const unverifiedRole = settings.role_ids?.unverified
-          ? await guild.roles.fetch(settings.role_ids.unverified).catch(() => null)
+          ? await guild.roles
+              .fetch(settings.role_ids.unverified)
+              .catch(() => null)
           : null;
 
         const verifiedRole = settings.role_ids?.verified
-          ? await guild.roles.fetch(settings.role_ids.verified).catch(() => null)
+          ? await guild.roles
+              .fetch(settings.role_ids.verified)
+              .catch(() => null)
           : null;
 
         if (!unverifiedRole || !verifiedRole) {
-          console.warn(`⚠️ Missing required roles in guild ${guild.name} (${guildId})`);
+          console.warn(
+            `⚠️ Missing required roles in guild ${guild.name} (${guildId})`,
+          );
         }
-
       } catch (error) {
-        console.error(`❌ Error initializing guild ${guild.name} (${guildId}):`, error);
+        console.error(
+          `❌ Error initializing guild ${guild.name} (${guildId}):`,
+          error,
+        );
       }
     }
-
   } catch (error) {
     console.error("❌ Error during initialization:", error);
     process.exit(1);
@@ -232,7 +247,7 @@ async function setupVerificationMessage(channel) {
     (msg) =>
       msg.author.id === client.user.id &&
       msg.embeds.length > 0 &&
-      msg.embeds[0].title === "Member Verification"
+      msg.embeds[0].title === "Member Verification",
   );
 
   if (existingVerification) {
@@ -244,7 +259,7 @@ async function setupVerificationMessage(channel) {
   const verificationEmbed = new EmbedBuilder()
     .setTitle("Member Verification")
     .setDescription(
-      "React with ✅ to verify yourself and gain access to the server."
+      "React with ✅ to verify yourself and gain access to the server.",
     )
     .setColor("#00ff00")
     .setTimestamp();
@@ -276,32 +291,35 @@ client.on("interactionCreate", async (interaction) => {
           try {
             const giveaway = await db.getGiveawayByMessageId(
               interaction.message.id,
-              interaction.guildId
+              interaction.guildId,
             );
 
             if (!giveaway) {
               await interaction.reply({
                 content: "❌ This giveaway was not found",
-                flags: 64
+                flags: 64,
               });
               return;
             }
 
-            await client.giveaways.enterGiveaway(giveaway.id, interaction.user.id);
+            await client.giveaways.enterGiveaway(
+              giveaway.id,
+              interaction.user.id,
+            );
             await interaction.reply({
               content: "✅ You have entered the giveaway!",
-              flags: 64
+              flags: 64,
             });
           } catch (error) {
             await interaction.reply({
               content: `❌ ${error.message}`,
-              flags: 64
+              flags: 64,
             });
           }
-        }
+        },
       };
 
-      if (interaction.customId.startsWith('role_')) {
+      if (interaction.customId.startsWith("role_")) {
         await handleReactionRole(interaction);
         return;
       }
@@ -323,7 +341,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     client.emit("interactionError", interaction, error);
@@ -398,7 +416,7 @@ async function startBot(retries = 5, delay = 5000) {
       console.error(`❌ Failed to login (attempt ${i + 1}/${retries}):`, error);
       if (i < retries - 1) {
         console.log(`Retrying in ${delay / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         console.error("❌ Maximum retry attempts reached. Exiting...");
         process.exit(1);

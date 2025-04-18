@@ -10,8 +10,8 @@ import {
 import {
   handleAutomodWhitelistRole,
   handleAutomodUnwhitelistRole,
-  handleAutomodListWhitelists
-} from './automodHandler.js';
+  handleAutomodListWhitelists,
+} from "./automodHandler.js";
 import { db } from "../utils/database.js";
 
 const applicationQuestions = [
@@ -36,7 +36,7 @@ export async function startApplication(interaction) {
           content: "Testing DM permissions - this message will be deleted.",
           flags: 64,
         })
-        .then((msg) => msg.delete().catch(() => { }));
+        .then((msg) => msg.delete().catch(() => {}));
     } catch (error) {
       await interaction.reply({
         content:
@@ -50,7 +50,7 @@ export async function startApplication(interaction) {
       answers: [],
       startTime: Date.now(),
       guildJoinDate: interaction.member.joinedAt,
-      guildId: interaction.guildId
+      guildId: interaction.guildId,
     });
 
     try {
@@ -208,7 +208,7 @@ async function submitApplication(message, application) {
       .reply(
         "There was an error submitting your application. Please try again later or contact an administrator.",
       )
-      .catch(() => { });
+      .catch(() => {});
   }
 }
 
@@ -293,22 +293,34 @@ export async function handleApplicationButton(interaction) {
     }
 
     const responseEmbed = new EmbedBuilder()
-      .setTitle(`Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`)
-      .setDescription(`Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`)
+      .setTitle(
+        `Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`,
+      )
+      .setDescription(
+        `Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`,
+      )
       .addFields(
         { name: "Reason", value: reason, inline: false },
-        { name: "Decision Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
-        { name: "Staff Member", value: interaction.user.tag, inline: true }
+        {
+          name: "Decision Time",
+          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+          inline: true,
+        },
+        { name: "Staff Member", value: interaction.user.tag, inline: true },
       )
       .setColor(action === "accept" ? "#00FF00" : "#FF0000")
-      .setFooter({ text: interaction.guild.name, iconURL: interaction.guild.iconURL() })
+      .setFooter({
+        text: interaction.guild.name,
+        iconURL: interaction.guild.iconURL(),
+      })
       .setTimestamp();
 
     if (action === "accept") {
       responseEmbed.addFields({
         name: "Next Steps",
-        value: "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
-        inline: false
+        value:
+          "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
+        inline: false,
       });
     }
 
@@ -339,19 +351,19 @@ export async function handleApplicationButton(interaction) {
         content: "There was an error processing the application response.",
         flags: 64,
       })
-      .catch(() => { });
+      .catch(() => {});
   }
 }
 
 export async function handleCommand(interaction) {
   switch (interaction.commandName) {
-    case 'automod-whitelist-role':
+    case "automod-whitelist-role":
       await handleAutomodWhitelistRole(interaction);
       break;
-    case 'automod-unwhitelist-role':
+    case "automod-unwhitelist-role":
       await handleAutomodUnwhitelistRole(interaction);
       break;
-    case 'automod-list-whitelists':
+    case "automod-list-whitelists":
       await handleAutomodListWhitelists(interaction);
       break;
   }

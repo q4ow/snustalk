@@ -91,7 +91,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -775,7 +775,7 @@ export async function handleSlashCommand(interaction, client) {
         const handler = {
           "automod-whitelist-role": handleAutomodWhitelistRole,
           "automod-unwhitelist-role": handleAutomodUnwhitelistRole,
-          "automod-list-whitelists": handleAutomodListWhitelists
+          "automod-list-whitelists": handleAutomodListWhitelists,
         }[interaction.commandName];
 
         if (handler) {
@@ -845,29 +845,39 @@ export async function handleSlashCommand(interaction, client) {
               channel_id: channel.id,
               allowed_roles: allowedRoles ? [allowedRoles.id] : [],
               ping_roles: pingRoles ? [pingRoles.id] : [],
-              enabled: true
+              enabled: true,
             };
 
-            await db.updateLoggingSettings(interaction.guild.id, type, settings);
+            await db.updateLoggingSettings(
+              interaction.guild.id,
+              type,
+              settings,
+            );
 
-            await channel.permissionOverwrites.edit(interaction.guild.members.me, {
-              ViewChannel: true,
-              SendMessages: true,
-              EmbedLinks: true
-            });
+            await channel.permissionOverwrites.edit(
+              interaction.guild.members.me,
+              {
+                ViewChannel: true,
+                SendMessages: true,
+                EmbedLinks: true,
+              },
+            );
 
             if (allowedRoles) {
-              await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-                ViewChannel: false
-              });
+              await channel.permissionOverwrites.edit(
+                interaction.guild.roles.everyone,
+                {
+                  ViewChannel: false,
+                },
+              );
               await channel.permissionOverwrites.edit(allowedRoles, {
-                ViewChannel: true
+                ViewChannel: true,
               });
             }
 
             await interaction.reply({
               content: `✅ Successfully set up ${type} logs in ${channel}`,
-              flags: 64
+              flags: 64,
             });
             break;
           }
@@ -875,12 +885,12 @@ export async function handleSlashCommand(interaction, client) {
           case "disable": {
             const type = interaction.options.getString("type");
             await db.updateLoggingSettings(interaction.guild.id, type, {
-              enabled: false
+              enabled: false,
             });
 
             await interaction.reply({
               content: `✅ Disabled ${type} logs`,
-              flags: 64
+              flags: 64,
             });
             break;
           }
@@ -890,7 +900,7 @@ export async function handleSlashCommand(interaction, client) {
             if (!settings || settings.length === 0) {
               await interaction.reply({
                 content: "❌ No logging settings configured for this server",
-                flags: 64
+                flags: 64,
               });
               return;
             }
@@ -900,14 +910,17 @@ export async function handleSlashCommand(interaction, client) {
               .setColor("#00ff00")
               .setDescription(
                 settings
-                  .map(setting => {
-                    const channel = interaction.guild.channels.cache.get(setting.channel_id);
-                    const allowedRoles = setting.allowed_roles
-                      .map(id => `<@&${id}>`)
-                      .join(", ") || "None";
-                    const pingRoles = setting.ping_roles
-                      .map(id => `<@&${id}>`)
-                      .join(", ") || "None";
+                  .map((setting) => {
+                    const channel = interaction.guild.channels.cache.get(
+                      setting.channel_id,
+                    );
+                    const allowedRoles =
+                      setting.allowed_roles
+                        .map((id) => `<@&${id}>`)
+                        .join(", ") || "None";
+                    const pingRoles =
+                      setting.ping_roles.map((id) => `<@&${id}>`).join(", ") ||
+                      "None";
 
                     return `**${setting.log_type}**
 Channel: ${channel ? channel.toString() : "Invalid Channel"}
@@ -915,7 +928,7 @@ Enabled: ${setting.enabled ? "Yes" : "No"}
 Allowed Roles: ${allowedRoles}
 Ping Roles: ${pingRoles}`;
                   })
-                  .join("\n\n")
+                  .join("\n\n"),
               );
 
             await interaction.reply({ embeds: [embed], flags: 64 });
@@ -931,12 +944,17 @@ Ping Roles: ${pingRoles}`;
           const durationStr = interaction.options.getString("duration");
           const winnerCount = interaction.options.getInteger("winners") || 1;
           const description = interaction.options.getString("description");
-          const channel = interaction.options.getChannel("channel") || interaction.channel;
+          const channel =
+            interaction.options.getChannel("channel") || interaction.channel;
           const requiredRole = interaction.options.getRole("required_role");
-          const minAccountAge = interaction.options.getString("min_account_age");
+          const minAccountAge =
+            interaction.options.getString("min_account_age");
           const minServerAge = interaction.options.getString("min_server_age");
-          const buttonLabel = interaction.options.getString("button_label") || "Enter Giveaway 🎉";
-          const embedColor = interaction.options.getString("embed_color") || "#FF69B4";
+          const buttonLabel =
+            interaction.options.getString("button_label") ||
+            "Enter Giveaway 🎉";
+          const embedColor =
+            interaction.options.getString("embed_color") || "#FF69B4";
           const image = interaction.options.getString("image");
           const endMessage = interaction.options.getString("end_message");
 
@@ -945,7 +963,11 @@ Ping Roles: ${pingRoles}`;
           if (minAccountAge) {
             const duration = parseDuration(minAccountAge);
             if (!duration) {
-              await interaction.reply({ content: "❌ Invalid account age format. Use format like: 1d, 1w", flags: 64 });
+              await interaction.reply({
+                content:
+                  "❌ Invalid account age format. Use format like: 1d, 1w",
+                flags: 64,
+              });
               return;
             }
             requirements.min_account_age = duration;
@@ -953,7 +975,11 @@ Ping Roles: ${pingRoles}`;
           if (minServerAge) {
             const duration = parseDuration(minServerAge);
             if (!duration) {
-              await interaction.reply({ content: "❌ Invalid server age format. Use format like: 1d, 1w", flags: 64 });
+              await interaction.reply({
+                content:
+                  "❌ Invalid server age format. Use format like: 1d, 1w",
+                flags: 64,
+              });
               return;
             }
             requirements.min_server_age = duration;
@@ -961,7 +987,11 @@ Ping Roles: ${pingRoles}`;
 
           const duration = parseDuration(durationStr);
           if (!duration) {
-            await interaction.reply({ content: "❌ Invalid duration format. Use format like: 1h, 1d, 1w", flags: 64 });
+            await interaction.reply({
+              content:
+                "❌ Invalid duration format. Use format like: 1h, 1d, 1w",
+              flags: 64,
+            });
             return;
           }
 
@@ -978,80 +1008,130 @@ Ping Roles: ${pingRoles}`;
               button_label: buttonLabel,
               embed_color: embedColor,
               image,
-              end_message: endMessage
+              end_message: endMessage,
             });
-            await interaction.reply({ content: `✅ Created giveaway for **${prize}** in ${channel}`, flags: 64 });
+            await interaction.reply({
+              content: `✅ Created giveaway for **${prize}** in ${channel}`,
+              flags: 64,
+            });
           } catch (error) {
-            await interaction.reply({ content: `❌ Failed to create giveaway: ${error.message}`, flags: 64 });
+            await interaction.reply({
+              content: `❌ Failed to create giveaway: ${error.message}`,
+              flags: 64,
+            });
           }
         } else if (sub === "end") {
           const messageId = interaction.options.getString("message_id");
           try {
-            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            const giveaway = await db.getGiveawayByMessageId(
+              messageId,
+              interaction.guildId,
+            );
             if (!giveaway) {
-              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              await interaction.reply({
+                content: "❌ Giveaway not found",
+                flags: 64,
+              });
               return;
             }
 
-            const winners = await client.giveaways.endGiveaway(giveaway.id, true);
+            const winners = await client.giveaways.endGiveaway(
+              giveaway.id,
+              true,
+            );
             await interaction.reply({
-              content: winners.length > 0
-                ? `✅ Giveaway ended! Winners: ${winners.map(id => `<@${id}>`).join(", ")}`
-                : "✅ Giveaway ended! No valid winners.",
-              flags: 64
+              content:
+                winners.length > 0
+                  ? `✅ Giveaway ended! Winners: ${winners.map((id) => `<@${id}>`).join(", ")}`
+                  : "✅ Giveaway ended! No valid winners.",
+              flags: 64,
             });
           } catch (error) {
-            await interaction.reply({ content: `❌ Failed to end giveaway: ${error.message}`, flags: 64 });
+            await interaction.reply({
+              content: `❌ Failed to end giveaway: ${error.message}`,
+              flags: 64,
+            });
           }
         } else if (sub === "reroll") {
           const messageId = interaction.options.getString("message_id");
           const winnerCount = interaction.options.getInteger("winners");
 
           try {
-            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            const giveaway = await db.getGiveawayByMessageId(
+              messageId,
+              interaction.guildId,
+            );
             if (!giveaway) {
-              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              await interaction.reply({
+                content: "❌ Giveaway not found",
+                flags: 64,
+              });
               return;
             }
             if (!giveaway.ended) {
-              await interaction.reply({ content: "❌ This giveaway hasn't ended yet", flags: 64 });
+              await interaction.reply({
+                content: "❌ This giveaway hasn't ended yet",
+                flags: 64,
+              });
               return;
             }
 
-            const winners = await client.giveaways.rerollGiveaway(giveaway.id, winnerCount);
+            const winners = await client.giveaways.rerollGiveaway(
+              giveaway.id,
+              winnerCount,
+            );
             await interaction.reply({
-              content: winners.length > 0
-                ? `🎉 New winner${winners.length > 1 ? 's' : ''}: ${winners.map(id => `<@${id}>`).join(", ")}!`
-                : "❌ Could not determine new winner(s). No valid entries found.",
-              flags: 64
+              content:
+                winners.length > 0
+                  ? `🎉 New winner${winners.length > 1 ? "s" : ""}: ${winners.map((id) => `<@${id}>`).join(", ")}!`
+                  : "❌ Could not determine new winner(s). No valid entries found.",
+              flags: 64,
             });
           } catch (error) {
-            await interaction.reply({ content: `❌ Failed to reroll giveaway: ${error.message}`, flags: 64 });
+            await interaction.reply({
+              content: `❌ Failed to reroll giveaway: ${error.message}`,
+              flags: 64,
+            });
           }
         } else if (sub === "blacklist") {
           const messageId = interaction.options.getString("message_id");
           const user = interaction.options.getUser("user");
 
           try {
-            const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+            const giveaway = await db.getGiveawayByMessageId(
+              messageId,
+              interaction.guildId,
+            );
             if (!giveaway) {
-              await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+              await interaction.reply({
+                content: "❌ Giveaway not found",
+                flags: 64,
+              });
               return;
             }
 
             await client.giveaways.blacklistUser(giveaway.id, user.id);
             await interaction.reply({
               content: `✅ ${user.tag} has been blacklisted from the giveaway.`,
-              flags: 64
+              flags: 64,
             });
           } catch (error) {
-            await interaction.reply({ content: `❌ Failed to blacklist user: ${error.message}`, flags: 64 });
+            await interaction.reply({
+              content: `❌ Failed to blacklist user: ${error.message}`,
+              flags: 64,
+            });
           }
         } else if (sub === "entries") {
           const messageId = interaction.options.getString("message_id");
-          const giveaway = await db.getGiveawayByMessageId(messageId, interaction.guildId);
+          const giveaway = await db.getGiveawayByMessageId(
+            messageId,
+            interaction.guildId,
+          );
           if (!giveaway) {
-            await interaction.reply({ content: "❌ Giveaway not found", flags: 64 });
+            await interaction.reply({
+              content: "❌ Giveaway not found",
+              flags: 64,
+            });
             return;
           }
           const entries = await db.getGiveawayEntries(giveaway.id);
@@ -1059,8 +1139,13 @@ Ping Roles: ${pingRoles}`;
             await interaction.reply({ content: "No entries yet!", flags: 64 });
             return;
           }
-          const entryMentions = entries.map(e => `<@${e.user_id}>`).join(", ");
-          await interaction.reply({ content: `Entries (${entries.length}):\n${entryMentions}`, flags: 64 });
+          const entryMentions = entries
+            .map((e) => `<@${e.user_id}>`)
+            .join(", ");
+          await interaction.reply({
+            content: `Entries (${entries.length}):\n${entryMentions}`,
+            flags: 64,
+          });
         }
         break;
       }
@@ -1075,24 +1160,24 @@ Ping Roles: ${pingRoles}`;
           if (!result.success && result.key) {
             await interaction.reply({
               content: `Your existing API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
-              flags: 64
+              flags: 64,
             });
           } else if (result.success) {
             await interaction.reply({
               content: `Your new API key is: \`${result.key}\`\nKeep this key secret! Use it to access the dashboard with the Authorization header: \`Bearer ${result.key}\``,
-              flags: 64
+              flags: 64,
             });
           } else {
             await interaction.reply({
-              content: '❌ Failed to generate API key. Please try again later.',
-              flags: 64
+              content: "❌ Failed to generate API key. Please try again later.",
+              flags: 64,
             });
           }
         } catch (error) {
-          console.error('Error generating API key:', error);
+          console.error("Error generating API key:", error);
           await interaction.reply({
-            content: '❌ An error occurred while generating your API key.',
-            flags: 64
+            content: "❌ An error occurred while generating your API key.",
+            flags: 64,
           });
         }
         break;
@@ -1103,13 +1188,15 @@ Ping Roles: ${pingRoles}`;
         const description = interaction.options.getString("description");
         const rolesJson = interaction.options.getString("roles");
         const color = interaction.options.getString("color");
-        const { createReactionRoles } = await import("../handlers/reactionRolesHandler.js");
+        const { createReactionRoles } = await import(
+          "../handlers/reactionRolesHandler.js"
+        );
         try {
           const roles = JSON.parse(rolesJson);
           if (!Array.isArray(roles)) {
             await interaction.reply({
               content: "❌ Roles must be provided as an array.",
-              flags: 64
+              flags: 64,
             });
             return;
           }
@@ -1117,7 +1204,7 @@ Ping Roles: ${pingRoles}`;
             if (!role.id || !interaction.guild.roles.cache.has(role.id)) {
               await interaction.reply({
                 content: `❌ Invalid role ID: ${role.id}`,
-                flags: 64
+                flags: 64,
               });
               return;
             }
@@ -1126,22 +1213,27 @@ Ping Roles: ${pingRoles}`;
             title,
             description,
             roles,
-            color
+            color,
           });
           await interaction.reply({
             content: `✅ Reaction roles message created in ${channel}`,
-            flags: 64
+            flags: 64,
           });
         } catch (error) {
           console.error("Error creating reaction roles:", error);
           await interaction.reply({
-            content: "❌ Invalid JSON format for roles. Example format:\n```json\n[\n  {\n    \"id\": \"role_id\",\n    \"label\": \"Display Name\",\n    \"emoji\": \"👍\",\n    \"style\": \"Primary\"\n  }\n]```\nValid styles: Primary, Secondary, Success, Danger",
-            flags: 64
+            content:
+              '❌ Invalid JSON format for roles. Example format:\n```json\n[\n  {\n    "id": "role_id",\n    "label": "Display Name",\n    "emoji": "👍",\n    "style": "Primary"\n  }\n]```\nValid styles: Primary, Secondary, Success, Danger',
+            flags: 64,
           });
         }
         break;
       }
 
+      case "setboostchannel":
+        const boostChannel = interaction.options.getChannel("channel");
+        await handleSetBoostChannel(interaction, boostChannel.id);
+        break;
     }
   } catch (error) {
     console.error(
@@ -1207,7 +1299,10 @@ export async function registerSlashCommands(client) {
       process.env.DISCORD_TOKEN,
     );
 
-    const allCommands = [...slashCommands.map(command => command.toJSON()), ...automodCommands];
+    const allCommands = [
+      ...slashCommands.map((command) => command.toJSON()),
+      ...automodCommands,
+    ];
 
     await rest.put(Routes.applicationCommands(client.user.id), {
       body: allCommands,

@@ -14,6 +14,7 @@ const LOG_TYPES = {
   INVITE: { color: "#8e44ad", emoji: "📨" },
   THREAD: { color: "#2c3e50", emoji: "🧵" },
   FILE: { color: "#95a5a6", emoji: "📁" },
+  BOOST: { color: "#ff73fa", emoji: "🚀" },
 };
 
 class LogHandler {
@@ -32,8 +33,10 @@ class LogHandler {
   }
 
   async isLoggingChannel(channelId) {
-    const allSettings = await db.getLoggingSettings(this.client.guilds.cache.first().id);
-    return allSettings.some(setting => setting.channel_id === channelId);
+    const allSettings = await db.getLoggingSettings(
+      this.client.guilds.cache.first().id,
+    );
+    return allSettings.some((setting) => setting.channel_id === channelId);
   }
 
   async createLog(type, data) {
@@ -42,7 +45,10 @@ class LogHandler {
       return;
     }
 
-    const guildId = data.guild?.id || data.message?.guild?.id || this.client.guilds.cache.first().id;
+    const guildId =
+      data.guild?.id ||
+      data.message?.guild?.id ||
+      this.client.guilds.cache.first().id;
     const settings = await db.getLoggingSettings(guildId, type);
 
     if (!settings || !settings.enabled) {
@@ -52,13 +58,18 @@ class LogHandler {
       return;
     }
 
-    const channel = await this.client.channels.fetch(settings.channel_id).catch(() => null);
+    const channel = await this.client.channels
+      .fetch(settings.channel_id)
+      .catch(() => null);
     if (!channel) {
       console.warn(`Could not find logging channel for ${type} logs`);
       return;
     }
 
-    if (data.message?.channelId === settings.channel_id || data.channel?.id === settings.channel_id) {
+    if (
+      data.message?.channelId === settings.channel_id ||
+      data.channel?.id === settings.channel_id
+    ) {
       if (process.env.NODE_ENV === "development") {
         console.log(`Skipping log for logging channel: ${settings.channel_id}`);
       }
@@ -110,6 +121,9 @@ class LogHandler {
         case "FILE":
           this.formatFileLog(embed, data);
           break;
+        case "BOOST":
+          this.formatBoostLog(embed, data);
+          break;
       }
 
       if (!embed.data.title || !embed.data.fields?.length) {
@@ -118,7 +132,7 @@ class LogHandler {
       }
 
       const content = settings.ping_roles?.length
-        ? settings.ping_roles.map(id => `<@&${id}>`).join(" ")
+        ? settings.ping_roles.map((id) => `<@&${id}>`).join(" ")
         : "";
 
       await channel.send({ content, embeds: [embed] });
@@ -743,15 +757,83 @@ class LogHandler {
   }
 
   formatFileLog(embed, data) {
-    embed.setTitle("📁 File Uploaded").addFields(
-      { name: "User", value: `${data.user}` },
-      { name: "Channel", value: `${data.channel}` },
-      { name: "Filename(s)", value: data.files.map(f => f.name).join(", ") },
-      { name: "File URL(s)", value: data.files.map(f => `[${f.name}](${f.url})`).join("\n") }
-    );
+    embed
+      .setTitle("📁 File Uploaded")
+      .addFields(
+        { name: "User", value: `${data.user}` },
+        { name: "Channel", value: `${data.channel}` },
+        {
+          name: "Filename(s)",
+          value: data.files.map((f) => f.name).join(", "),
+        },
+        {
+          name: "File URL(s)",
+          value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
+        },
+      );
     if (data.messageContent) {
       embed.addFields({ name: "Message Content", value: data.messageContent });
     }
+    return embed;
+  }
+
+  formatBoostLog(embed, data) {
+    switch (data.action) {
+      case "BOOST_START":
+        embed
+          .setTitle("🚀 Server Boost Started")
+          .setDescription(`${data.member} boosted the server!`)
+          .addFields(
+            { name: "Member", value: `${data.member}`, inline: true },
+            {
+              name: "Boosting Since",
+              value: `<t:${Math.floor(data.since.getTime() / 1000)}:R>`,
+              inline: true,
+            },
+            {
+              name: "Current Boost Count",
+              value: `${data.boostCount}`,
+              inline: true,
+            },
+            {
+              name: "Server Level",
+              value: `${data.premiumTier}`,
+              inline: true,
+            },
+          );
+        break;
+
+      case "BOOST_END":
+        embed
+          .setTitle("💔 Server Boost Ended")
+          .setDescription(`${data.member} is no longer boosting the server`)
+          .addFields(
+            { name: "Member", value: `${data.member}`, inline: true },
+            {
+              name: "Boosted For",
+              value: formatDuration(data.duration),
+              inline: true,
+            },
+            {
+              name: "Current Boost Count",
+              value: `${data.boostCount}`,
+              inline: true,
+            },
+            {
+              name: "Server Level",
+              value: `${data.premiumTier}`,
+              inline: true,
+            },
+          );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Boost Action")
+          .setDescription(`Unknown action type: ${data.action}`);
+        break;
+    }
+
     return embed;
   }
 }

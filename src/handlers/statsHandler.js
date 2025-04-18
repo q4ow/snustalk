@@ -15,14 +15,24 @@ async function updateStats(guild) {
     const channelIds = guildSettings.channel_ids || {};
 
     const statsChannels = {
-      members: channelIds.stats_members ? await guild.channels.fetch(channelIds.stats_members) : null,
-      bots: channelIds.stats_bots ? await guild.channels.fetch(channelIds.stats_bots) : null,
-      totalTickets: channelIds.stats_total_tickets ? await guild.channels.fetch(channelIds.stats_total_tickets) : null,
-      openTickets: channelIds.stats_open_tickets ? await guild.channels.fetch(channelIds.stats_open_tickets) : null,
+      members: channelIds.stats_members
+        ? await guild.channels.fetch(channelIds.stats_members)
+        : null,
+      bots: channelIds.stats_bots
+        ? await guild.channels.fetch(channelIds.stats_bots)
+        : null,
+      totalTickets: channelIds.stats_total_tickets
+        ? await guild.channels.fetch(channelIds.stats_total_tickets)
+        : null,
+      openTickets: channelIds.stats_open_tickets
+        ? await guild.channels.fetch(channelIds.stats_open_tickets)
+        : null,
     };
 
     const members = await guild.members.fetch();
-    const ticketCategory = channelIds.ticket_category ? await guild.channels.fetch(channelIds.ticket_category) : null;
+    const ticketCategory = channelIds.ticket_category
+      ? await guild.channels.fetch(channelIds.ticket_category)
+      : null;
     const ticketCounter = await db.getTicketCounter(guild.id);
 
     const stats = {
@@ -39,10 +49,14 @@ async function updateStats(guild) {
       await statsChannels.bots.setName(`🤖 Bots: ${stats.bots}`);
     }
     if (statsChannels.totalTickets) {
-      await statsChannels.totalTickets.setName(`📊 Total Tickets: ${stats.totalTickets}`);
+      await statsChannels.totalTickets.setName(
+        `📊 Total Tickets: ${stats.totalTickets}`,
+      );
     }
     if (statsChannels.openTickets) {
-      await statsChannels.openTickets.setName(`🎫 Open Tickets: ${stats.openTickets}`);
+      await statsChannels.openTickets.setName(
+        `🎫 Open Tickets: ${stats.openTickets}`,
+      );
     }
   } catch (error) {
     console.error("Error updating stats:", error);

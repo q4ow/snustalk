@@ -1,8 +1,4 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  ChannelType,
-} from "discord.js";
+import { EmbedBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
 
 export const slashCommands = [
   new SlashCommandBuilder()
@@ -480,205 +476,223 @@ export const slashCommands = [
     .setDescription("Get the URL to play the SnusTalk typing game"),
 
   new SlashCommandBuilder()
-    .setName('logs')
-    .setDescription('Configure server logging settings')
+    .setName("logs")
+    .setDescription("Configure server logging settings")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('setup')
-        .setDescription('Set up logging for a specific type of events')
-        .addStringOption(option =>
-          option.setName('type')
-            .setDescription('The type of events to log')
+        .setName("setup")
+        .setDescription("Set up logging for a specific type of events")
+        .addStringOption((option) =>
+          option
+            .setName("type")
+            .setDescription("The type of events to log")
             .setRequired(true)
             .addChoices(
-              { name: 'Member Events', value: 'MEMBER' },
-              { name: 'Message Events', value: 'MESSAGE' },
-              { name: 'Moderation Events', value: 'MOD' },
-              { name: 'Voice Events', value: 'VOICE' },
-              { name: 'Channel Events', value: 'CHANNEL' },
-              { name: 'Role Events', value: 'ROLE' },
-              { name: 'Server Events', value: 'SERVER' },
-              { name: 'User Events', value: 'USER' },
-              { name: 'Invite Events', value: 'INVITE' },
-              { name: 'Thread Events', value: 'THREAD' },
-              { name: 'File Events', value: 'FILE' }
-            )
+              { name: "Member Events", value: "MEMBER" },
+              { name: "Message Events", value: "MESSAGE" },
+              { name: "Moderation Events", value: "MOD" },
+              { name: "Voice Events", value: "VOICE" },
+              { name: "Channel Events", value: "CHANNEL" },
+              { name: "Role Events", value: "ROLE" },
+              { name: "Server Events", value: "SERVER" },
+              { name: "User Events", value: "USER" },
+              { name: "Invite Events", value: "INVITE" },
+              { name: "Thread Events", value: "THREAD" },
+              { name: "File Events", value: "FILE" },
+              { name: "Boost Events", value: "BOOST" },
+            ),
         )
-        .addChannelOption(option =>
-          option.setName('channel')
-            .setDescription('The channel to send logs to')
+        .addChannelOption((option) =>
+          option
+            .setName("channel")
+            .setDescription("The channel to send logs to")
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText)
+            .addChannelTypes(ChannelType.GuildText),
         )
-        .addRoleOption(option =>
-          option.setName('allowed_roles')
-            .setDescription('Roles that can view the logs (comma-separated)')
-            .setRequired(false)
+        .addRoleOption((option) =>
+          option
+            .setName("allowed_roles")
+            .setDescription("Roles that can view the logs (comma-separated)")
+            .setRequired(false),
         )
-        .addRoleOption(option =>
-          option.setName('ping_roles')
-            .setDescription('Roles to ping for these events (comma-separated)')
-            .setRequired(false)
-        )
+        .addRoleOption((option) =>
+          option
+            .setName("ping_roles")
+            .setDescription("Roles to ping for these events (comma-separated)")
+            .setRequired(false),
+        ),
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('disable')
-        .setDescription('Disable logging for a specific type of events')
-        .addStringOption(option =>
-          option.setName('type')
-            .setDescription('The type of events to disable logging for')
+        .setName("disable")
+        .setDescription("Disable logging for a specific type of events")
+        .addStringOption((option) =>
+          option
+            .setName("type")
+            .setDescription("The type of events to disable logging for")
             .setRequired(true)
             .addChoices(
-              { name: 'Member Events', value: 'MEMBER' },
-              { name: 'Message Events', value: 'MESSAGE' },
-              { name: 'Moderation Events', value: 'MOD' },
-              { name: 'Voice Events', value: 'VOICE' },
-              { name: 'Channel Events', value: 'CHANNEL' },
-              { name: 'Role Events', value: 'ROLE' },
-              { name: 'Server Events', value: 'SERVER' },
-              { name: 'User Events', value: 'USER' },
-              { name: 'Invite Events', value: 'INVITE' },
-              { name: 'Thread Events', value: 'THREAD' },
-              { name: 'File Events', value: 'FILE' }
-            )
-        )
+              { name: "Member Events", value: "MEMBER" },
+              { name: "Message Events", value: "MESSAGE" },
+              { name: "Moderation Events", value: "MOD" },
+              { name: "Voice Events", value: "VOICE" },
+              { name: "Channel Events", value: "CHANNEL" },
+              { name: "Role Events", value: "ROLE" },
+              { name: "Server Events", value: "SERVER" },
+              { name: "User Events", value: "USER" },
+              { name: "Invite Events", value: "INVITE" },
+              { name: "Thread Events", value: "THREAD" },
+              { name: "File Events", value: "FILE" },
+              { name: "Boost Events", value: "BOOST" },
+            ),
+        ),
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('view')
-        .setDescription('View current logging settings')
+        .setName("view")
+        .setDescription("View current logging settings"),
     ),
 
   new SlashCommandBuilder()
-    .setName('giveaway')
-    .setDescription('Manage giveaways')
+    .setName("giveaway")
+    .setDescription("Manage giveaways")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageEvents)
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('create')
-        .setDescription('Create a new giveaway')
-        .addStringOption(option =>
+        .setName("create")
+        .setDescription("Create a new giveaway")
+        .addStringOption((option) =>
           option
-            .setName('prize')
-            .setDescription('What is being given away')
-            .setRequired(true)
+            .setName("prize")
+            .setDescription("What is being given away")
+            .setRequired(true),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('duration')
-            .setDescription('Duration of the giveaway (e.g., 1h, 1d, 1w)')
-            .setRequired(true)
+            .setName("duration")
+            .setDescription("Duration of the giveaway (e.g., 1h, 1d, 1w)")
+            .setRequired(true),
         )
-        .addIntegerOption(option =>
+        .addIntegerOption((option) =>
           option
-            .setName('winners')
-            .setDescription('Number of winners')
+            .setName("winners")
+            .setDescription("Number of winners")
             .setMinValue(1)
             .setMaxValue(20)
-            .setRequired(false)
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('description')
-            .setDescription('Description of the giveaway')
-            .setRequired(false)
+            .setName("description")
+            .setDescription("Description of the giveaway")
+            .setRequired(false),
         )
-        .addChannelOption(option =>
+        .addChannelOption((option) =>
           option
-            .setName('channel')
-            .setDescription('Channel to host the giveaway in')
+            .setName("channel")
+            .setDescription("Channel to host the giveaway in")
             .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false)
+            .setRequired(false),
         )
-        .addRoleOption(option =>
+        .addRoleOption((option) =>
           option
-            .setName('required_role')
-            .setDescription('Role required to enter the giveaway')
-            .setRequired(false)
+            .setName("required_role")
+            .setDescription("Role required to enter the giveaway")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('min_account_age')
-            .setDescription('Minimum account age to enter (e.g., 1d, 1w)')
-            .setRequired(false)
+            .setName("min_account_age")
+            .setDescription("Minimum account age to enter (e.g., 1d, 1w)")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('min_server_age')
-            .setDescription('Minimum server age to enter (e.g., 1d, 1w)')
-            .setRequired(false)
+            .setName("min_server_age")
+            .setDescription("Minimum server age to enter (e.g., 1d, 1w)")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('button_label')
-            .setDescription('Custom label for the entry button')
-            .setRequired(false)
+            .setName("button_label")
+            .setDescription("Custom label for the entry button")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('embed_color')
-            .setDescription('Embed color (hex code)')
-            .setRequired(false)
+            .setName("embed_color")
+            .setDescription("Embed color (hex code)")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('image')
-            .setDescription('Image URL for the embed')
-            .setRequired(false)
+            .setName("image")
+            .setDescription("Image URL for the embed")
+            .setRequired(false),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
-            .setName('end_message')
-            .setDescription('Custom message to send when the giveaway ends')
-            .setRequired(false)
-        )
+            .setName("end_message")
+            .setDescription("Custom message to send when the giveaway ends")
+            .setRequired(false),
+        ),
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('end')
-        .setDescription('End a giveaway')
-        .addStringOption(option =>
-          option.setName('message_id').setDescription('The message ID of the giveaway').setRequired(true))
+        .setName("end")
+        .setDescription("End a giveaway")
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription("The message ID of the giveaway")
+            .setRequired(true),
+        ),
     ),
+
   new SlashCommandBuilder()
-    .setName('reactionroles')
-    .setDescription('Create a reaction roles message')
+    .setName("reactionroles")
+    .setDescription("Create a reaction roles message")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
-    .addChannelOption(option =>
-      option.setName('channel')
-        .setDescription('The channel to send the reaction roles message in')
-        .setRequired(true)
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("The channel to send the reaction roles message in")
+        .setRequired(true),
     )
-    .addStringOption(option =>
-      option.setName('title')
-        .setDescription('The title of the embed')
-        .setRequired(true)
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("The title of the embed")
+        .setRequired(true),
     )
-    .addStringOption(option =>
-      option.setName('description')
-        .setDescription('The description of the embed')
-        .setRequired(true)
+    .addStringOption((option) =>
+      option
+        .setName("description")
+        .setDescription("The description of the embed")
+        .setRequired(true),
     )
-    .addStringOption(option =>
-      option.setName('roles')
-        .setDescription('Role configurations in JSON format')
-        .setRequired(true)
+    .addStringOption((option) =>
+      option
+        .setName("roles")
+        .setDescription("Role configurations in JSON format")
+        .setRequired(true),
     )
-    .addStringOption(option =>
-      option.setName('color')
-        .setDescription('The color of the embed (hex code)')
+    .addStringOption((option) =>
+      option
+        .setName("color")
+        .setDescription("The color of the embed (hex code)"),
     ),
+
   new SlashCommandBuilder()
     .setName("settings")
     .setDescription("Manage bot settings for the server")
     .setDefaultMemberPermissions("0")
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
         .setName("set")
         .setDescription("Set a server setting")
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("type")
             .setDescription("The type of setting to set")
@@ -687,28 +701,28 @@ export const slashCommands = [
               { name: "Channel", value: "channel" },
               { name: "Role", value: "role" },
               { name: "API Key", value: "api" },
-              { name: "External Link", value: "link" }
-            )
+              { name: "External Link", value: "link" },
+            ),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("name")
             .setDescription("The name of the setting")
             .setRequired(true)
-            .setAutocomplete(true)
+            .setAutocomplete(true),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("value")
             .setDescription("The value to set")
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
         .setName("get")
         .setDescription("Get a server setting")
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("type")
             .setDescription("The type of setting to get")
@@ -717,22 +731,22 @@ export const slashCommands = [
               { name: "Channel", value: "channel" },
               { name: "Role", value: "role" },
               { name: "API Key", value: "api" },
-              { name: "External Link", value: "link" }
-            )
+              { name: "External Link", value: "link" },
+            ),
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("name")
             .setDescription("The name of the setting")
             .setRequired(true)
-            .setAutocomplete(true)
-        )
+            .setAutocomplete(true),
+        ),
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
         .setName("list")
         .setDescription("List server settings")
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("type")
             .setDescription("The type of settings to list")
@@ -742,86 +756,99 @@ export const slashCommands = [
               { name: "Channels", value: "channel" },
               { name: "Roles", value: "role" },
               { name: "API Keys", value: "api" },
-              { name: "External Links", value: "link" }
-            )
-        )
+              { name: "External Links", value: "link" },
+            ),
+        ),
     ),
+
   new SlashCommandBuilder()
-    .setName('dashboard')
-    .setDescription('Generate or view your dashboard API key'),
+    .setName("dashboard")
+    .setDescription("Generate or view your dashboard API key"),
+
+  new SlashCommandBuilder()
+    .setName("setboostchannel")
+    .setDescription("Set a dedicated channel for server boost notifications")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("The channel to send boost notifications to")
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText),
+    ),
 ];
 
 export const automodCommands = [
   {
-    name: 'automod-whitelist-role',
-    description: 'Add a role to filter-specific whitelist',
+    name: "automod-whitelist-role",
+    description: "Add a role to filter-specific whitelist",
     options: [
       {
-        name: 'filter',
-        description: 'The filter type to whitelist the role for',
+        name: "filter",
+        description: "The filter type to whitelist the role for",
         type: 3,
         required: true,
         choices: [
-          { name: 'Spam', value: 'spam' },
-          { name: 'Invites', value: 'invites' },
-          { name: 'Mentions', value: 'mentions' },
-          { name: 'Caps', value: 'caps' },
-          { name: 'Links', value: 'links' },
-          { name: 'Words', value: 'words' }
-        ]
+          { name: "Spam", value: "spam" },
+          { name: "Invites", value: "invites" },
+          { name: "Mentions", value: "mentions" },
+          { name: "Caps", value: "caps" },
+          { name: "Links", value: "links" },
+          { name: "Words", value: "words" },
+        ],
       },
       {
-        name: 'role',
-        description: 'The role to whitelist',
+        name: "role",
+        description: "The role to whitelist",
         type: 8,
-        required: true
-      }
-    ]
+        required: true,
+      },
+    ],
   },
   {
-    name: 'automod-unwhitelist-role',
-    description: 'Remove a role from filter-specific whitelist',
+    name: "automod-unwhitelist-role",
+    description: "Remove a role from filter-specific whitelist",
     options: [
       {
-        name: 'filter',
-        description: 'The filter type to remove the role from',
+        name: "filter",
+        description: "The filter type to remove the role from",
         type: 3,
         required: true,
         choices: [
-          { name: 'Spam', value: 'spam' },
-          { name: 'Invites', value: 'invites' },
-          { name: 'Mentions', value: 'mentions' },
-          { name: 'Caps', value: 'caps' },
-          { name: 'Links', value: 'links' },
-          { name: 'Words', value: 'words' }
-        ]
+          { name: "Spam", value: "spam" },
+          { name: "Invites", value: "invites" },
+          { name: "Mentions", value: "mentions" },
+          { name: "Caps", value: "caps" },
+          { name: "Links", value: "links" },
+          { name: "Words", value: "words" },
+        ],
       },
       {
-        name: 'role',
-        description: 'The role to remove from whitelist',
+        name: "role",
+        description: "The role to remove from whitelist",
         type: 8,
-        required: true
-      }
-    ]
+        required: true,
+      },
+    ],
   },
   {
-    name: 'automod-list-whitelists',
-    description: 'List all whitelisted roles for each filter',
+    name: "automod-list-whitelists",
+    description: "List all whitelisted roles for each filter",
     options: [
       {
-        name: 'filter',
-        description: 'The filter type to list whitelisted roles for (optional)',
+        name: "filter",
+        description: "The filter type to list whitelisted roles for (optional)",
         type: 3,
         required: false,
         choices: [
-          { name: 'Spam', value: 'spam' },
-          { name: 'Invites', value: 'invites' },
-          { name: 'Mentions', value: 'mentions' },
-          { name: 'Caps', value: 'caps' },
-          { name: 'Links', value: 'links' },
-          { name: 'Words', value: 'words' }
-        ]
-      }
-    ]
-  }
+          { name: "Spam", value: "spam" },
+          { name: "Invites", value: "invites" },
+          { name: "Mentions", value: "mentions" },
+          { name: "Caps", value: "caps" },
+          { name: "Links", value: "links" },
+          { name: "Words", value: "words" },
+        ],
+      },
+    ],
+  },
 ];

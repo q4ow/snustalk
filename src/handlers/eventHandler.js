@@ -47,6 +47,27 @@ export function setupLoggingEvents(client) {
       });
     }
 
+    if (oldMember.premiumSince !== newMember.premiumSince) {
+      if (!oldMember.premiumSince && newMember.premiumSince) {
+        logger.createLog("BOOST", {
+          action: "BOOST_START",
+          member: newMember,
+          since: newMember.premiumSince,
+          boostCount: newMember.guild.premiumSubscriptionCount,
+          premiumTier: newMember.guild.premiumTier,
+        });
+      } else if (oldMember.premiumSince && !newMember.premiumSince) {
+        const duration = Date.now() - oldMember.premiumSince.getTime();
+        logger.createLog("BOOST", {
+          action: "BOOST_END",
+          member: newMember,
+          duration: duration,
+          boostCount: newMember.guild.premiumSubscriptionCount,
+          premiumTier: newMember.guild.premiumTier,
+        });
+      }
+    }
+
     const addedRoles = newMember.roles.cache.filter(
       (role) => !oldMember.roles.cache.has(role.id),
     );
@@ -422,7 +443,10 @@ export function setupLoggingEvents(client) {
         action: "UPLOAD",
         user: message.author,
         channel: message.channel,
-        files: message.attachments.map(att => ({ name: att.name, url: att.url })),
+        files: message.attachments.map((att) => ({
+          name: att.name,
+          url: att.url,
+        })),
         messageContent: message.content,
         message,
       });

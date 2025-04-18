@@ -291,7 +291,7 @@ export async function handleTicketCreate(interaction, type) {
                   channel,
                   guild,
                   user: client.user,
-                  reply: () => { },
+                  reply: () => {},
                   deferred: false,
                 },
                 true,
@@ -480,7 +480,10 @@ export async function handleTicketClose(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.channel;
-    const logChannelId = await db.getChannelId(interaction.guild.id, "ticket_logs");
+    const logChannelId = await db.getChannelId(
+      interaction.guild.id,
+      "ticket_logs",
+    );
     if (!logChannelId) {
       throw new Error("Log channel not found");
     }
@@ -496,8 +499,8 @@ export async function handleTicketClose(interaction) {
         headers: {
           Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
         },
-      }
-    ).then(res => res.json());
+      },
+    ).then((res) => res.json());
 
     const ticketHistory = [];
     const creationTime = channel.createdAt.toLocaleString();
@@ -530,9 +533,9 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                  .replace(/[^\x20-\x7E\n]/g, "")
-                  .replace(/<@[!&]?(\d+)>/g, "@user")
-                  .trim()
+                    .replace(/[^\x20-\x7E\n]/g, "")
+                    .replace(/<@[!&]?(\d+)>/g, "@user")
+                    .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })
@@ -582,7 +585,7 @@ export async function handleTicketClose(interaction) {
     const embed = new EmbedBuilder()
       .setTitle("Ticket Closed")
       .setDescription(
-        `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`
+        `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`,
       )
       .setColor("#ED4245")
       .setTimestamp();
@@ -601,7 +604,7 @@ export async function handleTicketClose(interaction) {
     }
 
     await db.clearTicketActions(channel.id);
-    await channel.delete().catch(error => {
+    await channel.delete().catch((error) => {
       console.error("Error deleting channel:", error);
       throw new Error("Failed to delete ticket channel");
     });
@@ -612,9 +615,10 @@ export async function handleTicketClose(interaction) {
       stack: error.stack,
     });
 
-    const errorMessage = error.code === "UND_ERR_CONNECT_TIMEOUT"
-      ? "Connection timeout while closing ticket. Please try again."
-      : "There was an error closing the ticket. Please contact an administrator.";
+    const errorMessage =
+      error.code === "UND_ERR_CONNECT_TIMEOUT"
+        ? "Connection timeout while closing ticket. Please try again."
+        : "There was an error closing the ticket. Please contact an administrator.";
 
     if (interaction.deferred) {
       await interaction.editReply({ content: errorMessage });

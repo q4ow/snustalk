@@ -10,7 +10,10 @@ export async function handleVerification(reaction, user) {
   try {
     if (user.bot) return;
 
-    const verificationChannelId = await db.getChannelId(reaction.message.guild.id, "verification");
+    const verificationChannelId = await db.getChannelId(
+      reaction.message.guild.id,
+      "verification",
+    );
     if (reaction.message.channelId !== verificationChannelId) return;
     if (reaction.emoji.name !== "✅") return;
 
@@ -19,7 +22,9 @@ export async function handleVerification(reaction, user) {
 
     const verifiedRoleId = await db.getRoleId(guild.id, "verified");
     const unverifiedRoleId = await db.getRoleId(guild.id, "unverified");
-    const additionalRoleIds = (await db.getGuildSettings(guild.id))?.role_ids?.additional_verified || [];
+    const additionalRoleIds =
+      (await db.getGuildSettings(guild.id))?.role_ids?.additional_verified ||
+      [];
 
     if (!verifiedRoleId || !unverifiedRoleId) {
       console.error("Required roles not found:", {
@@ -93,7 +98,10 @@ export async function handleVerification(reaction, user) {
       let embeds = [verificationEmbed];
       let components = [];
 
-      const restoreRecordLink = await db.getExternalLink(guild.id, "restorecord");
+      const restoreRecordLink = await db.getExternalLink(
+        guild.id,
+        "restorecord",
+      );
       if (restoreRecordLink) {
         const backupEmbed = new EmbedBuilder()
           .setTitle("🛡️ Optional Security Measure")

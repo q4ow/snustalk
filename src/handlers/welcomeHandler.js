@@ -40,10 +40,10 @@ export async function handleWelcome(member) {
       })
       .setDescription(
         `Hey ${member.user.username.charAt(0).toUpperCase() + member.user.username.slice(1)}, welcome to our community! 🎉\n\n` +
-        `You are our **${memberCount}${getSuffix(memberCount)}** member\n\n` +
-        `📜 Please read our rules and guidelines\n` +
-        `🎭 Get your roles in our roles channel\n` +
-        `💬 Introduce yourself to the community`,
+          `You are our **${memberCount}${getSuffix(memberCount)}** member\n\n` +
+          `📜 Please read our rules and guidelines\n` +
+          `🎭 Get your roles in our roles channel\n` +
+          `💬 Introduce yourself to the community`,
       )
       .setColor("#2B82E4")
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 1024 }))

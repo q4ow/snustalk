@@ -42,8 +42,10 @@ class DatabasePool {
 
       if (this.connectionRetries < this.maxRetries) {
         this.connectionRetries++;
-        console.log(`Retrying connection in ${this.retryDelay / 1000} seconds... (Attempt ${this.connectionRetries}/${this.maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+        console.log(
+          `Retrying connection in ${this.retryDelay / 1000} seconds... (Attempt ${this.connectionRetries}/${this.maxRetries})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
         return this.connect();
       }
 
@@ -75,13 +77,17 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
       const result = await pool.query(text, params);
       const duration = Date.now() - start;
       if (duration > 1000) {
-        console.warn('Slow query detected:', { text, duration, rows: result.rowCount });
+        console.warn("Slow query detected:", {
+          text,
+          duration,
+          rows: result.rowCount,
+        });
       }
       return result;
     } catch (error) {
-      if (error.code === '40P01') {
-        console.warn('Deadlock detected, retrying query...');
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (error.code === "40P01") {
+        console.warn("Deadlock detected, retrying query...");
+        await new Promise((resolve) => setTimeout(resolve, 100));
         return this.query(text, params);
       }
       throw error;
@@ -95,8 +101,10 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
     const release = client.release.bind(client);
 
     const timeout = setTimeout(() => {
-      console.error('A client has been checked out for too long.');
-      console.error(`The last executed query on this client was: ${client.lastQuery}`);
+      console.error("A client has been checked out for too long.");
+      console.error(
+        `The last executed query on this client was: ${client.lastQuery}`,
+      );
     }, 5000);
 
     client.query = (...args) => {
@@ -117,12 +125,12 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
   async transaction(callback) {
     const client = await this.getClient();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
       const result = await callback(client);
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw error;
     } finally {
       client.release();
@@ -141,7 +149,7 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
       await this.query(
         `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
          VALUES ($1, $2, $3)`,
-        [messageId, channelId, roles]
+        [messageId, channelId, roles],
       );
     } catch (error) {
       console.error("Error creating reaction roles:", error);
@@ -153,12 +161,13 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
     try {
       const result = await this.query(
         `SELECT roles_data FROM reaction_roles WHERE message_id = $1`,
-        [messageId]
+        [messageId],
       );
       if (!result.rows || result.rows.length === 0) return null;
       const rolesData = result.rows[0].roles_data;
-      const roles = typeof rolesData === "string" ? JSON.parse(rolesData) : rolesData;
-      return roles.find(r => r.id === roleId) || null;
+      const roles =
+        typeof rolesData === "string" ? JSON.parse(rolesData) : rolesData;
+      return roles.find((r) => r.id === roleId) || null;
     } catch (error) {
       console.error("Error getting reaction role:", error);
       throw error;
@@ -200,7 +209,10 @@ export const db = {
         [guildId, settings],
       );
     } catch (error) {
-      console.error(`Error saving ticket settings for guild ${guildId}:`, error);
+      console.error(
+        `Error saving ticket settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -213,7 +225,10 @@ export const db = {
       );
       return result.rows[0]?.ticket_settings;
     } catch (error) {
-      console.error(`Error getting ticket settings for guild ${guildId}:`, error);
+      console.error(
+        `Error getting ticket settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -225,7 +240,10 @@ export const db = {
         [channelId, moderatorId],
       );
     } catch (error) {
-      console.error(`Error saving ticket claim for channel ${channelId}:`, error);
+      console.error(
+        `Error saving ticket claim for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -236,7 +254,10 @@ export const db = {
         channelId,
       ]);
     } catch (error) {
-      console.error(`Error removing ticket claim for channel ${channelId}:`, error);
+      console.error(
+        `Error removing ticket claim for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -249,7 +270,10 @@ export const db = {
       );
       return result.rows[0]?.moderator_id;
     } catch (error) {
-      console.error(`Error getting ticket claim for channel ${channelId}:`, error);
+      console.error(
+        `Error getting ticket claim for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -258,16 +282,19 @@ export const db = {
     try {
       const actionObject = {
         text: action,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       await dbPool.query(
         "INSERT INTO ticket_actions (channel_id, action) VALUES ($1, $2)",
-        [channelId, JSON.stringify(actionObject)]
+        [channelId, JSON.stringify(actionObject)],
       );
       return true;
     } catch (error) {
-      console.error(`Error adding ticket action for channel ${channelId}:`, error);
+      console.error(
+        `Error adding ticket action for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -283,7 +310,10 @@ export const db = {
         timestamp: row.timestamp.toLocaleString(),
       }));
     } catch (error) {
-      console.error(`Error getting ticket actions for channel ${channelId}:`, error);
+      console.error(
+        `Error getting ticket actions for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -294,7 +324,10 @@ export const db = {
         channelId,
       ]);
     } catch (error) {
-      console.error(`Error clearing ticket actions for channel ${channelId}:`, error);
+      console.error(
+        `Error clearing ticket actions for channel ${channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -307,7 +340,10 @@ export const db = {
       );
       return result.rows[0]?.ticket_counter || { counter: 0 };
     } catch (error) {
-      console.error(`Error getting ticket counter for guild ${guildId}:`, error);
+      console.error(
+        `Error getting ticket counter for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -319,7 +355,10 @@ export const db = {
         [guildId, { counter }],
       );
     } catch (error) {
-      console.error(`Error updating ticket counter for guild ${guildId}:`, error);
+      console.error(
+        `Error updating ticket counter for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -340,7 +379,10 @@ export const db = {
       );
       return result.rows[0].id;
     } catch (error) {
-      console.error(`Error creating ticket for channel ${ticketData.channelId}:`, error);
+      console.error(
+        `Error creating ticket for channel ${ticketData.channelId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -354,7 +396,7 @@ export const db = {
                  status = 'CLOSED'
              WHERE id = $1
              RETURNING id`,
-        [ticketId, closedBy]
+        [ticketId, closedBy],
       );
 
       return result.rows[0]?.id;
@@ -375,7 +417,7 @@ export const db = {
              LEFT JOIN ticket_claims tc ON t.channel_id = tc.channel_id
              LEFT JOIN users u ON t.creator_id = u.discord_id
              WHERE t.id = $1`,
-        [ticketId]
+        [ticketId],
       );
 
       return result.rows[0];
@@ -393,7 +435,10 @@ export const db = {
         [ticketId, message.authorId, message.content],
       );
     } catch (error) {
-      console.error(`Error adding ticket message for ticket ${ticketId}:`, error);
+      console.error(
+        `Error adding ticket message for ticket ${ticketId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -408,7 +453,10 @@ export const db = {
       );
       return result.rows;
     } catch (error) {
-      console.error(`Error getting ticket messages for ticket ${ticketId}:`, error);
+      console.error(
+        `Error getting ticket messages for ticket ${ticketId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -437,14 +485,16 @@ export const db = {
                 username = COALESCE($2, users.username),
                 updated_at = CURRENT_TIMESTAMP
              RETURNING *`,
-        [userId, userData.username || "Unknown User"]
+        [userId, userData.username || "Unknown User"],
       );
 
       if (!result.rows[0]) {
-        throw new Error('Failed to create/update user');
+        throw new Error("Failed to create/update user");
       }
 
-      console.log(`✅ User ${userId} ${result.command === "INSERT" ? "created" : "updated"}`);
+      console.log(
+        `✅ User ${userId} ${result.command === "INSERT" ? "created" : "updated"}`,
+      );
       return result.rows[0];
     } catch (error) {
       console.error("❌ Error ensuring user:", error);
@@ -498,7 +548,10 @@ export const db = {
         [guildId, settings],
       );
     } catch (error) {
-      console.error(`Error saving automod settings for guild ${guildId}:`, error);
+      console.error(
+        `Error saving automod settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -511,7 +564,10 @@ export const db = {
       );
       return result.rows[0]?.settings;
     } catch (error) {
-      console.error(`Error getting automod settings for guild ${guildId}:`, error);
+      console.error(
+        `Error getting automod settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -576,26 +632,34 @@ export const db = {
     try {
       if (logType) {
         const result = await dbPool.query(
-          'SELECT * FROM logging_settings WHERE guild_id = $1 AND log_type = $2',
-          [guildId, logType]
+          "SELECT * FROM logging_settings WHERE guild_id = $1 AND log_type = $2",
+          [guildId, logType],
         );
         return result.rows[0];
       } else {
         const result = await dbPool.query(
-          'SELECT * FROM logging_settings WHERE guild_id = $1',
-          [guildId]
+          "SELECT * FROM logging_settings WHERE guild_id = $1",
+          [guildId],
         );
         return result.rows;
       }
     } catch (error) {
-      console.error(`Error getting logging settings for guild ${guildId}:`, error);
+      console.error(
+        `Error getting logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
 
   async updateLoggingSettings(guildId, logType, settings) {
     try {
-      const { channel_id, allowed_roles = [], ping_roles = [], enabled = true } = settings;
+      const {
+        channel_id,
+        allowed_roles = [],
+        ping_roles = [],
+        enabled = true,
+      } = settings;
 
       await dbPool.query(
         `INSERT INTO logging_settings (guild_id, log_type, channel_id, allowed_roles, ping_roles, enabled, updated_at)
@@ -607,10 +671,13 @@ export const db = {
            ping_roles = $5,
            enabled = $6,
            updated_at = CURRENT_TIMESTAMP`,
-        [guildId, logType, channel_id, allowed_roles, ping_roles, enabled]
+        [guildId, logType, channel_id, allowed_roles, ping_roles, enabled],
       );
     } catch (error) {
-      console.error(`Error updating logging settings for guild ${guildId}:`, error);
+      console.error(
+        `Error updating logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -618,11 +685,14 @@ export const db = {
   async deleteLoggingSettings(guildId, logType) {
     try {
       await dbPool.query(
-        'DELETE FROM logging_settings WHERE guild_id = $1 AND log_type = $2',
-        [guildId, logType]
+        "DELETE FROM logging_settings WHERE guild_id = $1 AND log_type = $2",
+        [guildId, logType],
       );
     } catch (error) {
-      console.error(`Error deleting logging settings for guild ${guildId}:`, error);
+      console.error(
+        `Error deleting logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -643,8 +713,8 @@ export const db = {
           data.description,
           data.winner_count,
           data.ends_at,
-          data.requirements
-        ]
+          data.requirements,
+        ],
       );
       return result.rows[0].id;
     } catch (error) {
@@ -656,8 +726,8 @@ export const db = {
   async getGiveaway(id) {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM giveaways WHERE id = $1',
-        [id]
+        "SELECT * FROM giveaways WHERE id = $1",
+        [id],
       );
       return result.rows[0];
     } catch (error) {
@@ -669,7 +739,7 @@ export const db = {
   async getEndedGiveaways() {
     try {
       const result = await dbPool.query(
-        'SELECT id FROM giveaways WHERE ended = false AND ends_at <= NOW()'
+        "SELECT id FROM giveaways WHERE ended = false AND ends_at <= NOW()",
       );
       return result.rows;
     } catch (error) {
@@ -680,10 +750,9 @@ export const db = {
 
   async endGiveaway(id) {
     try {
-      await dbPool.query(
-        'UPDATE giveaways SET ended = true WHERE id = $1',
-        [id]
-      );
+      await dbPool.query("UPDATE giveaways SET ended = true WHERE id = $1", [
+        id,
+      ]);
     } catch (error) {
       console.error(`Error ending giveaway with id ${id}:`, error);
       throw error;
@@ -693,11 +762,14 @@ export const db = {
   async enterGiveaway(giveawayId, userId) {
     try {
       await dbPool.query(
-        'INSERT INTO giveaway_entries (giveaway_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [giveawayId, userId]
+        "INSERT INTO giveaway_entries (giveaway_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [giveawayId, userId],
       );
     } catch (error) {
-      console.error(`Error entering giveaway with id ${giveawayId} for user ${userId}:`, error);
+      console.error(
+        `Error entering giveaway with id ${giveawayId} for user ${userId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -705,12 +777,15 @@ export const db = {
   async getGiveawayEntries(giveawayId) {
     try {
       const result = await dbPool.query(
-        'SELECT user_id FROM giveaway_entries WHERE giveaway_id = $1',
-        [giveawayId]
+        "SELECT user_id FROM giveaway_entries WHERE giveaway_id = $1",
+        [giveawayId],
       );
       return result.rows;
     } catch (error) {
-      console.error(`Error getting giveaway entries for giveaway with id ${giveawayId}:`, error);
+      console.error(
+        `Error getting giveaway entries for giveaway with id ${giveawayId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -718,15 +793,18 @@ export const db = {
   async blacklistUser(giveawayId, userId) {
     try {
       await dbPool.query(
-        'UPDATE giveaways SET blacklisted_users = array_append(blacklisted_users, $1) WHERE id = $2',
-        [userId, giveawayId]
+        "UPDATE giveaways SET blacklisted_users = array_append(blacklisted_users, $1) WHERE id = $2",
+        [userId, giveawayId],
       );
       await dbPool.query(
-        'DELETE FROM giveaway_entries WHERE giveaway_id = $1 AND user_id = $2',
-        [giveawayId, userId]
+        "DELETE FROM giveaway_entries WHERE giveaway_id = $1 AND user_id = $2",
+        [giveawayId, userId],
       );
     } catch (error) {
-      console.error(`Error blacklisting user ${userId} from giveaway with id ${giveawayId}:`, error);
+      console.error(
+        `Error blacklisting user ${userId} from giveaway with id ${giveawayId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -734,12 +812,15 @@ export const db = {
   async getGiveawayByMessageId(messageId, guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT id FROM giveaways WHERE message_id = $1 AND guild_id = $2',
-        [messageId, guildId]
+        "SELECT id FROM giveaways WHERE message_id = $1 AND guild_id = $2",
+        [messageId, guildId],
       );
       return result.rows[0];
     } catch (error) {
-      console.error(`Error getting giveaway by message id ${messageId} and guild id ${guildId}:`, error);
+      console.error(
+        `Error getting giveaway by message id ${messageId} and guild id ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -750,14 +831,19 @@ export const db = {
         "SELECT channel_ids, role_ids, api_keys, external_links FROM guild_settings WHERE guild_id = $1",
         [guildId],
       );
-      return result.rows[0] || {
-        channel_ids: {},
-        role_ids: {},
-        api_keys: {},
-        external_links: {},
-      };
+      return (
+        result.rows[0] || {
+          channel_ids: {},
+          role_ids: {},
+          api_keys: {},
+          external_links: {},
+        }
+      );
     } catch (error) {
-      console.error(`Error getting guild settings for guild ${guildId}:`, error);
+      console.error(
+        `Error getting guild settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -779,7 +865,10 @@ export const db = {
         [guildId, channel_ids, role_ids, api_keys, external_links],
       );
     } catch (error) {
-      console.error(`Error updating guild settings for guild ${guildId}:`, error);
+      console.error(
+        `Error updating guild settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -792,7 +881,10 @@ export const db = {
       );
       return result.rows[0]?.channel_id;
     } catch (error) {
-      console.error(`Error getting channel id for guild ${guildId} and channel type ${channelType}:`, error);
+      console.error(
+        `Error getting channel id for guild ${guildId} and channel type ${channelType}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -805,7 +897,10 @@ export const db = {
       );
       return result.rows[0]?.role_id;
     } catch (error) {
-      console.error(`Error getting role id for guild ${guildId} and role type ${roleType}:`, error);
+      console.error(
+        `Error getting role id for guild ${guildId} and role type ${roleType}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -818,7 +913,10 @@ export const db = {
       );
       return result.rows[0]?.api_key;
     } catch (error) {
-      console.error(`Error getting API key for guild ${guildId} and key name ${keyName}:`, error);
+      console.error(
+        `Error getting API key for guild ${guildId} and key name ${keyName}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -831,7 +929,10 @@ export const db = {
       );
       return result.rows[0]?.link;
     } catch (error) {
-      console.error(`Error getting external link for guild ${guildId} and link name ${linkName}:`, error);
+      console.error(
+        `Error getting external link for guild ${guildId} and link name ${linkName}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -839,12 +940,12 @@ export const db = {
   async generateApiKey(userId) {
     try {
       const apiKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
       await dbPool.query(
-        'UPDATE users SET api_key = $1, updated_at = CURRENT_TIMESTAMP WHERE discord_id = $2 RETURNING api_key',
-        [apiKey, userId]
+        "UPDATE users SET api_key = $1, updated_at = CURRENT_TIMESTAMP WHERE discord_id = $2 RETURNING api_key",
+        [apiKey, userId],
       );
       return apiKey;
     } catch (error) {
@@ -856,8 +957,8 @@ export const db = {
   async verifyApiKey(apiKey) {
     try {
       const result = await dbPool.query(
-        'SELECT discord_id, username FROM users WHERE api_key = $1',
-        [apiKey]
+        "SELECT discord_id, username FROM users WHERE api_key = $1",
+        [apiKey],
       );
       return result.rows[0] || null;
     } catch (error) {
@@ -869,8 +970,8 @@ export const db = {
   async getApiKeyByUserId(userId) {
     try {
       const result = await dbPool.query(
-        'SELECT api_key FROM users WHERE discord_id = $1',
-        [userId]
+        "SELECT api_key FROM users WHERE discord_id = $1",
+        [userId],
       );
       return result.rows[0]?.api_key || null;
     } catch (error) {
@@ -881,10 +982,10 @@ export const db = {
 
   async healthCheck() {
     try {
-      await dbPool.query('SELECT 1');
+      await dbPool.query("SELECT 1");
       return true;
     } catch (error) {
-      console.error('Database health check failed:', error);
+      console.error("Database health check failed:", error);
       return false;
     }
   },
