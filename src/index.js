@@ -191,11 +191,11 @@ client.once("ready", async () => {
         {
           name: `${client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
-          state: "Snussy v1.0.0",
+          state: "Snussy v1.2.0",
           url: "https://github.com/q4ow/snustalk",
         },
       ],
-      status: "online",
+      status: "dnd",
     });
 
     healthCheckInterval = setInterval(runHealthCheck, HEALTH_CHECK_INTERVAL);

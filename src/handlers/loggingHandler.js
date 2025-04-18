@@ -858,8 +858,12 @@ class LogHandler {
             },
             {
               name: "Affected Users",
-              value: data.users.map(u => `${u}`).join('\n').slice(0, 1024) || 'None',
-            }
+              value:
+                data.users
+                  .map((u) => `${u}`)
+                  .join("\n")
+                  .slice(0, 1024) || "None",
+            },
           );
         break;
 
@@ -880,9 +884,11 @@ class LogHandler {
             },
             {
               name: "Duration",
-              value: data.duration ? formatDuration(data.duration) : "Manual disable required",
+              value: data.duration
+                ? formatDuration(data.duration)
+                : "Manual disable required",
               inline: true,
-            }
+            },
           );
         break;
 
@@ -900,7 +906,7 @@ class LogHandler {
               name: "Duration",
               value: formatDuration(data.duration),
               inline: true,
-            }
+            },
           );
         break;
 
