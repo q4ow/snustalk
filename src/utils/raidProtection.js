@@ -46,6 +46,8 @@ export function isExemptFromRaidProtection(member, settings) {
   return settings.exemptRoles.some((roleId) => member.roles.cache.has(roleId));
 }
 
+const originalPermissionsStore = new Map();
+
 export async function lockdownServer(guild, settings, reason) {
   const channels = await guild.channels.fetch();
   const lockPromises = [];
@@ -63,7 +65,7 @@ export async function lockdownServer(guild, settings, reason) {
       guild.roles.everyone.id,
     );
     if (originalPerms) {
-      await channel.setProperty("originalPerms", originalPerms);
+      originalPermissionsStore.set(channel.id, originalPerms);
     }
 
     lockPromises.push(
@@ -87,12 +89,12 @@ export async function unlockServer(guild, settings) {
   for (const [_, channel] of channels) {
     if (settings.exemptChannels.includes(channel.id)) continue;
 
-    const originalPerms = await channel.getProperty("originalPerms");
+    const originalPerms = originalPermissionsStore.get(channel.id);
     if (originalPerms) {
       unlockPromises.push(
         channel.permissionOverwrites.edit(guild.roles.everyone, originalPerms),
       );
-      await channel.setProperty("originalPerms", null);
+      originalPermissionsStore.delete(channel.id);
     } else {
       unlockPromises.push(
         channel.permissionOverwrites.edit(guild.roles.everyone, {
