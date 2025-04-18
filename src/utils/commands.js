@@ -20,7 +20,7 @@ import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { slashCommands, automodCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
-import { handleSettingsCommand } from "../handlers/settingsHandler.js";
+import { handleSettingsCommand, handleSetBoostChannel } from "../handlers/settingsHandler.js";
 import {
   getAutomodSettings,
   updateAutomodSettings,
@@ -91,7 +91,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
