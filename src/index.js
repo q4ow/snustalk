@@ -191,8 +191,7 @@ client.once("ready", async () => {
         {
           name: `${client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
-          state: "Snussy v1.2.0",
-          url: "https://cdn.discordapp.com/avatars/1360765801417937069/a_95a8fe36bbeae7d3f2b9849bea763b15.gif?size=2048",
+          state: "Snussy v1.2.0"
         },
       ],
       status: "dnd",
