@@ -13,6 +13,7 @@
         "discord.js": "^14.18.0",
         "dotenv": "^16.5.0",
         "express": "^5.1.0",
+        "fuzzball": "^2.2.2",
         "pg": "^8.14.1"
     },
     "devDependencies": {

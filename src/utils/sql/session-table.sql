@@ -41,6 +41,33 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   }'
 );
 
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'guild_settings' 
+        AND column_name = 'raid_protection'
+    ) THEN
+        ALTER TABLE guild_settings 
+        ADD COLUMN raid_protection JSONB DEFAULT '{
+            "enabled": false,
+            "alertChannel": null,
+            "joinThreshold": 10,
+            "joinTimeWindow": 10000,
+            "accountAgeDays": 7,
+            "actionType": "lockdown",
+            "autoModeDuration": 300000,
+            "exemptRoles": [],
+            "similarNameThreshold": 0.85,
+            "mentionThreshold": 15,
+            "lockdownDuration": 300000,
+            "lockdownMessage": "Server is currently in lockdown mode due to potential raid activity.",
+            "exemptChannels": [],
+            "notifyRole": null
+        }'::jsonb;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS ticket_claims (
   channel_id TEXT PRIMARY KEY,
   moderator_id TEXT
@@ -152,4 +179,22 @@ CREATE TABLE IF NOT EXISTS reaction_roles (
     roles_data JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(message_id)
+);
+
+CREATE TABLE IF NOT EXISTS join_velocity (
+    id SERIAL PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    join_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(guild_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS raid_incidents (
+    id SERIAL PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    incident_type TEXT NOT NULL,
+    details TEXT,
+    action_taken TEXT,
+    affected_users TEXT[] DEFAULT '{}',
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

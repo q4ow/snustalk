@@ -36,6 +36,11 @@ import {
   createReactionRoles,
   handleReactionRole,
 } from "./handlers/reactionRolesHandler.js";
+import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
+import {
+  antiRaidCommands,
+  handleAntiRaidCommand,
+} from "./handlers/antiRaid/commands.js";
 
 dotenv.config();
 
@@ -164,12 +169,15 @@ client.once("ready", async () => {
     startTypingApi();
     startApiServer(client);
 
-    await registerSlashCommands(client);
+    client.antiRaid = new AntiRaidHandler(client);
+    await client.antiRaid.initialize();
 
     setupLoggingEvents(client);
 
     client.giveaways = new GiveawayHandler(client);
     await client.giveaways.initialize();
+
+    await registerSlashCommands(client);
 
     console.log("✅ Ticketing handler initialized");
     console.log("✅ Purge handler initialized");
@@ -268,13 +276,21 @@ async function setupVerificationMessage(channel) {
   await message.react("✅");
 }
 
-client.on("guildMemberAdd", handleWelcome);
+client.on("guildMemberAdd", async (member) => {
+  await client.antiRaid.handleMemberJoin(member);
+  handleWelcome(member);
+});
+
 client.on("guildMemberRemove", handleGoodbye);
 client.on("messageReactionAdd", handleVerification);
 
 client.on("interactionCreate", async (interaction) => {
   try {
     if (interaction.isCommand()) {
+      if (interaction.commandName === "antiraid") {
+        await handleAntiRaidCommand(interaction);
+        return;
+      }
       await handleSlashCommand(interaction, client);
       return;
     }
@@ -351,6 +367,7 @@ client.on("interactionCreate", async (interaction) => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
+  await client.antiRaid.handleMessage(message);
   await handleAutomod(message);
 
   if (message.channel.type === 1) {

@@ -2,6 +2,8 @@
 
 A Discord bot built with discord.js, originally developed for the SnusTalk Central server but available for anyone to use and modify under the MIT license.
 
+**Current Version:** 1.1.0
+
 ## I AM ONLY HUMAN
 I maintain this project in my spare time. I am 16 and my exams are next month, this bot **WILL NOT** get frequent, meaningful updates.
 Although I don't ever plan to abandon this, I make no promises. The project will always be MIT licensed, you will forever have the right
@@ -117,6 +119,13 @@ with my code, I'd love to see it so drop me an email or add me on [Discord](http
   - Session management
   - Database integration
 
+## Requirements
+
+- Node.js 16.9.0 or higher
+- PostgreSQL 13 or higher
+- Discord.js v14
+- pnpm (recommended) or npm
+
 ## Setup Instructions
 
 ### Prerequisites
@@ -139,7 +148,11 @@ pnpm install
 ```
 
 3. Create a .env file based on the example below
-4. Start the bot
+4. Initialize the database:
+```bash
+node src/utils/resetDatabase.js
+```
+5. Start the bot
 ```bash
 pnpm start
 ```
@@ -354,6 +367,16 @@ All slash commands are also available as prefix commands using `$`:
 
 > **Note**: All automod commands require the Manage Server permission.
 
+## Recent Changes
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed changes in each version.
+
+### Version 1.1.0
+- Fixed BigInt permission flag serialization issues
+- Improved command registration reliability
+- Enhanced permission handling
+- Various stability improvements
+
 ## Roadmap
 
 ### Goals
@@ -366,6 +389,14 @@ All slash commands are also available as prefix commands using `$`:
 - [ ] Enhance ticket system with priority levels
 - [ ] Add multilingual support for commands and messages
 - [ ] Integrate third-party APIs for extended functionality
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 

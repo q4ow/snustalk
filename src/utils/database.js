@@ -990,6 +990,160 @@ export const db = {
     }
   },
 
+  async getRaidProtectionSettings(guildId) {
+    try {
+      const result = await dbPool.query(
+        "SELECT raid_protection FROM guild_settings WHERE guild_id = $1",
+        [guildId],
+      );
+      return (
+        result.rows[0]?.raid_protection || {
+          enabled: false,
+          alertChannel: null,
+          joinThreshold: 10,
+          joinTimeWindow: 10000,
+          accountAgeDays: 7,
+          actionType: "lockdown",
+          autoModeDuration: 300000,
+          exemptRoles: [],
+          similarNameThreshold: 0.85,
+          mentionThreshold: 15,
+          lockdownDuration: 300000,
+          lockdownMessage:
+            "Server is currently in lockdown mode due to potential raid activity.",
+          exemptChannels: [],
+          notifyRole: null,
+        }
+      );
+    } catch (error) {
+      console.error(
+        `Error getting raid protection settings for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async updateRaidProtectionSettings(guildId, settings) {
+    try {
+      await dbPool.query(
+        `INSERT INTO guild_settings (guild_id, raid_protection)
+         VALUES ($1, $2)
+         ON CONFLICT (guild_id) 
+         DO UPDATE SET raid_protection = $2`,
+        [guildId, settings],
+      );
+    } catch (error) {
+      console.error(
+        `Error updating raid protection settings for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async logRaidIncident(guildId, incident) {
+    try {
+      await dbPool.query(
+        `INSERT INTO raid_incidents 
+         (guild_id, incident_type, details, action_taken, affected_users, timestamp)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [
+          guildId,
+          incident.type,
+          incident.details,
+          incident.action,
+          incident.affectedUsers,
+        ],
+      );
+    } catch (error) {
+      console.error(`Error logging raid incident for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async getRaidIncidents(guildId, limit = 10) {
+    try {
+      const result = await dbPool.query(
+        `SELECT * FROM raid_incidents 
+         WHERE guild_id = $1 
+         ORDER BY timestamp DESC 
+         LIMIT $2`,
+        [guildId, limit],
+      );
+      return result.rows;
+    } catch (error) {
+      console.error(
+        `Error getting raid incidents for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async clearRaidIncidents(guildId) {
+    try {
+      await dbPool.query("DELETE FROM raid_incidents WHERE guild_id = $1", [
+        guildId,
+      ]);
+    } catch (error) {
+      console.error(
+        `Error clearing raid incidents for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async trackJoinVelocity(guildId, userId, timestamp) {
+    try {
+      await dbPool.query(
+        `INSERT INTO join_velocity 
+         (guild_id, user_id, join_time)
+         VALUES ($1, $2, $3)`,
+        [guildId, userId, timestamp],
+      );
+    } catch (error) {
+      console.error(
+        `Error tracking join velocity for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async getRecentJoins(guildId, timeWindow) {
+    try {
+      const result = await dbPool.query(
+        `SELECT * FROM join_velocity 
+         WHERE guild_id = $1 
+         AND join_time > NOW() - interval '1 millisecond' * $2`,
+        [guildId, timeWindow],
+      );
+      return result.rows;
+    } catch (error) {
+      console.error(`Error getting recent joins for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async cleanOldJoinData(guildId) {
+    try {
+      await dbPool.query(
+        `DELETE FROM join_velocity 
+         WHERE guild_id = $1 
+         AND join_time < NOW() - interval '1 day'`,
+        [guildId],
+      );
+    } catch (error) {
+      console.error(
+        `Error cleaning old join data for guild ${guildId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
   createReactionRoles: (...args) => dbPool.createReactionRoles(...args),
   getReactionRole: (...args) => dbPool.getReactionRole(...args),
 };

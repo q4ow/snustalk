@@ -14,11 +14,15 @@ export function setupLoggingEvents(client) {
       console.error("Failed to initialize logger:", error);
     });
 
-  client.on("guildMemberAdd", (member) => {
+  client.on("guildMemberAdd", async (member) => {
     logger.createLog("MEMBER", {
       action: "JOIN",
       member,
     });
+
+    if (client.antiRaid) {
+      await client.antiRaid.handleMemberJoin(member);
+    }
   });
 
   client.on("guildMemberRemove", (member) => {
@@ -450,6 +454,10 @@ export function setupLoggingEvents(client) {
         messageContent: message.content,
         message,
       });
+    }
+
+    if (client.antiRaid) {
+      await client.antiRaid.handleMessage(message);
     }
   });
 }

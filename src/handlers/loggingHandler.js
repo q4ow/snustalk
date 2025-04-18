@@ -15,6 +15,7 @@ const LOG_TYPES = {
   THREAD: { color: "#2c3e50", emoji: "🧵" },
   FILE: { color: "#95a5a6", emoji: "📁" },
   BOOST: { color: "#ff73fa", emoji: "🚀" },
+  RAID: { color: "#e74c3c", emoji: "⚠️" },
 };
 
 class LogHandler {
@@ -123,6 +124,9 @@ class LogHandler {
           break;
         case "BOOST":
           this.formatBoostLog(embed, data);
+          break;
+        case "RAID":
+          this.formatRaidLog(embed, data);
           break;
       }
 
@@ -757,20 +761,18 @@ class LogHandler {
   }
 
   formatFileLog(embed, data) {
-    embed
-      .setTitle("📁 File Uploaded")
-      .addFields(
-        { name: "User", value: `${data.user}` },
-        { name: "Channel", value: `${data.channel}` },
-        {
-          name: "Filename(s)",
-          value: data.files.map((f) => f.name).join(", "),
-        },
-        {
-          name: "File URL(s)",
-          value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
-        },
-      );
+    embed.setTitle("📁 File Uploaded").addFields(
+      { name: "User", value: `${data.user}` },
+      { name: "Channel", value: `${data.channel}` },
+      {
+        name: "Filename(s)",
+        value: data.files.map((f) => f.name).join(", "),
+      },
+      {
+        name: "File URL(s)",
+        value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
+      },
+    );
     if (data.messageContent) {
       embed.addFields({ name: "Message Content", value: data.messageContent });
     }
@@ -834,6 +836,80 @@ class LogHandler {
         break;
     }
 
+    return embed;
+  }
+
+  formatRaidLog(embed, data) {
+    switch (data.action) {
+      case "RAID_DETECTED":
+        embed
+          .setTitle("⚠️ Raid Detected")
+          .setDescription(`A raid has been detected!`)
+          .addFields(
+            {
+              name: "Join Rate",
+              value: `${data.joins} joins in ${data.timeWindow / 1000}s`,
+              inline: true,
+            },
+            {
+              name: "Action Taken",
+              value: data.action,
+              inline: true,
+            },
+            {
+              name: "Affected Users",
+              value: data.users.map(u => `${u}`).join('\n').slice(0, 1024) || 'None',
+            }
+          );
+        break;
+
+      case "RAID_MODE_ENABLED":
+        embed
+          .setTitle("🛡️ Raid Mode Enabled")
+          .setDescription(`Server has entered lockdown mode`)
+          .addFields(
+            {
+              name: "Triggered By",
+              value: data.moderator ? `${data.moderator}` : "Auto Protection",
+              inline: true,
+            },
+            {
+              name: "Reason",
+              value: data.reason || "No reason provided",
+              inline: true,
+            },
+            {
+              name: "Duration",
+              value: data.duration ? formatDuration(data.duration) : "Manual disable required",
+              inline: true,
+            }
+          );
+        break;
+
+      case "RAID_MODE_DISABLED":
+        embed
+          .setTitle("✅ Raid Mode Disabled")
+          .setDescription(`Server has exited lockdown mode`)
+          .addFields(
+            {
+              name: "Disabled By",
+              value: data.moderator ? `${data.moderator}` : "Auto Protection",
+              inline: true,
+            },
+            {
+              name: "Duration",
+              value: formatDuration(data.duration),
+              inline: true,
+            }
+          );
+        break;
+
+      default:
+        embed
+          .setTitle("⚠️ Unknown Raid Action")
+          .setDescription(`Unknown action type: ${data.action}`);
+        break;
+    }
     return embed;
   }
 }

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-04-18
+
+### Added
+- Anti-Raid System
+  - Management via commands
+  - Customizable cooldown period for new members
+  - Temporary bans for suspicious activity
+  - Detailed logging of anti-raid actions
+  - Role-based access control for anti-raid settings
+  - Much more
+- Comprehensive logging system for raid incidents and server boosts
+- Detailed logging for all anti-raid actions including:
+  - Raid detection events
+  - Server lockdown status
+  - Suspicious member detection
+  - Similar username detection
+- Server boost tracking with detailed metrics
+  - Boost start and end events
+  - Duration tracking
+  - Server boost level changes
+
+### Fixed
+- Fixed serialization issues with BigInt permission flags in slash commands
+- Converted all permission flags to strings in slash commands and anti-raid commands
+- Improved error handling for invalid permission values
+
+### Changed
+- Updated permission handling in command registration
+- Added explicit string conversion for defaultMemberPermissions values
+- Enhanced raid protection with integrated logging
+- Improved server boost tracking and notifications
+
 ## [1.1.0] - 2025-04-17
 
 ### Added
@@ -55,6 +87,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - Initial Release
 
 ### Added
+- Initial release of Snussy bot
+- Basic moderation features
+- Ticketing system
+- Verification system
+- Auto-moderation
+- Anti-raid protection
+- Giveaway system
+- Server stats tracking
+- Customizable logging
+- Role management
+- API integration
 - Initial bot implementation with core features:
   - Verification System
   - Welcome System

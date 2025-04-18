@@ -1,10 +1,14 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ChannelType,
+} from "discord.js";
 
 export const slashCommands = [
   new SlashCommandBuilder()
     .setName("setup-tickets")
     .setDescription("Sets up the ticket system")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator.toString())
     .addStringOption((option) =>
       option.setName("title").setDescription("Title for the ticket panel"),
     )
@@ -68,17 +72,17 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("resend-verify")
     .setDescription("Resends verification embeds")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles.toString()),
 
   new SlashCommandBuilder()
     .setName("welcome")
     .setDescription("Sends a welcome message")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles.toString()),
 
   new SlashCommandBuilder()
     .setName("purge")
     .setDescription("Purges messages from the channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages.toString())
     .addIntegerOption((option) =>
       option
         .setName("amount")
@@ -104,7 +108,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("lock")
     .setDescription("Locks a channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels.toString())
     .addChannelOption((option) =>
       option
         .setName("channel")
@@ -115,7 +119,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("unlock")
     .setDescription("Unlocks a channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels.toString())
     .addChannelOption((option) =>
       option
         .setName("channel")
@@ -126,7 +130,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("nickname")
     .setDescription("Change a user's nickname")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -155,7 +159,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("warn")
     .setDescription("Warn a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -172,7 +176,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("kick")
     .setDescription("Kick a user from the server")
-    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -189,7 +193,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("ban")
     .setDescription("Ban a user from the server")
-    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -217,7 +221,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("timeout")
     .setDescription("Timeout a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -240,7 +244,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("untimeout")
     .setDescription("Remove timeout from a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -257,7 +261,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("warnings")
     .setDescription("View warnings for a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -268,7 +272,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("modlogs")
     .setDescription("View moderation history for a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addUserOption((option) =>
       option
         .setName("user")
@@ -279,7 +283,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("removewarning")
     .setDescription("Remove a warning from a user")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers.toString())
     .addStringOption((option) =>
       option
         .setName("id")
@@ -299,7 +303,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("embed")
     .setDescription("Create and send a custom embed")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages.toString())
     .addChannelOption((option) =>
       option
         .setName("channel")
@@ -371,7 +375,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("automod")
     .setDescription("Manage auto-moderation settings")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString())
     .addSubcommand((subcommand) =>
       subcommand
         .setName("toggle")
@@ -478,7 +482,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("logs")
     .setDescription("Configure server logging settings")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString())
     .addSubcommand((subcommand) =>
       subcommand
         .setName("setup")
@@ -557,7 +561,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("giveaway")
     .setDescription("Manage giveaways")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageEvents)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageEvents.toString())
     .addSubcommand((subcommand) =>
       subcommand
         .setName("create")
@@ -653,7 +657,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("reactionroles")
     .setDescription("Create a reaction roles message")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles.toString())
     .addChannelOption((option) =>
       option
         .setName("channel")
@@ -768,7 +772,7 @@ export const slashCommands = [
   new SlashCommandBuilder()
     .setName("setboostchannel")
     .setDescription("Set a dedicated channel for server boost notifications")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator.toString())
     .addChannelOption((option) =>
       option
         .setName("channel")
@@ -782,6 +786,7 @@ export const automodCommands = [
   {
     name: "automod-whitelist-role",
     description: "Add a role to filter-specific whitelist",
+    defaultMemberPermissions: PermissionFlagsBits.ManageGuild.toString(),
     options: [
       {
         name: "filter",
@@ -808,6 +813,7 @@ export const automodCommands = [
   {
     name: "automod-unwhitelist-role",
     description: "Remove a role from filter-specific whitelist",
+    defaultMemberPermissions: PermissionFlagsBits.ManageGuild.toString(),
     options: [
       {
         name: "filter",
@@ -834,6 +840,7 @@ export const automodCommands = [
   {
     name: "automod-list-whitelists",
     description: "List all whitelisted roles for each filter",
+    defaultMemberPermissions: PermissionFlagsBits.ManageGuild.toString(),
     options: [
       {
         name: "filter",
