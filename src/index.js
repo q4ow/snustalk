@@ -191,7 +191,7 @@ client.once("ready", async () => {
         {
           name: `${client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
-          state: "Snussy v1.2.0"
+          state: "Snussy v1.2.0",
         },
       ],
       status: "dnd",
@@ -207,8 +207,8 @@ client.once("ready", async () => {
         const settings = await db.getGuildSettings(guildId);
         const verificationChannel = settings.channel_ids?.verification
           ? await client.channels
-            .fetch(settings.channel_ids.verification)
-            .catch(() => null)
+              .fetch(settings.channel_ids.verification)
+              .catch(() => null)
           : null;
 
         if (verificationChannel) {
@@ -218,14 +218,14 @@ client.once("ready", async () => {
 
         const unverifiedRole = settings.role_ids?.unverified
           ? await guild.roles
-            .fetch(settings.role_ids.unverified)
-            .catch(() => null)
+              .fetch(settings.role_ids.unverified)
+              .catch(() => null)
           : null;
 
         const verifiedRole = settings.role_ids?.verified
           ? await guild.roles
-            .fetch(settings.role_ids.verified)
-            .catch(() => null)
+              .fetch(settings.role_ids.verified)
+              .catch(() => null)
           : null;
 
         if (!unverifiedRole || !verifiedRole) {
@@ -356,7 +356,7 @@ client.on("interactionCreate", async (interaction) => {
           content: "An error occurred while processing your request.",
           flags: 64,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     client.emit("interactionError", interaction, error);

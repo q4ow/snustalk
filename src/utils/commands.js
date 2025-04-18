@@ -18,20 +18,21 @@ import { createHelpEmbed } from "../embeds/helpEmbed.js";
 import { createUserEmbed } from "../embeds/userEmbed.js";
 import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
-import { slashCommands, automodCommands } from "./slashCommands.js";
+import { slashCommands } from "./slashCommands.js";
 import { startApplication } from "../handlers/applicationHandler.js";
 import {
   handleSettingsCommand,
   handleSetBoostChannel,
 } from "../handlers/settingsHandler.js";
 import { antiRaidCommands } from "../handlers/antiRaid/commands.js";
+import { automodCommands } from "../handlers/automod/commands.js";
 import {
   getAutomodSettings,
   updateAutomodSettings,
   handleAutomodWhitelistRole,
   handleAutomodUnwhitelistRole,
   handleAutomodListWhitelists,
-} from "../handlers/automodHandler.js";
+} from "../handlers/automod/handlers.js";
 import { db } from "./database.js";
 import { generateApiKey } from "./generateApiKey.js";
 
@@ -1237,6 +1238,30 @@ Ping Roles: ${pingRoles}`;
       case "setboostchannel":
         const boostChannel = interaction.options.getChannel("channel");
         await handleSetBoostChannel(interaction, boostChannel.id);
+        break;
+
+      case "donate":
+        const donateEmbed = new EmbedBuilder()
+          .setTitle("Support the Bot")
+          .setDescription(
+            "If you'd like to support the development of this bot, you can do so through these platforms:",
+          )
+          .addFields(
+            {
+              name: "Ko-fi",
+              value: "[Buy me a coffee! ☕](https://ko-fi.com/yourusername)",
+              inline: true,
+            },
+            {
+              name: "GitHub",
+              value:
+                "[View the source code 💻](https://github.com/yourusername/repository)",
+              inline: true,
+            },
+          )
+          .setColor("#FF69B4")
+          .setTimestamp();
+        await interaction.reply({ embeds: [donateEmbed] });
         break;
     }
   } catch (error) {
