@@ -2,7 +2,7 @@
 
 A Discord bot built with discord.js, originally developed for the SnusTalk Central server but available for anyone to use and modify under the MIT license.
 
-**Current Version:** 1.1.0
+**Current Version:** 1.2.0
 
 ## I AM ONLY HUMAN
 I maintain this project in my spare time. I am 16 and my exams are next month, this bot **WILL NOT** get frequent, meaningful updates.
