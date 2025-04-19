@@ -652,6 +652,55 @@ export const slashCommands = [
             .setDescription("The message ID of the giveaway")
             .setRequired(true),
         ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("reroll")
+        .setDescription("Reroll a giveaway to pick new winners")
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription("The message ID of the giveaway")
+            .setRequired(true),
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("winners")
+            .setDescription(
+              "Number of winners to pick (defaults to original winner count)",
+            )
+            .setMinValue(1)
+            .setMaxValue(20)
+            .setRequired(false),
+        ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("blacklist")
+        .setDescription("Blacklist a user from a giveaway")
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription("The message ID of the giveaway")
+            .setRequired(true),
+        )
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user to blacklist from the giveaway")
+            .setRequired(true),
+        ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("entries")
+        .setDescription("View all entries for a giveaway")
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription("The message ID of the giveaway")
+            .setRequired(true),
+        ),
     ),
 
   new SlashCommandBuilder()
