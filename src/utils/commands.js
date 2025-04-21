@@ -96,7 +96,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -181,13 +181,15 @@ export async function handleSlashCommand(interaction, client) {
         const purgeEmbed = new EmbedBuilder()
           .setDescription(`✅ Purged ${amount} messages!`)
           .setColor("#00ff00")
-          .setFooter({ text: `This message will be deleted in ${timeoutSeconds} seconds.` });
+          .setFooter({
+            text: `This message will be deleted in ${timeoutSeconds} seconds.`,
+          });
 
         await interaction.reply({
           embeds: [purgeEmbed],
         });
         setTimeout(() => {
-          interaction.deleteReply().catch(() => { });
+          interaction.deleteReply().catch(() => {});
         }, timeoutSeconds * 1000);
         break;
 

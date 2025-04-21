@@ -28,16 +28,10 @@ import { startApiServer } from "./api/server.js";
 import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
-import {
-  handleApplicationResponse,
-} from "./handlers/applicationHandler.js";
-import {
-  handleReactionRole,
-} from "./handlers/reactionRolesHandler.js";
+import { handleApplicationResponse } from "./handlers/applicationHandler.js";
+import { handleReactionRole } from "./handlers/reactionRolesHandler.js";
 import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
-import {
-  handleAntiRaidCommand,
-} from "./handlers/antiRaid/commands.js";
+import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 
 dotenv.config();
 
@@ -84,12 +78,12 @@ function handleError(context, error) {
 }
 
 function validateEnvironment() {
-  const missingVars = requiredEnvVars.filter(
-    (envVar) => !process.env[envVar]
-  );
+  const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
   if (missingVars.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingVars.join(", ")}`);
+    throw new Error(
+      `Missing required environment variables: ${missingVars.join(", ")}`,
+    );
   }
 
   console.log("✅ Environment variables validated");
@@ -101,7 +95,7 @@ function updateBotPresence() {
       {
         name: `${client.guilds.cache.size} servers`,
         type: ActivityType.Watching,
-        state: `Snussy v${SNUSSY_VERSION}`
+        state: `Snussy v${SNUSSY_VERSION}`,
       },
     ],
     status: "dnd",
@@ -245,8 +239,8 @@ async function initializeGuilds() {
 
       const verificationChannel = settings.channel_ids?.verification
         ? await client.channels
-          .fetch(settings.channel_ids.verification)
-          .catch(() => null)
+            .fetch(settings.channel_ids.verification)
+            .catch(() => null)
         : null;
 
       if (verificationChannel) {
@@ -256,19 +250,17 @@ async function initializeGuilds() {
 
       const unverifiedRole = settings.role_ids?.unverified
         ? await guild.roles
-          .fetch(settings.role_ids.unverified)
-          .catch(() => null)
+            .fetch(settings.role_ids.unverified)
+            .catch(() => null)
         : null;
 
       const verifiedRole = settings.role_ids?.verified
-        ? await guild.roles
-          .fetch(settings.role_ids.verified)
-          .catch(() => null)
+        ? await guild.roles.fetch(settings.role_ids.verified).catch(() => null)
         : null;
 
       if (!unverifiedRole || !verifiedRole) {
         console.warn(
-          `⚠️ Missing required roles in guild ${guild.name} (${guildId})`
+          `⚠️ Missing required roles in guild ${guild.name} (${guildId})`,
         );
       }
     } catch (error) {
@@ -300,10 +292,7 @@ async function handleButtonInteraction(interaction) {
           return;
         }
 
-        await client.giveaways.enterGiveaway(
-          giveaway.id,
-          interaction.user.id,
-        );
+        await client.giveaways.enterGiveaway(giveaway.id, interaction.user.id);
         await interaction.reply({
           content: "✅ You have entered the giveaway!",
           ephemeral: true,
@@ -355,7 +344,7 @@ async function handleInteraction(interaction) {
           content: "An error occurred while processing your request.",
           ephemeral: true,
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     client.emit("interactionError", interaction, error);
