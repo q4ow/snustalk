@@ -1,23 +1,24 @@
 {
-    "name": "snussy",
-    "version": "1.0.1",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "start": "node src/index.js",
-        "format": "prettier --write src",
-        "db:reset": "node src/utils/resetDatabase.js"
-    },
-    "dependencies": {
-        "cors": "^2.8.5",
-        "discord.js": "^14.18.0",
-        "dotenv": "^16.5.0",
-        "express": "^5.1.0",
-        "fuzzball": "^2.2.2",
-        "pg": "^8.14.1"
-    },
-    "devDependencies": {
-        "prettier": "^3.5.3"
-    },
-    "packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677"
+  "name": "snussy",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "format": "prettier --write src",
+    "db:reset": "node src/utils/resetDatabase.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "fuzzball": "^2.2.2",
+    "pg": "^8.14.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "eslint-js": "^9.17.0"
+  },
+  "packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677"
 }
