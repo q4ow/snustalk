@@ -43,6 +43,7 @@ export async function startApplication(interaction) {
           "❌ I couldn't send you a DM! Please enable DMs from server members to start the application process.",
         flags: 64,
       });
+      console.error("Error sending DM:", error);
       return;
     }
 
@@ -83,6 +84,7 @@ export async function startApplication(interaction) {
           flags: 64,
         });
       }
+      console.error("Error sending application DM:", error);
     }
   } catch (error) {
     console.error("Error in startApplication:", error);

@@ -201,7 +201,7 @@ export async function handleAntiRaidCommand(interaction) {
   const settings = await db.getRaidProtectionSettings(interaction.guild.id);
 
   switch (subcommand) {
-    case "toggle":
+    case "toggle": {
       const enabled = interaction.options.getBoolean("enabled");
       settings.enabled = enabled;
       await db.updateRaidProtectionSettings(interaction.guild.id, settings);
@@ -210,8 +210,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "action":
+    }
+    case "action": {
       const actionType = interaction.options.getString("type");
       settings.actionType = actionType;
       await db.updateRaidProtectionSettings(interaction.guild.id, settings);
@@ -220,8 +220,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "threshold":
+    }
+    case "threshold": {
       const joins = interaction.options.getInteger("joins");
       const seconds = interaction.options.getInteger("seconds");
       settings.joinThreshold = joins;
@@ -232,8 +232,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "account-age":
+    }
+    case "account-age": {
       const days = interaction.options.getInteger("days");
       settings.accountAgeDays = days;
       await db.updateRaidProtectionSettings(interaction.guild.id, settings);
@@ -242,8 +242,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "exempt-role":
+    }
+    case "exempt-role": {
       const roleAction = interaction.options.getString("action");
       const role = interaction.options.getRole("role");
 
@@ -263,8 +263,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "exempt-channel":
+    }
+    case "exempt-channel": {
       const channelAction = interaction.options.getString("action");
       const channel = interaction.options.getChannel("channel");
 
@@ -284,8 +284,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "alert-channel":
+    }
+    case "alert-channel": {
       const alertChannel = interaction.options.getChannel("channel");
       settings.alertChannel = alertChannel.id;
       await db.updateRaidProtectionSettings(interaction.guild.id, settings);
@@ -294,8 +294,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "notify-role":
+    }
+    case "notify-role": {
       const notifyRole = interaction.options.getRole("role");
       settings.notifyRole = notifyRole.id;
       await db.updateRaidProtectionSettings(interaction.guild.id, settings);
@@ -304,8 +304,8 @@ export async function handleAntiRaidCommand(interaction) {
         flags: 64,
       });
       break;
-
-    case "view":
+    }
+    case "view": {
       const embed = new EmbedBuilder()
         .setTitle("Anti-Raid Protection Settings")
         .setColor("#00FF00")
@@ -357,8 +357,8 @@ export async function handleAntiRaidCommand(interaction) {
 
       await interaction.reply({ embeds: [embed], flags: 64 });
       break;
-
-    case "lockdown":
+    }
+    case "lockdown": {
       const lockdownAction = interaction.options.getString("action");
       const reason =
         interaction.options.getString("reason") || "Manual lockdown";
@@ -384,8 +384,8 @@ export async function handleAntiRaidCommand(interaction) {
         });
       }
       break;
-
-    case "incidents":
+    }
+    case "incidents": {
       const limit = interaction.options.getInteger("limit") || 10;
       const incidents = await db.getRaidIncidents(interaction.guild.id, limit);
 
@@ -415,5 +415,6 @@ export async function handleAntiRaidCommand(interaction) {
 
       await interaction.reply({ embeds: [incidentEmbed], flags: 64 });
       break;
+    }
   }
 }

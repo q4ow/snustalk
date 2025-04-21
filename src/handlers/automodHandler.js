@@ -1,6 +1,4 @@
-import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { db } from "../utils/database.js";
-import { warnUser, timeoutUser } from "./moderationHandler.js";
 
 const DEFAULT_SETTINGS = {
   enabled: false,
@@ -49,9 +47,6 @@ const DEFAULT_SETTINGS = {
   exemptChannels: [],
   logChannel: null,
 };
-
-const messageCache = new Map();
-const spamCache = new Map();
 
 export async function setupAutomod(guild, settings = {}) {
   const automodSettings = {

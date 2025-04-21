@@ -207,14 +207,6 @@ export async function handleTicketCreate(interaction, type) {
       ],
     });
 
-    const ticketId = await db.createTicket({
-      channelId: ticketChannel.id,
-      guildId: guild.id,
-      creatorId: interaction.user.id,
-      ticketNumber: parseInt(ticketNumber),
-      ticketType: type,
-    });
-
     const embed = new EmbedBuilder()
       .setTitle(`${ticketType.label} Ticket #${ticketNumber}`)
       .setDescription(
@@ -270,32 +262,29 @@ export async function handleTicketCreate(interaction, type) {
             const lastMessage = (
               await channel.messages.fetch({ limit: 1 })
             ).first();
+            const lastMessageTimestamp = lastMessage
+              ? lastMessage.createdTimestamp
+              : channel.createdTimestamp;
             const hoursSinceLastMessage =
-              (Date.now() - lastMessage.createdTimestamp) / (1000 * 60 * 60);
+              (Date.now() - lastMessageTimestamp) / (1000 * 60 * 60);
 
             if (hoursSinceLastMessage >= settings.autoCloseHours) {
-              const ticketId = await db.closeTicket(
+              await logTicketAction(
+                guild,
                 channel.id,
-                interaction.user.id,
+                `Ticket automatically closed due to inactivity (${settings.autoCloseHours} hours).`,
               );
-
-              if (ticketId) {
-                await db.addTicketMessage(ticketId, {
-                  authorId: "SYSTEM",
-                  content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`,
+              await channel
+                .delete("Auto-closed due to inactivity")
+                .catch((err) => {
+                  console.error(
+                    `Error auto-deleting channel ${channel.id}:`,
+                    err,
+                  );
                 });
-              }
-
-              await handleTicketClose(
-                {
-                  channel,
-                  guild,
-                  user: client.user,
-                  reply: () => {},
-                  deferred: false,
-                },
-                true,
-              );
+              await db.closeTicket(channel.id, "SYSTEM_AUTO_CLOSE");
+              await db.clearTicketActions(channel.id);
+              await db.removeTicketClaim(channel.id);
             }
           }
         },
@@ -476,6 +465,24 @@ export async function handleTicketUnclaim(interaction) {
 
 export async function handleTicketClose(interaction) {
   try {
+    if (
+      !interaction ||
+      !interaction.channel ||
+      !interaction.guild ||
+      !interaction.user
+    ) {
+      console.error("Invalid interaction object passed to handleTicketClose");
+      if (interaction && interaction.reply) {
+        await interaction
+          .reply({
+            content: "An internal error occurred.",
+            flags: MessageFlags.Ephemeral,
+          })
+          .catch(console.error);
+      }
+      return;
+    }
+
     if (interaction.deferred) return;
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -484,13 +491,32 @@ export async function handleTicketClose(interaction) {
       interaction.guild.id,
       "ticket_logs",
     );
+
     if (!logChannelId) {
-      throw new Error("Log channel not found");
+      console.error(
+        `Log channel ID not found for guild ${interaction.guild.id}`,
+      );
+      await interaction.editReply({
+        content:
+          "Ticket log channel not configured. Cannot close ticket properly.",
+      });
+      return;
     }
 
-    const logChannel = await interaction.guild.channels.fetch(logChannelId);
-    if (!logChannel) {
-      throw new Error("Log channel not found");
+    let logChannel;
+    try {
+      logChannel = await interaction.guild.channels.fetch(logChannelId);
+      if (!logChannel) throw new Error("Fetched channel is null or undefined.");
+    } catch (error) {
+      console.error(
+        `Failed to fetch log channel with ID ${logChannelId}:`,
+        error,
+      );
+      await interaction.editReply({
+        content:
+          "Could not find the ticket log channel. Cannot close ticket properly.",
+      });
+      return;
     }
 
     const messages = await fetchWithRetry(

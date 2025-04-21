@@ -11,7 +11,6 @@ import {
   removeWarning,
 } from "./handler.js";
 
-// Helper function for parsing durations from command input
 function parseDuration(durationStr) {
   const match = durationStr.match(/^(\d+)([smhd])$/);
   if (!match) return null;

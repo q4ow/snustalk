@@ -1,4 +1,4 @@
-import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { db } from "../../utils/database.js";
 import * as RaidProtection from "../../utils/raidProtection.js";
 import { LogHandler } from "../loggingHandler.js";
@@ -109,7 +109,7 @@ export class AntiRaidHandler {
       .setTimestamp();
 
     switch (settings.actionType) {
-      case "lockdown":
+      case "lockdown": {
         const lockedChannels = await RaidProtection.lockdownServer(
           guild,
           settings,
@@ -126,8 +126,8 @@ export class AntiRaidHandler {
         );
         this.isLocked.set(guild.id, true);
         break;
-
-      case "ban":
+      }
+      case "ban": {
         const recentMembers = recentJoins
           .map((j) => guild.members.cache.get(j.user_id))
           .filter(Boolean);
@@ -141,8 +141,8 @@ export class AntiRaidHandler {
           value: bannedCount.toString(),
         });
         break;
-
-      case "kick":
+      }
+      case "kick": {
         const kickedCount = await RaidProtection.kickSuspiciousMembers(
           guild,
           recentJoins
@@ -155,6 +155,7 @@ export class AntiRaidHandler {
           value: kickedCount.toString(),
         });
         break;
+      }
     }
 
     if (settings.alertChannel) {
@@ -197,7 +198,7 @@ export class AntiRaidHandler {
   }
 
   async handleSimilarUsernames(guild, similarGroups, settings) {
-    for (const [groupId, members] of similarGroups) {
+    for (const [, members] of similarGroups) {
       if (members.length < 3) continue;
 
       const incident = {
@@ -217,20 +218,22 @@ export class AntiRaidHandler {
       });
 
       switch (settings.actionType) {
-        case "ban":
+        case "ban": {
           await RaidProtection.banSuspiciousMembers(
             guild,
             members,
             "Similar username raid detection",
           );
           break;
-        case "kick":
+        }
+        case "kick": {
           await RaidProtection.kickSuspiciousMembers(
             guild,
             members,
             "Similar username raid detection",
           );
           break;
+        }
       }
     }
   }

@@ -214,7 +214,7 @@ class LogHandler {
         );
         break;
 
-      case "UPDATE":
+      case "UPDATE": {
         const changes = [];
         if (data.oldChannel.name !== data.newChannel.name) {
           changes.push(
@@ -267,8 +267,9 @@ class LogHandler {
           },
         );
         break;
+      }
 
-      case "PINS_UPDATE":
+      case "PINS_UPDATE": {
         embed.setTitle("📌 Channel Pins Updated").addFields(
           {
             name: "Channel",
@@ -287,19 +288,21 @@ class LogHandler {
           },
         );
         break;
+      }
 
-      default:
+      default: {
         embed
           .setTitle("⚠️ Unknown Channel Action")
           .setDescription(`Unknown action type: ${data.action}`);
         break;
+      }
     }
     return embed;
   }
 
   formatMemberLog(embed, data) {
     switch (data.action) {
-      case "JOIN":
+      case "JOIN": {
         embed
           .setTitle("👋 Member Joined")
           .setDescription(`${data.member} joined the server`)
@@ -312,8 +315,9 @@ class LogHandler {
             { name: "Member ID", value: data.member.id, inline: true },
           );
         break;
+      }
 
-      case "LEAVE":
+      case "LEAVE": {
         embed
           .setTitle("🚶 Member Left")
           .setDescription(`${data.member} left the server`)
@@ -326,8 +330,9 @@ class LogHandler {
             { name: "Member ID", value: data.member.id, inline: true },
           );
         break;
+      }
 
-      case "NICKNAME":
+      case "NICKNAME": {
         embed.setTitle("📝 Nickname Changed").addFields(
           { name: "Member", value: `${data.member}`, inline: true },
           { name: "Changed By", value: `${data.moderator}`, inline: true },
@@ -343,12 +348,14 @@ class LogHandler {
           },
         );
         break;
+      }
 
-      default:
+      default: {
         embed
           .setTitle("⚠️ Unknown Member Action")
           .setDescription(`Unknown action type: ${data.action}`);
         break;
+      }
     }
 
     return embed;
@@ -356,7 +363,7 @@ class LogHandler {
 
   formatMessageLog(embed, data) {
     switch (data.action) {
-      case "DELETE":
+      case "DELETE": {
         embed.setTitle("🗑️ Message Deleted").addFields(
           { name: "Author", value: `${data.message.author}`, inline: true },
           { name: "Channel", value: `${data.message.channel}`, inline: true },
@@ -368,8 +375,9 @@ class LogHandler {
           },
         );
         break;
+      }
 
-      case "EDIT":
+      case "EDIT": {
         const diff = this.createMessageDiff(data.oldContent, data.newContent);
         embed
           .setTitle("✏️ Message Edited")
@@ -379,8 +387,9 @@ class LogHandler {
             { name: "Changes", value: `\`\`\`diff\n${diff}\n\`\`\`` },
           );
         break;
+      }
 
-      case "BULK_DELETE":
+      case "BULK_DELETE": {
         embed.setTitle("🗑️ Bulk Messages Deleted").addFields(
           { name: "Channel", value: `${data.channel}`, inline: true },
           { name: "Count", value: `${data.count} messages`, inline: true },
@@ -394,9 +403,10 @@ class LogHandler {
           },
         );
         break;
+      }
 
       case "REACTION_ADD":
-      case "REACTION_REMOVE":
+      case "REACTION_REMOVE": {
         embed
           .setTitle(
             `${data.action === "REACTION_ADD" ? "➕" : "➖"} Reaction ${data.action === "REACTION_ADD" ? "Added" : "Removed"}`,
@@ -416,8 +426,9 @@ class LogHandler {
             },
           );
         break;
+      }
 
-      case "PINS_UPDATE":
+      case "PINS_UPDATE": {
         embed.setTitle("📌 Channel Pins Updated").addFields(
           { name: "Channel", value: `${data.channel}`, inline: true },
           {
@@ -427,12 +438,14 @@ class LogHandler {
           },
         );
         break;
+      }
 
-      default:
+      default: {
         embed
           .setTitle("⚠️ Unknown Message Action")
           .setDescription(`Unknown action type: ${data.action}`);
         break;
+      }
     }
     return embed;
   }
@@ -568,7 +581,7 @@ class LogHandler {
         break;
 
       case "UPDATE":
-      case "ROLE_UPDATE":
+      case "ROLE_UPDATE": {
         const fields = [];
         if (data.changes.name)
           fields.push({
@@ -613,8 +626,9 @@ class LogHandler {
           ...fields,
         );
         break;
+      }
 
-      case "MEMBER_ROLES_UPDATE":
+      case "MEMBER_ROLES_UPDATE": {
         const addedRoles =
           data.added?.map((r) => r.toString()).join(", ") || "None";
         const removedRoles =
@@ -631,12 +645,14 @@ class LogHandler {
           { name: "Removed Roles", value: removedRoles },
         );
         break;
+      }
 
-      default:
+      default: {
         embed
           .setTitle("⚠️ Unknown Role Action")
           .setDescription(`Unknown action type: ${data.action}`);
         break;
+      }
     }
     return embed;
   }

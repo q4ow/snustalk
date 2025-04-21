@@ -201,7 +201,7 @@ export async function getUserModActions(guildId, userId) {
   return actions.filter((action) => action.targetId === userId);
 }
 
-export function createModActionEmbed(action, guild) {
+export function createModActionEmbed(action) {
   const embed = new EmbedBuilder()
     .setTitle(`Moderation Action - ${action.type.toUpperCase()}`)
     .setColor(getActionColor(action.type))

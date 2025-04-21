@@ -170,7 +170,7 @@ app.post(
         return res.status(403).json({ error: "Not a member of this guild" });
       }
 
-      const ticket = await db.getTicketInfo(req.params.ticketId);
+      let ticket = await db.getTicketInfo(req.params.ticketId);
       if (!ticket) {
         const ticketByChannel = await db.getTicketInfoByChannel(
           req.params.ticketId,

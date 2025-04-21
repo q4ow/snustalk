@@ -48,11 +48,11 @@ export function isExemptFromRaidProtection(member, settings) {
 
 const originalPermissionsStore = new Map();
 
-export async function lockdownServer(guild, settings, reason) {
+export async function lockdownServer(guild, settings) {
   const channels = await guild.channels.fetch();
   const lockPromises = [];
 
-  for (const [_, channel] of channels) {
+  for (const channel of channels.values()) {
     if (settings.exemptChannels.includes(channel.id)) continue;
     if (
       !channel
@@ -86,7 +86,7 @@ export async function unlockServer(guild, settings) {
   const channels = await guild.channels.fetch();
   const unlockPromises = [];
 
-  for (const [_, channel] of channels) {
+  for (const channel of channels) {
     if (settings.exemptChannels.includes(channel.id)) continue;
 
     const originalPerms = originalPermissionsStore.get(channel.id);

@@ -1,5 +1,6 @@
 import { LogHandler } from "./loggingHandler.js";
 import { AuditLogEvent } from "discord.js";
+import { formatDuration } from "../utils/moderation.js";
 
 export function setupLoggingEvents(client) {
   const logger = new LogHandler(client);

@@ -89,6 +89,7 @@ export async function handleReactionRole(interaction) {
         content: "❌ I don't have permission to manage this role.",
         flags: 64,
       });
+      console.error("Failed to manage role:", error);
     }
   } catch (error) {
     console.error("Error handling reaction role:", error);

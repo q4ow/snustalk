@@ -1,6 +1,5 @@
 import { db } from "../../utils/database.js";
 
-// Helper function for parsing durations from command input
 function parseDuration(durationStr) {
   const match = durationStr.match(/^(\d+)([smhdw])$/);
   if (!match) return null;
@@ -214,7 +213,7 @@ export async function handleBlacklistUserCommand(interaction, client) {
   }
 }
 
-export async function handleGiveawayEntriesCommand(interaction, client) {
+export async function handleGiveawayEntriesCommand(interaction) {
   const messageId = interaction.options.getString("message_id");
   const giveaway = await db.getGiveawayByMessageId(
     messageId,
@@ -239,7 +238,6 @@ export async function handleGiveawayEntriesCommand(interaction, client) {
   });
 }
 
-// Main handler that routes to the appropriate sub-command handler
 export async function handleGiveawayCommand(interaction, client) {
   const subCommand = interaction.options.getSubcommand();
 

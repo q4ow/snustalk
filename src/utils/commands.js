@@ -112,7 +112,7 @@ export async function handleSlashCommand(interaction, client) {
     }
 
     switch (interaction.commandName) {
-      case "setup-tickets":
+      case "setup-tickets": {
         const title = interaction.options.getString("title");
         const description = interaction.options.getString("description");
         const description2 = interaction.options.getString("description_line2");
@@ -139,8 +139,8 @@ export async function handleSlashCommand(interaction, client) {
           flags: 64,
         });
         break;
-
-      case "resend-verify":
+      }
+      case "resend-verify": {
         try {
           const mockReaction = {
             message: {
@@ -165,16 +165,16 @@ export async function handleSlashCommand(interaction, client) {
           }
         }
         break;
-
-      case "welcome":
+      }
+      case "welcome": {
         await handleWelcome(interaction.member);
         await interaction.reply({
           content: "✅ Welcome message sent!",
           flags: 64,
         });
         break;
-
-      case "purge":
+      }
+      case "purge": {
         const amount = interaction.options.getInteger("amount");
         await handlePurge(interaction, [amount]);
         const timeoutSeconds = 3;
@@ -192,22 +192,22 @@ export async function handleSlashCommand(interaction, client) {
           interaction.deleteReply().catch(() => {});
         }, timeoutSeconds * 1000);
         break;
-
-      case "userinfo":
+      }
+      case "userinfo": {
         const user = interaction.options.getUser("user") || interaction.user;
         const member = await interaction.guild.members.fetch(user.id);
         const userEmbed = createUserEmbed(user, member);
         await interaction.reply({ embeds: [userEmbed] });
         break;
-
-      case "serverinfo":
+      }
+      case "serverinfo": {
         const guild = interaction.guild;
         const owner = await guild.fetchOwner();
         const serverEmbed = createServerEmbed(guild, owner);
         await interaction.reply({ embeds: [serverEmbed] });
         break;
-
-      case "lock":
+      }
+      case "lock": {
         const lockChannel =
           interaction.options.getChannel("channel") || interaction.channel;
         await lockChannel.permissionOverwrites.edit(
@@ -218,8 +218,8 @@ export async function handleSlashCommand(interaction, client) {
         );
         await interaction.reply(`🔒 ${lockChannel} has been locked.`);
         break;
-
-      case "unlock":
+      }
+      case "unlock": {
         const unlockChannel =
           interaction.options.getChannel("channel") || interaction.channel;
         await unlockChannel.permissionOverwrites.edit(
@@ -230,8 +230,8 @@ export async function handleSlashCommand(interaction, client) {
         );
         await interaction.reply(`🔓 ${unlockChannel} has been unlocked.`);
         break;
-
-      case "nickname":
+      }
+      case "nickname": {
         const targetUser = interaction.options.getUser("user");
         const newNickname = interaction.options.getString("nickname");
         const targetMember = await interaction.guild.members.fetch(
@@ -249,10 +249,14 @@ export async function handleSlashCommand(interaction, client) {
               "❌ Could not change nickname. User might have higher permissions.",
             flags: 64,
           });
+          console.error(
+            `Error changing nickname for ${targetUser.tag}:`,
+            error,
+          );
         }
         break;
-
-      case "ping":
+      }
+      case "ping": {
         await interaction.reply({
           content: "Pinging...",
         });
@@ -264,52 +268,52 @@ export async function handleSlashCommand(interaction, client) {
           content: `🏓 Pong!\n> Roundtrip: ${roundtrip}ms\n> Websocket: ${wsHeartbeat}ms`,
         });
         break;
-
-      case "avatar":
+      }
+      case "avatar": {
         const avatarUser =
           interaction.options.getUser("user") || interaction.user;
         const avatarEmbed = createAvatarEmbed(avatarUser);
         await interaction.reply({ embeds: [avatarEmbed] });
         break;
-
-      case "warn":
+      }
+      case "warn": {
         await handleWarnCommand(interaction);
         break;
-
-      case "removewarning":
+      }
+      case "removewarning": {
         await handleRemoveWarningCommand(interaction);
         break;
-
-      case "kick":
+      }
+      case "kick": {
         await handleKickCommand(interaction);
         break;
-
-      case "ban":
+      }
+      case "ban": {
         await handleBanCommand(interaction);
         break;
-
-      case "timeout":
+      }
+      case "timeout": {
         await handleTimeoutCommand(interaction);
         break;
-
-      case "untimeout":
+      }
+      case "untimeout": {
         await handleUntimeoutCommand(interaction);
         break;
-
-      case "warnings":
+      }
+      case "warnings": {
         await handleWarningsCommand(interaction);
         break;
-
-      case "modlogs":
+      }
+      case "modlogs": {
         await handleModlogsCommand(interaction);
         break;
-
-      case "help":
+      }
+      case "help": {
         const helpEmbed = createHelpEmbed(slashCommands, BOT_PREFIX);
         await interaction.reply({ embeds: [helpEmbed] });
         break;
-
-      case "apply":
+      }
+      case "apply": {
         try {
           let appChannel;
           try {
@@ -322,6 +326,7 @@ export async function handleSlashCommand(interaction, client) {
                 "❌ I don't have access to the applications channel. Please contact an administrator.",
               flags: 64,
             });
+            console.error("Error fetching applications channel:", error);
             return;
           }
 
@@ -364,8 +369,8 @@ export async function handleSlashCommand(interaction, client) {
           });
         }
         break;
-
-      case "embed":
+      }
+      case "embed": {
         const embedChannel = interaction.options.getChannel("channel");
         const embedTitle = interaction.options.getString("title");
         const embedDesc = interaction.options
@@ -434,12 +439,12 @@ export async function handleSlashCommand(interaction, client) {
           });
         }
         break;
-
-      case "automod":
+      }
+      case "automod": {
         const automodSubcommand = interaction.options.getSubcommand();
 
         switch (automodSubcommand) {
-          case "toggle":
+          case "toggle": {
             const enabled = interaction.options.getBoolean("enabled");
             await updateAutomodSettings(interaction.guild.id, { enabled });
             await interaction.reply({
@@ -447,8 +452,8 @@ export async function handleSlashCommand(interaction, client) {
               flags: 64,
             });
             break;
-
-          case "logchannel":
+          }
+          case "logchannel": {
             const logChannel = interaction.options.getChannel("channel");
             await updateAutomodSettings(interaction.guild.id, {
               logChannel: logChannel.id,
@@ -458,8 +463,8 @@ export async function handleSlashCommand(interaction, client) {
               flags: 64,
             });
             break;
-
-          case "exempt":
+          }
+          case "exempt": {
             const type = interaction.options.getString("type");
             const target = interaction.options.getString("target");
             const settings = await getAutomodSettings(interaction.guild.id);
@@ -493,8 +498,8 @@ export async function handleSlashCommand(interaction, client) {
               flags: 64,
             });
             break;
-
-          case "filter":
+          }
+          case "filter": {
             const filterType = interaction.options.getString("type");
             const filterAction = interaction.options.getString("action");
             const filterEnabled = interaction.options.getBoolean("enabled");
@@ -522,6 +527,7 @@ export async function handleSlashCommand(interaction, client) {
                   content: "❌ Invalid JSON format for filter settings.",
                   flags: 64,
                 });
+                console.error("Error parsing filter settings JSON:", error);
                 return;
               }
             }
@@ -534,12 +540,13 @@ export async function handleSlashCommand(interaction, client) {
               flags: 64,
             });
             break;
+          }
         }
         break;
-
+      }
       case "automod-whitelist-role":
       case "automod-unwhitelist-role":
-      case "automod-list-whitelists":
+      case "automod-list-whitelists": {
         const handler = {
           "automod-whitelist-role": handleAutomodWhitelistRole,
           "automod-unwhitelist-role": handleAutomodUnwhitelistRole,
@@ -550,7 +557,7 @@ export async function handleSlashCommand(interaction, client) {
           await handler(interaction);
         }
         break;
-
+      }
       case "typingscore": {
         const topWpm = await db.getTypingScore(interaction.user.id);
         const embed = new EmbedBuilder()
@@ -599,7 +606,7 @@ export async function handleSlashCommand(interaction, client) {
         break;
       }
 
-      case "logs":
+      case "logs": {
         const logsSubcommand = interaction.options.getSubcommand();
 
         switch (logsSubcommand) {
@@ -704,16 +711,16 @@ Ping Roles: ${pingRoles}`;
           }
         }
         break;
-
-      case "giveaway":
+      }
+      case "giveaway": {
         await handleGiveawayCommand(interaction, client);
         break;
-
-      case "settings":
+      }
+      case "settings": {
         await handleSettingsCommand(interaction);
         break;
-
-      case "dashboard":
+      }
+      case "dashboard": {
         try {
           const result = await generateApiKey(interaction.user.id);
           if (!result.success && result.key) {
@@ -740,7 +747,7 @@ Ping Roles: ${pingRoles}`;
           });
         }
         break;
-
+      }
       case "reactionroles": {
         const channel = interaction.options.getChannel("channel");
         const title = interaction.options.getString("title");
@@ -789,12 +796,12 @@ Ping Roles: ${pingRoles}`;
         break;
       }
 
-      case "setboostchannel":
+      case "setboostchannel": {
         const boostChannel = interaction.options.getChannel("channel");
         await handleSetBoostChannel(interaction, boostChannel.id);
         break;
-
-      case "donate":
+      }
+      case "donate": {
         const donateEmbed = new EmbedBuilder()
           .setTitle("Support the Bot")
           .setDescription(
@@ -817,6 +824,7 @@ Ping Roles: ${pingRoles}`;
           .setTimestamp();
         await interaction.reply({ embeds: [donateEmbed] });
         break;
+      }
     }
   } catch (error) {
     console.error(
@@ -845,35 +853,6 @@ Ping Roles: ${pingRoles}`;
         .catch(console.error);
     }
   }
-}
-
-function parseDuration(durationStr) {
-  const match = durationStr.match(/^(\d+)([smhd])$/);
-  if (!match) return null;
-
-  const amount = parseInt(match[1]);
-  const unit = match[2];
-
-  let milliseconds;
-
-  switch (unit) {
-    case "s":
-      milliseconds = amount * 1000;
-      break;
-    case "m":
-      milliseconds = amount * 60 * 1000;
-      break;
-    case "h":
-      milliseconds = amount * 60 * 60 * 1000;
-      break;
-    case "d":
-      milliseconds = amount * 24 * 60 * 60 * 1000;
-      break;
-    default:
-      return null;
-  }
-
-  return milliseconds;
 }
 
 export async function registerSlashCommands(client) {

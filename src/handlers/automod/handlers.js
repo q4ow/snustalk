@@ -50,7 +50,6 @@ const DEFAULT_SETTINGS = {
   logChannel: null,
 };
 
-const messageCache = new Map();
 const spamCache = new Map();
 
 export async function setupAutomod(guild, settings = {}) {
