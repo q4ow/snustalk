@@ -96,7 +96,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -177,10 +177,19 @@ export async function handleSlashCommand(interaction, client) {
       case "purge":
         const amount = interaction.options.getInteger("amount");
         await handlePurge(interaction, [amount]);
-        await interaction.reply({
-          content: `✅ Purged ${amount} messages!`,
-          flags: 64,
+        const timeoutSeconds = 3;
+        const purgeEmbed = new EmbedBuilder()
+          .setDescription(`✅ Purged ${amount} messages!`)
+          .setColor("#00ff00")
+          .setFooter({ text: `This message will be deleted in ${timeoutSeconds} seconds.` });
+
+        const reply = await interaction.reply({
+          embeds: [purgeEmbed],
+          fetchReply: true,
         });
+        setTimeout(() => {
+          reply.delete().catch(() => { });
+        }, timeoutSeconds * 1000);
         break;
 
       case "userinfo":
@@ -232,7 +241,6 @@ export async function handleSlashCommand(interaction, client) {
           await targetMember.setNickname(newNickname);
           await interaction.reply({
             content: `✅ Changed ${targetUser.tag}'s nickname to \`${newNickname}\``,
-            flags: 64,
           });
         } catch (error) {
           await interaction.reply({
