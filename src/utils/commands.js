@@ -183,12 +183,11 @@ export async function handleSlashCommand(interaction, client) {
           .setColor("#00ff00")
           .setFooter({ text: `This message will be deleted in ${timeoutSeconds} seconds.` });
 
-        const reply = await interaction.reply({
+        await interaction.reply({
           embeds: [purgeEmbed],
-          fetchReply: true,
         });
         setTimeout(() => {
-          reply.delete().catch(() => { });
+          interaction.deleteReply().catch(() => { });
         }, timeoutSeconds * 1000);
         break;
 
