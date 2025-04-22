@@ -110,7 +110,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.members,
       newName: `${CONFIG.CHANNEL_PREFIXES.members}${stats.total}`,
-      currentName: statsChannels.members.name
+      currentName: statsChannels.members.name,
     });
   }
 
@@ -118,7 +118,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.bots,
       newName: `${CONFIG.CHANNEL_PREFIXES.bots}${stats.bots}`,
-      currentName: statsChannels.bots.name
+      currentName: statsChannels.bots.name,
     });
   }
 
@@ -126,7 +126,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.totalTickets,
       newName: `${CONFIG.CHANNEL_PREFIXES.totalTickets}${stats.totalTickets}`,
-      currentName: statsChannels.totalTickets.name
+      currentName: statsChannels.totalTickets.name,
     });
   }
 
@@ -134,7 +134,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.openTickets,
       newName: `${CONFIG.CHANNEL_PREFIXES.openTickets}${stats.openTickets}`,
-      currentName: statsChannels.openTickets.name
+      currentName: statsChannels.openTickets.name,
     });
   }
 
@@ -142,7 +142,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.onlineMembers,
       newName: `${CONFIG.CHANNEL_PREFIXES.onlineMembers}${stats.onlineMembers}`,
-      currentName: statsChannels.onlineMembers.name
+      currentName: statsChannels.onlineMembers.name,
     });
   }
 
@@ -150,30 +150,30 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.roles,
       newName: `${CONFIG.CHANNEL_PREFIXES.roles}${stats.roles}`,
-      currentName: statsChannels.roles.name
+      currentName: statsChannels.roles.name,
     });
   }
-
-  console.log(`📊 Planned stats updates for guild ${stats.guildName || 'Unknown'}:`,
-    updateQueue.map(u => `${u.currentName || u.channel.name} -> ${u.newName}`).join(', '));
 
   for (let i = 0; i < updateQueue.length; i++) {
     const { channel, newName } = updateQueue[i];
 
     if (channel.name === newName) {
-      console.log(`📊 Skipping update for ${channel.name} (already up to date)`);
       continue;
     }
 
     try {
-      console.log(`📊 Updating channel name: ${channel.name} -> ${newName}`);
       await channel.setName(newName);
 
       if (i < updateQueue.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, CONFIG.STAGGER_DELAY));
+        await new Promise((resolve) =>
+          setTimeout(resolve, CONFIG.STAGGER_DELAY),
+        );
       }
     } catch (error) {
-      console.error(`Error updating channel name for ${channel.name}:`, error.message);
+      console.error(
+        `Error updating channel name for ${channel.name}:`,
+        error.message,
+      );
     }
   }
 }

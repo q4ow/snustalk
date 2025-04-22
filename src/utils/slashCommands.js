@@ -812,6 +812,49 @@ export const slashCommands = [
               { name: "External Links", value: "link" },
             ),
         ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("remove")
+        .setDescription("Remove a server setting")
+        .addStringOption((option) =>
+          option
+            .setName("type")
+            .setDescription("The type of setting to remove")
+            .setRequired(true)
+            .addChoices(
+              { name: "Channel", value: "channel" },
+              { name: "Role", value: "role" },
+              { name: "API Key", value: "api" },
+              { name: "External Link", value: "link" },
+            ),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("name")
+            .setDescription("The name of the setting to remove")
+            .setRequired(true)
+            .setAutocomplete(true),
+        ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("available-keys")
+        .setDescription(
+          "View all possible setting keys with configuration status",
+        )
+        .addStringOption((option) =>
+          option
+            .setName("type")
+            .setDescription("The type of settings to list")
+            .setRequired(true)
+            .addChoices(
+              { name: "Channel", value: "channel" },
+              { name: "Role", value: "role" },
+              { name: "API Key", value: "api" },
+              { name: "External Link", value: "link" },
+            ),
+        ),
     ),
 
   new SlashCommandBuilder()
