@@ -85,17 +85,19 @@ async function calculateGuildStats(guild) {
     : null;
   const ticketCounter = await db.getTicketCounter(guild.id);
 
+  const humanMembers = members.filter((m) => !m.user.bot);
+  const botMembers = members.filter((m) => m.user.bot);
+
   return {
-    total: members.size,
-    bots: members.filter((m) => m.user.bot).size,
+    total: humanMembers.size,
+    bots: botMembers.size,
     totalTickets: ticketCounter?.counter || 0,
     openTickets: ticketCategory ? ticketCategory.children.cache.size : 0,
-    onlineMembers: members.filter(
+    onlineMembers: humanMembers.filter(
       (m) =>
-        !m.user.bot &&
-        (m.presence?.status === "online" ||
-          m.presence?.status === "idle" ||
-          m.presence?.status === "dnd"),
+        m.presence?.status === "online" ||
+        m.presence?.status === "idle" ||
+        m.presence?.status === "dnd",
     ).size,
     roles: guild.roles.cache.size - 1,
   };
@@ -108,6 +110,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.members,
       newName: `${CONFIG.CHANNEL_PREFIXES.members}${stats.total}`,
+      currentName: statsChannels.members.name,
     });
   }
 
@@ -115,6 +118,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.bots,
       newName: `${CONFIG.CHANNEL_PREFIXES.bots}${stats.bots}`,
+      currentName: statsChannels.bots.name,
     });
   }
 
@@ -122,6 +126,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.totalTickets,
       newName: `${CONFIG.CHANNEL_PREFIXES.totalTickets}${stats.totalTickets}`,
+      currentName: statsChannels.totalTickets.name,
     });
   }
 
@@ -129,6 +134,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.openTickets,
       newName: `${CONFIG.CHANNEL_PREFIXES.openTickets}${stats.openTickets}`,
+      currentName: statsChannels.openTickets.name,
     });
   }
 
@@ -136,6 +142,7 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.onlineMembers,
       newName: `${CONFIG.CHANNEL_PREFIXES.onlineMembers}${stats.onlineMembers}`,
+      currentName: statsChannels.onlineMembers.name,
     });
   }
 
@@ -143,17 +150,29 @@ async function updateChannelNames(statsChannels, stats) {
     updateQueue.push({
       channel: statsChannels.roles,
       newName: `${CONFIG.CHANNEL_PREFIXES.roles}${stats.roles}`,
+      currentName: statsChannels.roles.name,
     });
   }
+
+  console.log(
+    `📊 Planned stats updates for guild ${stats.guildName || "Unknown"}:`,
+    updateQueue.map((u) => `${u.currentName} -> ${u.newName}`).join(", "),
+  );
 
   const updates = updateQueue.slice(0, CONFIG.MAX_RENAME_PER_CYCLE);
 
   for (let i = 0; i < updates.length; i++) {
     const { channel, newName } = updates[i];
 
-    if (channel.name === newName) continue;
+    if (channel.name === newName) {
+      console.log(
+        `📊 Skipping update for ${channel.name} (already up to date)`,
+      );
+      continue;
+    }
 
     try {
+      console.log(`📊 Updating channel name: ${channel.name} -> ${newName}`);
       await channel.setName(newName);
 
       if (i < updates.length - 1) {
@@ -186,10 +205,15 @@ async function updateGuildStats(guild) {
       (key) => key.startsWith("stats_") && channelIds[key],
     );
 
-    if (!hasStatsChannels) return;
+    if (!hasStatsChannels) {
+      console.log(`📊 No stats channels configured for guild ${guild.name}`);
+      return;
+    }
 
     const statsChannels = await fetchStatsChannels(guild, channelIds);
     const stats = await calculateGuildStats(guild);
+
+    stats.guildName = guild.name;
 
     await updateChannelNames(statsChannels, stats);
   } catch (error) {

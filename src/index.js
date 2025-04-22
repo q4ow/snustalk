@@ -377,9 +377,33 @@ class SnusTalkBot {
     this.client.on("guildMemberAdd", async (member) => {
       await this.client.antiRaid.handleMemberJoin(member);
       handleWelcome(member);
+
+      if (member.guild.available) {
+        await startStatsTracker(member.guild);
+      }
     });
 
-    this.client.on("guildMemberRemove", handleGoodbye);
+    this.client.on("guildMemberRemove", async (member) => {
+      handleGoodbye(member);
+
+      if (member.guild.available) {
+        await startStatsTracker(member.guild);
+      }
+    });
+
+    this.client.on("presenceUpdate", async (newPresence) => {
+      if (newPresence && newPresence.guild && newPresence.guild.available) {
+        try {
+          const guildSettings = await db.getGuildSettings(newPresence.guild.id);
+          if (guildSettings.channel_ids?.stats_online_members) {
+            await startStatsTracker(newPresence.guild);
+          }
+        } catch (error) {
+          this.handleError("updating online stats on presence change", error);
+        }
+      }
+    });
+
     this.client.on("messageReactionAdd", handleVerification);
 
     this.client.on("interactionCreate", (interaction) =>
