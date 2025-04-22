@@ -197,6 +197,7 @@ await initDb().catch((err) => {
   process.exit(1);
 });
 
+export { dbPool };
 export const db = {
   async withTransaction(callback) {
     return dbPool.transaction(callback);

@@ -7,7 +7,7 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
-import { db } from "../utils/database.js";
+import { db, dbPool } from "../utils/database.js";
 import { fetchWithRetry } from "../utils/requests.js";
 
 const ticketTypes = {
@@ -621,16 +621,14 @@ export async function handleTicketClose(interaction) {
       content: "Ticket closed and transcript saved.",
     });
 
-    // First query to find the ticket ID by channel ID
-    const ticketResult = await db.query(
+    const result = await dbPool.query(
       "SELECT id FROM tickets WHERE channel_id = $1",
       [channel.id]
     );
 
-    const ticketId = ticketResult.rows[0]?.id;
+    const ticketId = result.rows[0]?.id;
 
     if (ticketId) {
-      // Now use the proper ticket ID to close the ticket
       await db.closeTicket(ticketId, interaction.user.id);
 
       await db.addTicketMessage(ticketId, {
