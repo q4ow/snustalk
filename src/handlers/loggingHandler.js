@@ -140,7 +140,7 @@ class LogHandler {
         : "";
 
       await channel.send({ content, embeds: [embed] });
-      console.log(`Successfully sent ${type} log`);
+      // console.log(`Successfully sent ${type} log`);
     } catch (error) {
       console.error(`Failed to send ${type} log:`, error);
     }

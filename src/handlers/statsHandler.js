@@ -195,7 +195,7 @@ async function updateGuildStats(guild) {
     );
 
     if (!hasStatsChannels) {
-      console.log(`📊 No stats channels configured for guild ${guild.name}`);
+      // console.log(`📊 No stats channels configured for guild ${guild.name}`);
       return;
     }
 
