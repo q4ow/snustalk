@@ -92,6 +92,19 @@ CREATE TABLE IF NOT EXISTS tickets (
   closed_by TEXT
 );
 
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'tickets' 
+        AND column_name = 'closed_by'
+        AND data_type = 'integer'
+    ) THEN
+        ALTER TABLE tickets 
+        ALTER COLUMN closed_by TYPE TEXT;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS ticket_messages (
   id SERIAL PRIMARY KEY,
   ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,

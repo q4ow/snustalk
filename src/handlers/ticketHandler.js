@@ -559,9 +559,9 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                    .replace(/[^\x20-\x7E\n]/g, "")
-                    .replace(/<@[!&]?(\d+)>/g, "@user")
-                    .trim()
+                  .replace(/[^\x20-\x7E\n]/g, "")
+                  .replace(/<@[!&]?(\d+)>/g, "@user")
+                  .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })
@@ -621,12 +621,24 @@ export async function handleTicketClose(interaction) {
       content: "Ticket closed and transcript saved.",
     });
 
-    const ticketId = await db.closeTicket(channel.id, interaction.user.id);
+    // First query to find the ticket ID by channel ID
+    const ticketResult = await db.query(
+      "SELECT id FROM tickets WHERE channel_id = $1",
+      [channel.id]
+    );
+
+    const ticketId = ticketResult.rows[0]?.id;
+
     if (ticketId) {
+      // Now use the proper ticket ID to close the ticket
+      await db.closeTicket(ticketId, interaction.user.id);
+
       await db.addTicketMessage(ticketId, {
         authorId: "SYSTEM",
         content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`,
       });
+    } else {
+      console.warn(`No ticket found with channel ID ${channel.id}`);
     }
 
     await db.clearTicketActions(channel.id);
