@@ -559,9 +559,9 @@ export async function handleTicketClose(interaction) {
                 : "Untitled";
               const desc = embed.description
                 ? embed.description
-                  .replace(/[^\x20-\x7E\n]/g, "")
-                  .replace(/<@[!&]?(\d+)>/g, "@user")
-                  .trim()
+                    .replace(/[^\x20-\x7E\n]/g, "")
+                    .replace(/<@[!&]?(\d+)>/g, "@user")
+                    .trim()
                 : "";
               return `\n[Embed: ${title}]${desc ? " - " + desc : ""}`;
             })
@@ -623,7 +623,7 @@ export async function handleTicketClose(interaction) {
 
     const result = await dbPool.query(
       "SELECT id FROM tickets WHERE channel_id = $1",
-      [channel.id]
+      [channel.id],
     );
 
     const ticketId = result.rows[0]?.id;
