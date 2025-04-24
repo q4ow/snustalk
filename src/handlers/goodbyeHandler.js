@@ -5,11 +5,21 @@ export async function handleGoodbye(member) {
   try {
     const { guild } = member;
 
-    const goodbyeChannel = await db.getChannelId(guild.id, "goodbye");
+    const goodbyeChannelId = await db.getChannelId(guild.id, "goodbye");
+
+    if (!goodbyeChannelId) {
+      console.warn(`Goodbye channel ID not found for guild ${guild.id}`);
+      return;
+    }
+
+    const goodbyeChannel = await guild.channels.fetch(goodbyeChannelId).catch(error => {
+      console.warn(`Could not fetch goodbye channel with ID ${goodbyeChannelId}: ${error}`);
+      return null;
+    });
 
     if (!goodbyeChannel ||
       ![ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(goodbyeChannel.type)) {
-      console.warn(`Goodbye channel not found or not a text channel: ${goodbyeChannel}`);
+      console.warn(`Goodbye channel not found or not a text channel: ${goodbyeChannelId}`);
       return;
     }
 
