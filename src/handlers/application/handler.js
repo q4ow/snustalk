@@ -211,7 +211,6 @@ async function submitApplication(message, application) {
 
 export async function handleApplicationButton(interaction) {
   try {
-    console.log(`Processing application button: ${interaction.customId}`);
     const [action, userId] = interaction.customId.split("_app_");
 
     const modal = new ModalBuilder()
@@ -231,7 +230,6 @@ export async function handleApplicationButton(interaction) {
       ]);
 
     await interaction.showModal(modal);
-    console.log(`Modal shown for ${action} application for user ${userId}`);
   } catch (error) {
     console.error("Error showing application modal:", error);
     try {
@@ -239,7 +237,7 @@ export async function handleApplicationButton(interaction) {
         await interaction.reply({
           content:
             "There was an error processing your request. Please try again.",
-          ephemeral: true,
+          flags: 64,
         });
       }
     } catch (replyError) {

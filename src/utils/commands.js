@@ -674,7 +674,7 @@ export async function handleSlashCommand(interaction, client) {
       console.warn(`No handler found for command: ${interaction.commandName}`);
       await interaction.reply({
         content: "This command is not implemented yet.",
-        ephemeral: true,
+        flags: 64,
       });
     }
   } catch (error) {

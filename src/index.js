@@ -74,7 +74,7 @@ class SnusTalkBot {
       failIfNotExists: false,
     });
     this.healthCheckInterval = null;
-    this.version = SNUSSY_VERSION;
+    this.version = SNUSSY_VERSION || "1.2.3";
   }
 
   handleError(context, error) {
@@ -306,7 +306,7 @@ class SnusTalkBot {
           if (!giveaway) {
             await interaction.reply({
               content: "❌ This giveaway was not found",
-              ephemeral: true,
+              flags: 64,
             });
             return;
           }
@@ -317,12 +317,12 @@ class SnusTalkBot {
           );
           await interaction.reply({
             content: "✅ You have entered the giveaway!",
-            ephemeral: true,
+            flags: 64,
           });
         } catch (error) {
           await interaction.reply({
             content: `❌ ${error.message}`,
-            ephemeral: true,
+            flags: 64,
           });
         }
       },
@@ -383,7 +383,7 @@ class SnusTalkBot {
             if (!user) {
               await interaction.reply({
                 content: "Could not find the user. They may have left Discord.",
-                ephemeral: true,
+                flags: 64,
               });
               return;
             }
@@ -479,7 +479,7 @@ class SnusTalkBot {
 
             await interaction.reply({
               content: `Application ${action === "accept" ? "accepted" : "denied"} successfully.`,
-              ephemeral: true,
+              flags: 64,
             });
           } catch (error) {
             console.error("Error processing application modal:", error);
@@ -487,7 +487,7 @@ class SnusTalkBot {
               .reply({
                 content:
                   "There was an error processing the application. Please try again.",
-                ephemeral: true,
+                flags: 64,
               })
               .catch(console.error);
           }
@@ -502,7 +502,7 @@ class SnusTalkBot {
         await interaction
           .reply({
             content: "An error occurred while processing your request.",
-            ephemeral: true,
+            flags: 64,
           })
           .catch(() => {});
       }
