@@ -724,8 +724,6 @@ export async function registerSlashCommands(client) {
       ...applicationCommands,
     ];
 
-    console.log(`Registering ${allCommands.length} slash commands`);
-
     const commandNames = new Set();
     const duplicateNames = [];
 

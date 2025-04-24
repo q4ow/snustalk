@@ -369,8 +369,6 @@ export async function handleApplyCommand(interaction) {
       return;
     }
 
-    console.log(`Using applications channel ID: ${applicationChannelId}`);
-
     let appChannel;
     try {
       appChannel = await interaction.guild.channels.fetch(applicationChannelId);
