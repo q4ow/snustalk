@@ -1,4 +1,5 @@
 import { EmbedBuilder, ChannelType } from "discord.js";
+import { db } from "../utils/database.js";
 
 export async function handleGoodbye(member) {
   try {
