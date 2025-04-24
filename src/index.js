@@ -328,6 +328,17 @@ class SnusTalkBot {
       },
     };
 
+    if (
+      interaction.customId.startsWith("accept_app_") ||
+      interaction.customId.startsWith("deny_app_")
+    ) {
+      const { handleApplicationButton } = await import(
+        "./handlers/application/handler.js"
+      );
+      await handleApplicationButton(interaction);
+      return;
+    }
+
     if (interaction.customId.startsWith("role_")) {
       await handleReactionRole(interaction);
       return;
@@ -354,6 +365,130 @@ class SnusTalkBot {
 
       if (interaction.isModalSubmit()) {
         if (interaction.customId.includes("_app_modal_")) {
+          const [action, userId] = interaction.customId.split("_");
+          const reason = interaction.fields.getTextInputValue("reason");
+
+          try {
+            const guild = interaction.guild;
+            const user = await guild.client.users
+              .fetch(userId)
+              .catch((error) => {
+                console.error(`Failed to fetch user ${userId}:`, error);
+                return null;
+              });
+
+            if (!user) {
+              await interaction.reply({
+                content: "Could not find the user. They may have left Discord.",
+                ephemeral: true,
+              });
+              return;
+            }
+
+            const member = await guild.members.fetch(userId).catch((error) => {
+              console.error(`Failed to fetch member ${userId}:`, error);
+              return null;
+            });
+
+            if (action === "accept" && member) {
+              try {
+                const moderatorRoleId = await db.getRoleId(
+                  guild.id,
+                  "moderator",
+                );
+                if (moderatorRoleId) {
+                  const moderatorRole =
+                    await guild.roles.fetch(moderatorRoleId);
+                  if (moderatorRole) {
+                    await member.roles.add(moderatorRole);
+                    console.log(`Added moderator role to ${member.user.tag}`);
+                  }
+                }
+              } catch (error) {
+                console.error(
+                  `Failed to add moderator role to member ${userId}:`,
+                  error,
+                );
+              }
+            }
+
+            const responseEmbed = new EmbedBuilder()
+              .setTitle(
+                `Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`,
+              )
+              .setDescription(
+                `Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`,
+              )
+              .addFields(
+                { name: "Reason", value: reason, inline: false },
+                {
+                  name: "Decision Time",
+                  value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+                  inline: true,
+                },
+                {
+                  name: "Staff Member",
+                  value: interaction.user.tag,
+                  inline: true,
+                },
+              )
+              .setColor(action === "accept" ? "#00FF00" : "#FF0000")
+              .setFooter({
+                text: interaction.guild.name,
+                iconURL: interaction.guild.iconURL(),
+              })
+              .setTimestamp();
+
+            if (action === "accept") {
+              responseEmbed.addFields({
+                name: "Next Steps",
+                value:
+                  "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
+                inline: false,
+              });
+            }
+
+            await user.send({ embeds: [responseEmbed] }).catch(() => {
+              console.log(`Failed to DM user ${user.tag}`);
+            });
+
+            await interaction.message
+              .edit({ components: [] })
+              .catch((error) => {
+                console.error("Failed to edit original message:", error);
+              });
+
+            const logEmbed = new EmbedBuilder()
+              .setTitle(
+                `Application ${action === "accept" ? "Accepted" : "Denied"}`,
+              )
+              .setDescription(
+                `**Staff Member:** ${interaction.user.tag}\n**Reason:** ${reason}`,
+              )
+              .setColor(action === "accept" ? "#00FF00" : "#FF0000")
+              .setTimestamp();
+
+            await interaction.message
+              .reply({ embeds: [logEmbed] })
+              .catch((error) => {
+                console.error("Failed to reply to original message:", error);
+              });
+
+            await interaction.reply({
+              content: `Application ${action === "accept" ? "accepted" : "denied"} successfully.`,
+              ephemeral: true,
+            });
+          } catch (error) {
+            console.error("Error processing application modal:", error);
+            await interaction
+              .reply({
+                content:
+                  "There was an error processing the application. Please try again.",
+                ephemeral: true,
+              })
+              .catch(console.error);
+          }
+
           return;
         }
       }

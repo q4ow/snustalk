@@ -28,15 +28,12 @@ export async function startStatsTracker(guild) {
   activeIntervals.set(guild.id, interval);
 
   await updateGuildStats(guild);
-
-  console.log(`📊 Stats tracker started for guild: ${guild.name}`);
 }
 
 export function stopStatsTracker(guildId) {
   if (activeIntervals.has(guildId)) {
     clearInterval(activeIntervals.get(guildId));
     activeIntervals.delete(guildId);
-    console.log(`📊 Stats tracker stopped for guild ID: ${guildId}`);
   }
 }
 
