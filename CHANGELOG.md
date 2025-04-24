@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created separate commands.js and handler.js files in application directory
   - Improved code organization and maintainability
   - Maintained backward compatibility through re-exports
+  - Fixed timeout issues when accepting or denying moderator applications
+  - Added enhanced error handling for user/member fetching operations
+  - Improved handling of role assignment failures
+  - Added detailed logging for easier debugging
 - Automod handler
   - Simplified automodHandler.js to use re-exports only
   - Ensured consistent handler structure across features

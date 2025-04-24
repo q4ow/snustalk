@@ -212,6 +212,8 @@ async function submitApplication(message, application) {
 export async function handleApplicationButton(interaction) {
   const [action, userId] = interaction.customId.split("_app_");
 
+  console.log(`Processing application ${action} for user ${userId}`);
+
   const modal = new ModalBuilder()
     .setCustomId(`${action}_app_modal_${userId}`)
     .setTitle(`${action === "accept" ? "Accept" : "Deny"} Application`)
@@ -236,119 +238,166 @@ export async function handleApplicationButton(interaction) {
       filter: (i) => i.customId === `${action}_app_modal_${userId}`,
     });
 
+    console.log(`Modal submitted for ${action} application`);
     const reason = modalResponse.fields.getTextInputValue("reason");
-    const guild = interaction.guild;
-    const user = await interaction.client.users.fetch(userId);
-    const member = await guild.members.fetch(userId);
 
-    if (!member) {
-      await modalResponse.reply({
-        content: "Could not find the user in the server.",
-        flags: 64,
-      });
-      return;
-    }
+    try {
+      const guild = interaction.guild;
+      const user = await interaction.client.users
+        .fetch(userId)
+        .catch((error) => {
+          console.error(`Failed to fetch user ${userId}:`, error);
+          return null;
+        });
 
-    if (action === "accept") {
-      try {
-        const moderatorRoleId = await db.getRoleId(guild.id, "moderator");
-        if (!moderatorRoleId) {
-          console.error("Moderator role not found");
-          await modalResponse.reply({
-            content:
-              "Failed to assign moderator role, but the application was accepted.",
-            flags: 64,
-          });
-          return;
-        }
-
-        const moderatorRole = await guild.roles.fetch(moderatorRoleId);
-        if (!moderatorRole) {
-          console.error("Moderator role not found in guild");
-          await modalResponse.reply({
-            content:
-              "Failed to assign moderator role, but the application was accepted.",
-            flags: 64,
-          });
-          return;
-        }
-
-        await member.roles.add(moderatorRole);
-        console.log(`Added moderator role to ${member.user.tag}`);
-      } catch (error) {
-        console.error(
-          `Failed to add moderator role to member ${member.id}:`,
-          error,
-        );
+      if (!user) {
         await modalResponse.reply({
-          content:
-            "Failed to assign moderator role, but the application was accepted.",
+          content: "Could not find the user. They may have left Discord.",
           flags: 64,
         });
         return;
       }
-    }
 
-    const responseEmbed = new EmbedBuilder()
-      .setTitle(
-        `Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`,
-      )
-      .setDescription(
-        `Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`,
-      )
-      .addFields(
-        { name: "Reason", value: reason, inline: false },
-        {
-          name: "Decision Time",
-          value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
-          inline: true,
-        },
-        { name: "Staff Member", value: interaction.user.tag, inline: true },
-      )
-      .setColor(action === "accept" ? "#00FF00" : "#FF0000")
-      .setFooter({
-        text: interaction.guild.name,
-        iconURL: interaction.guild.iconURL(),
-      })
-      .setTimestamp();
-
-    if (action === "accept") {
-      responseEmbed.addFields({
-        name: "Next Steps",
-        value:
-          "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
-        inline: false,
+      const member = await guild.members.fetch(userId).catch((error) => {
+        console.error(`Failed to fetch member ${userId}:`, error);
+        return null;
       });
+
+      if (!member) {
+        await modalResponse.reply({
+          content: "Could not find the user in the server. They may have left.",
+          flags: 64,
+        });
+        return;
+      }
+
+      if (action === "accept") {
+        try {
+          const moderatorRoleId = await db.getRoleId(guild.id, "moderator");
+          if (!moderatorRoleId) {
+            console.error("Moderator role not found");
+            await modalResponse.reply({
+              content:
+                "Failed to assign moderator role, but the application was accepted.",
+              flags: 64,
+            });
+          } else {
+            const moderatorRole = await guild.roles.fetch(moderatorRoleId);
+            if (!moderatorRole) {
+              console.error("Moderator role not found in guild");
+              await modalResponse.reply({
+                content:
+                  "Failed to assign moderator role, but the application was accepted.",
+                flags: 64,
+              });
+            } else {
+              await member.roles.add(moderatorRole).catch((error) => {
+                console.error(
+                  `Failed to add role to ${member.user.tag}:`,
+                  error,
+                );
+                throw error;
+              });
+              console.log(`Added moderator role to ${member.user.tag}`);
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Failed to add moderator role to member ${member.id}:`,
+            error,
+          );
+          await modalResponse.reply({
+            content:
+              "Failed to assign moderator role, but the application was accepted.",
+            flags: 64,
+          });
+          return;
+        }
+      }
+
+      const responseEmbed = new EmbedBuilder()
+        .setTitle(
+          `Application ${action === "accept" ? "Accepted ✅" : "Denied ❌"}`,
+        )
+        .setDescription(
+          `Your application has been ${action === "accept" ? "accepted" : "denied"} by ${interaction.user.tag}`,
+        )
+        .addFields(
+          { name: "Reason", value: reason, inline: false },
+          {
+            name: "Decision Time",
+            value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+            inline: true,
+          },
+          { name: "Staff Member", value: interaction.user.tag, inline: true },
+        )
+        .setColor(action === "accept" ? "#00FF00" : "#FF0000")
+        .setFooter({
+          text: interaction.guild.name,
+          iconURL: interaction.guild.iconURL(),
+        })
+        .setTimestamp();
+
+      if (action === "accept") {
+        responseEmbed.addFields({
+          name: "Next Steps",
+          value:
+            "You will be given the Moderator role shortly. Please make sure to familiarize yourself with the staff guidelines and channels.",
+          inline: false,
+        });
+      }
+
+      await user.send({ embeds: [responseEmbed] }).catch(() => {
+        console.log(`Failed to DM user ${user.tag}`);
+      });
+
+      await interaction.message.edit({ components: [] }).catch((error) => {
+        console.error("Failed to edit original message:", error);
+      });
+
+      const logEmbed = new EmbedBuilder()
+        .setTitle(`Application ${action === "accept" ? "Accepted" : "Denied"}`)
+        .setDescription(
+          `**Staff Member:** ${interaction.user.tag}\n**Reason:** ${reason}`,
+        )
+        .setColor(action === "accept" ? "#00FF00" : "#FF0000")
+        .setTimestamp();
+
+      await interaction.message.reply({ embeds: [logEmbed] }).catch((error) => {
+        console.error("Failed to reply to original message:", error);
+      });
+
+      await modalResponse.reply({
+        content: `Application ${action === "accept" ? "accepted" : "denied"} successfully.`,
+        flags: 64,
+      });
+    } catch (error) {
+      console.error("Error processing application response:", error);
+      await modalResponse
+        .reply({
+          content:
+            "An error occurred while processing the application response.",
+          flags: 64,
+        })
+        .catch((err) => console.error("Failed to reply with error:", err));
+    }
+  } catch (error) {
+    if (error.code === "INTERACTION_COLLECTOR_ERROR") {
+      console.log("Modal timed out or was never submitted");
+      return;
     }
 
-    await user.send({ embeds: [responseEmbed] }).catch(() => {
-      console.log(`Failed to DM user ${user.tag}`);
-    });
-
-    await interaction.message.edit({ components: [] });
-
-    const logEmbed = new EmbedBuilder()
-      .setTitle(`Application ${action === "accept" ? "Accepted" : "Denied"}`)
-      .setDescription(
-        `**Staff Member:** ${interaction.user.tag}\n**Reason:** ${reason}`,
-      )
-      .setColor(action === "accept" ? "#00FF00" : "#FF0000")
-      .setTimestamp();
-
-    await interaction.message.reply({ embeds: [logEmbed] });
-
-    await modalResponse.reply({
-      content: `Application ${action === "accept" ? "accepted" : "denied"} successfully.`,
-      flags: 64,
-    });
-  } catch (error) {
     console.error("Error handling application button:", error);
-    await interaction
-      .followUp({
-        content: "There was an error processing the application response.",
-        flags: 64,
-      })
-      .catch(() => {});
+    try {
+      if (interaction.isRepliable()) {
+        await interaction.followUp({
+          content: "There was an error processing the application response.",
+          flags: 64,
+        });
+      }
+    } catch (replyError) {
+      console.error("Failed to send error message:", replyError);
+    }
   }
 }
 
@@ -386,7 +435,6 @@ export async function handleApplyCommand(interaction) {
       await interaction.reply({
         content:
           "❌ Applications channel not found. Please contact an administrator.",
-        flags: 64,
       });
       return;
     }
