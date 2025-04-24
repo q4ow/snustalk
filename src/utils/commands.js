@@ -97,7 +97,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-      "❌ An error occurred while executing the command.",
+        "❌ An error occurred while executing the command.",
     );
   }
 
@@ -181,7 +181,7 @@ const slashCommandHandlers = {
       embeds: [purgeEmbed],
     });
     setTimeout(() => {
-      interaction.deleteReply().catch(() => { });
+      interaction.deleteReply().catch(() => {});
     }, timeoutSeconds * 1000);
   },
 
@@ -769,7 +769,7 @@ export async function registerSlashCommands(client) {
     // Filter out the "settings" and "setboostchannel" commands from slashCommands
     // since they're now defined in settingsCommands
     const filteredSlashCommands = slashCommands.filter(
-      (command) => !["settings", "setboostchannel"].includes(command.name)
+      (command) => !["settings", "setboostchannel"].includes(command.name),
     );
 
     const allCommands = [

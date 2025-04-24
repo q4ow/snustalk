@@ -47,14 +47,16 @@ export async function ensureGuildRoles(guild) {
       // If no role ID in settings or role not found by ID, check if a role with the same name exists
       if (!existingRole) {
         const roleByName = guild.roles.cache.find(
-          (role) => role.name.toLowerCase() === roleConfig.name.toLowerCase()
+          (role) => role.name.toLowerCase() === roleConfig.name.toLowerCase(),
         );
 
         if (roleByName) {
           // Role with this name exists, use it
           existingRole = roleByName;
           updates.role_ids[roleType] = roleByName.id;
-          console.log(`Found existing ${roleConfig.name} role by name for guild ${guild.name}`);
+          console.log(
+            `Found existing ${roleConfig.name} role by name for guild ${guild.name}`,
+          );
           rolesCreated = true;
         } else {
           // No existing role found by ID or name, create a new one
