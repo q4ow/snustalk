@@ -5,18 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.1] - 2025-04-24
+## [1.2.2] - 2025-04-24
 
-### Added
-- Settings handler
-  - Refactored settings handler
-  - Refactored settings commands handler
+### Changed
+- Application handler
+  - Refactored application handler to follow modular structure
+  - Created separate commands.js and handler.js files in application directory
+  - Improved code organization and maintainability
+  - Maintained backward compatibility through re-exports
+- Automod handler
+  - Simplified automodHandler.js to use re-exports only
+  - Ensured consistent handler structure across features
 
 ### Fixed
-- Settings handler
-  - Removal of redundant redaclaration
-  - Refactor of the settings system
-  - More robust setup of roles settings
+- Application handler
+  - Fixed error in apply command with channel permission checking
+  - Added validation for channel types to prevent "permissionsFor is not a function" error
+- Command registration
+  - Fixed duplicate command registration of "apply" command
+  - Added automatic detection and removal of duplicate command definitions
+
+## [1.2.1] - 2025-04-24
+
+### Changed
+- Refactored the settings handler and associated commands for improved structure and maintainability.
+- Enhanced the robustness of the role settings configuration process.
+
+### Fixed
+- Removed redundant variable declarations within the settings handler.
+- Corrected issues within the settings system implementation.
 
 ## [1.2.0] - 2025-04-18
 

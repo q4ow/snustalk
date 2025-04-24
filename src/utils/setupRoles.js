@@ -31,27 +31,22 @@ export async function ensureGuildRoles(guild) {
     const updates = { role_ids: { ...settings.role_ids } };
     let rolesCreated = false;
 
-    // Preload all guild roles to check by name
     await guild.roles.fetch();
 
     for (const [roleType, roleConfig] of Object.entries(DEFAULT_ROLES)) {
-      // Check if the role is already configured in settings
       const roleId = settings.role_ids?.[roleType];
 
-      // If role is configured in settings, try to fetch it
       let existingRole = null;
       if (roleId) {
         existingRole = await guild.roles.fetch(roleId).catch(() => null);
       }
 
-      // If no role ID in settings or role not found by ID, check if a role with the same name exists
       if (!existingRole) {
         const roleByName = guild.roles.cache.find(
           (role) => role.name.toLowerCase() === roleConfig.name.toLowerCase(),
         );
 
         if (roleByName) {
-          // Role with this name exists, use it
           existingRole = roleByName;
           updates.role_ids[roleType] = roleByName.id;
           console.log(
@@ -59,7 +54,6 @@ export async function ensureGuildRoles(guild) {
           );
           rolesCreated = true;
         } else {
-          // No existing role found by ID or name, create a new one
           try {
             console.log(`Creating ${roleType} role for guild ${guild.name}`);
             const newRole = await guild.roles.create({

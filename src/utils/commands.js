@@ -8,7 +8,7 @@ import { createUserEmbed } from "../embeds/userEmbed.js";
 import { createServerEmbed } from "../embeds/serverEmbed.js";
 import { createAvatarEmbed } from "../embeds/avatarEmbed.js";
 import { slashCommands } from "./slashCommands.js";
-import { startApplication } from "../handlers/applicationHandler.js";
+import { handleApplyCommand } from "../handlers/application/handler.js";
 import {
   handleSettingsCommand,
   handleSetBoostChannel,
@@ -16,6 +16,7 @@ import {
 import { antiRaidCommands } from "../handlers/antiRaid/commands.js";
 import { automodCommands } from "../handlers/automod/commands.js";
 import { settingsCommands } from "../handlers/settings/commands.js";
+import { applicationCommands } from "../handlers/application/commands.js";
 import {
   getAutomodSettings,
   updateAutomodSettings,
@@ -276,62 +277,7 @@ const slashCommandHandlers = {
     await interaction.reply({ embeds: [helpEmbed] });
   },
 
-  apply: async (interaction) => {
-    try {
-      let appChannel;
-      try {
-        appChannel = await interaction.guild.channels.fetch(
-          process.env.APPLICATIONS_CHANNEL_ID,
-        );
-      } catch (error) {
-        await interaction.reply({
-          content:
-            "❌ I don't have access to the applications channel. Please contact an administrator.",
-          flags: 64,
-        });
-        console.error("Error fetching applications channel:", error);
-        return;
-      }
-
-      if (!appChannel) {
-        await interaction.reply({
-          content:
-            "❌ Applications channel not found. Please contact an administrator.",
-          flags: 64,
-        });
-        return;
-      }
-
-      const permissions = appChannel.permissionsFor(
-        interaction.guild.members.me,
-      );
-      if (!permissions?.has(["ViewChannel", "SendMessages"])) {
-        await interaction.reply({
-          content:
-            "❌ I don't have the required permissions in the applications channel. Please contact an administrator.",
-          flags: 64,
-        });
-        return;
-      }
-
-      if (interaction.channel.id !== process.env.APPLICATIONS_CHANNEL_ID) {
-        await interaction.reply({
-          content: `❌ Please use this command in ${appChannel}`,
-          flags: 64,
-        });
-        return;
-      }
-
-      await startApplication(interaction);
-    } catch (error) {
-      console.error("Error in apply command:", error);
-      await interaction.reply({
-        content:
-          "❌ An error occurred while processing your application. Please try again later or contact an administrator.",
-        flags: 64,
-      });
-    }
-  },
+  apply: handleApplyCommand,
 
   embed: async (interaction) => {
     const embedChannel = interaction.options.getChannel("channel");
@@ -766,8 +712,6 @@ export async function registerSlashCommands(client) {
       process.env.DISCORD_TOKEN,
     );
 
-    // Filter out the "settings" and "setboostchannel" commands from slashCommands
-    // since they're now defined in settingsCommands
     const filteredSlashCommands = slashCommands.filter(
       (command) => !["settings", "setboostchannel"].includes(command.name),
     );
@@ -777,11 +721,46 @@ export async function registerSlashCommands(client) {
       ...automodCommands,
       ...antiRaidCommands,
       ...settingsCommands,
+      ...applicationCommands,
     ];
 
-    await rest.put(Routes.applicationCommands(client.user.id), {
-      body: allCommands,
+    console.log(`Registering ${allCommands.length} slash commands`);
+
+    // Check for duplicate command names
+    const commandNames = new Set();
+    const duplicateNames = [];
+
+    allCommands.forEach((cmd) => {
+      if (commandNames.has(cmd.name)) {
+        duplicateNames.push(cmd.name);
+      }
+      commandNames.add(cmd.name);
     });
+
+    if (duplicateNames.length > 0) {
+      console.error(
+        `Found duplicate command names: ${duplicateNames.join(", ")}`,
+      );
+
+      // Filter out duplicates, keeping only the first occurrence
+      const uniqueCommands = [];
+      const seenNames = new Set();
+
+      allCommands.forEach((cmd) => {
+        if (!seenNames.has(cmd.name)) {
+          uniqueCommands.push(cmd);
+          seenNames.add(cmd.name);
+        }
+      });
+
+      await rest.put(Routes.applicationCommands(client.user.id), {
+        body: uniqueCommands,
+      });
+    } else {
+      await rest.put(Routes.applicationCommands(client.user.id), {
+        body: allCommands,
+      });
+    }
 
     console.log("✅ Slash commands registered");
   } catch (error) {

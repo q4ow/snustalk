@@ -137,7 +137,7 @@ export const settingsCommands = [
         description: "The channel for boost notifications",
         type: 7,
         required: true,
-        channel_types: [0], // Text channels only
+        channel_types: [0],
       },
     ],
   },
