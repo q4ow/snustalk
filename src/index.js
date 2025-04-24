@@ -365,7 +365,10 @@ class SnusTalkBot {
 
       if (interaction.isModalSubmit()) {
         if (interaction.customId.includes("_app_modal_")) {
-          const [action, userId] = interaction.customId.split("_");
+          const [actionPart, userIdPart] =
+            interaction.customId.split("_modal_");
+          const action = actionPart.split("_")[0];
+          const userId = userIdPart;
           const reason = interaction.fields.getTextInputValue("reason");
 
           try {

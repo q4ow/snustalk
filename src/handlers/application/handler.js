@@ -214,7 +214,6 @@ export async function handleApplicationButton(interaction) {
     console.log(`Processing application button: ${interaction.customId}`);
     const [action, userId] = interaction.customId.split("_app_");
 
-    // Show the modal to the user
     const modal = new ModalBuilder()
       .setCustomId(`${action}_app_modal_${userId}`)
       .setTitle(`${action === "accept" ? "Accept" : "Deny"} Application`)
@@ -233,13 +232,9 @@ export async function handleApplicationButton(interaction) {
 
     await interaction.showModal(modal);
     console.log(`Modal shown for ${action} application for user ${userId}`);
-
-    // The rest of the processing will happen when the modal is submitted
-    // This is handled by the client's interactionCreate event
   } catch (error) {
     console.error("Error showing application modal:", error);
     try {
-      // Only reply if we haven't shown the modal
       if (!interaction.isModalSubmit()) {
         await interaction.reply({
           content:
