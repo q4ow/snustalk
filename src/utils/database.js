@@ -14,6 +14,8 @@ class DatabasePool {
     this.connectionRetries = 0;
     this.maxRetries = 5;
     this.retryDelay = 5000;
+    this.queryTimeoutWarning = 1000;
+    this.clientCheckoutTimeout = 10000;
   }
 
   async connect() {
@@ -26,10 +28,17 @@ class DatabasePool {
         database: process.env.DB_NAME || "snustalk",
         password: process.env.DB_PASSWORD || "clara",
         port: parseInt(process.env.DB_PORT || "5432"),
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-        maxUses: 7500,
+        max: 30,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 10000,
+        maxUses: 10000,
+        statement_timeout: 30000,
+        allowExitOnIdle: true,
+        application_name: "snussy",
+      });
+
+      this.pool.on("error", (err, client) => {
+        console.error("Unexpected error on idle client", err);
       });
 
       const client = await this.pool.connect();
@@ -73,23 +82,62 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
   async query(text, params = []) {
     const pool = await this.connect();
     const start = Date.now();
+    let retries = 0;
+    const maxRetries = 3;
+
+    const formattedQuery =
+      typeof text === "string"
+        ? text.length > 100
+          ? `${text.substring(0, 100)}...`
+          : text
+        : "complex query object";
+
     try {
       const result = await pool.query(text, params);
       const duration = Date.now() - start;
-      if (duration > 1000) {
+
+      if (duration > this.queryTimeoutWarning) {
         console.warn("Slow query detected:", {
-          text,
-          duration,
+          text: formattedQuery,
+          duration: `${duration}ms`,
           rows: result.rowCount,
+          params:
+            params.length > 0 ? `${params.length} parameters` : "no parameters",
         });
       }
+
       return result;
     } catch (error) {
-      if (error.code === "40P01") {
-        console.warn("Deadlock detected, retrying query...");
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      if (error.code === "40P01" && retries < maxRetries) {
+        retries++;
+        const backoff = 100 * Math.pow(2, retries);
+        console.warn(
+          `Deadlock detected (${error.code}), retrying query in ${backoff}ms... (Attempt ${retries}/${maxRetries})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoff));
         return this.query(text, params);
+      } else if (error.code === "57014") {
+        console.error(`Query timed out (${error.code}):`, formattedQuery);
+      } else if (
+        error.code === "XX000" ||
+        error.code === "08006" ||
+        error.code === "08001"
+      ) {
+        console.error(
+          `Connection error (${error.code}), attempting to reconnect...`,
+        );
+        this.pool = null;
+        await this.connect();
+        if (retries < maxRetries) {
+          retries++;
+          return this.query(text, params);
+        }
       }
+
+      console.error(`Database query error (${error.code || "unknown"}):`);
+      console.error(`Query: ${formattedQuery}`);
+      console.error(`Error: ${error.message}`);
+
       throw error;
     }
   }
@@ -105,7 +153,7 @@ GRANT ALL ON SCHEMA public TO ${process.env.DB_USER};
       console.error(
         `The last executed query on this client was: ${client.lastQuery}`,
       );
-    }, 5000);
+    }, this.clientCheckoutTimeout);
 
     client.query = (...args) => {
       client.lastQuery = args;

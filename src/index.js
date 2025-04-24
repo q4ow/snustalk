@@ -4,6 +4,7 @@ import {
   Partials,
   EmbedBuilder,
   ActivityType,
+  Options,
 } from "discord.js";
 import dotenv from "dotenv";
 import { handleVerification } from "./handlers/verificationHandler.js";
@@ -72,13 +73,41 @@ class SnusTalkBot {
       restRequestTimeout: 30000,
       retryLimit: 5,
       failIfNotExists: false,
+      makeCache: Options.cacheWithLimits({
+        MessageManager: 100,
+        PresenceManager: 10,
+      }),
+      sweepers: {
+        messages: {
+          interval: 300,
+          lifetime: 1800,
+        },
+        presences: {
+          interval: 600,
+          filter: () => (user) => user.bot,
+        },
+      },
     });
     this.healthCheckInterval = null;
-    this.version = SNUSSY_VERSION || "1.2.3";
+    this.metricsInterval = null;
+    this.version = SNUSSY_VERSION || "1.2.4";
+    this.startTime = Date.now();
+    this.metrics = {
+      commands: 0,
+      errors: 0,
+      messages: 0,
+      interactions: 0,
+    };
+
+    this.handleError = this.handleError.bind(this);
+    this.updateBotPresence = this.updateBotPresence.bind(this);
+    this.runHealthCheck = this.runHealthCheck.bind(this);
+    this.collectMetrics = this.collectMetrics.bind(this);
   }
 
   handleError(context, error) {
     console.error(`❌ Error in ${context}:`, error);
+    this.metrics.errors += 1;
     return error;
   }
 
@@ -236,6 +265,12 @@ class SnusTalkBot {
       );
       console.log("✅ Health monitoring started");
 
+      this.metricsInterval = setInterval(
+        () => this.collectMetrics(),
+        HEALTH_CHECK_INTERVAL,
+      );
+      console.log("✅ Metrics collection started");
+
       await this.initializeGuilds();
     } catch (error) {
       this.handleError("initialization", error);
@@ -350,7 +385,10 @@ class SnusTalkBot {
 
   async handleInteraction(interaction) {
     try {
+      this.metrics.interactions += 1;
+
       if (interaction.isCommand()) {
+        this.metrics.commands += 1;
         if (interaction.commandName === "antiraid") {
           await handleAntiRaidCommand(interaction);
           return;
@@ -511,6 +549,16 @@ class SnusTalkBot {
     }
   }
 
+  collectMetrics() {
+    const uptime = Date.now() - this.startTime;
+    console.log("📊 Metrics:");
+    console.log(`Commands processed: ${this.metrics.commands}`);
+    console.log(`Errors encountered: ${this.metrics.errors}`);
+    console.log(`Messages processed: ${this.metrics.messages}`);
+    console.log(`Interactions processed: ${this.metrics.interactions}`);
+    console.log(`Uptime: ${uptime / 1000}s`);
+  }
+
   setupEventHandlers() {
     this.client.on("guildMemberAdd", async (member) => {
       await this.client.antiRaid.handleMemberJoin(member);
@@ -551,6 +599,8 @@ class SnusTalkBot {
     this.client.on("messageCreate", async (message) => {
       if (message.author.bot) return;
 
+      this.metrics.messages += 1;
+
       await this.client.antiRaid.handleMessage(message);
       await handleAutomod(message);
 
@@ -590,6 +640,7 @@ class SnusTalkBot {
     process.on("uncaughtException", (error) => {
       this.handleError("uncaught exception", error);
       clearInterval(this.healthCheckInterval);
+      clearInterval(this.metricsInterval);
       this.client.destroy();
       process.exit(1);
     });
@@ -597,6 +648,7 @@ class SnusTalkBot {
     process.on("SIGTERM", async () => {
       console.log("🛑 Received SIGTERM signal, shutting down gracefully...");
       clearInterval(this.healthCheckInterval);
+      clearInterval(this.metricsInterval);
       await this.client.destroy();
       process.exit(0);
     });
@@ -604,6 +656,7 @@ class SnusTalkBot {
     process.on("SIGINT", async () => {
       console.log("🛑 Received SIGINT signal, shutting down gracefully...");
       clearInterval(this.healthCheckInterval);
+      clearInterval(this.metricsInterval);
       await this.client.destroy();
       process.exit(0);
     });

@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-04-24
+
+### Added
+- Database Operations
+  - Added comprehensive error handling for PostgreSQL error codes
+  - Implemented connection pool monitoring with automatic recovery
+  - Added database health checks in regular intervals
+  - Added metrics tracking for database performance
+  - Added slow query detection and logging
+
+- Settings System
+  - Implemented caching system for guild settings with 5-minute TTL
+  - Added cache invalidation on settings updates
+  - Added helper functions for cache management
+  - Improved error handling with detailed error embeds
+
+- Bot Framework
+  - Added memory optimization with cache limits and sweepers
+  - Implemented metrics collection for commands, errors, messages, and interactions
+  - Added graceful shutdown handling for SIGTERM and SIGINT signals
+  - Added comprehensive error tracking system
+
+### Changed
+- Database Connection Pool
+  - Increased max connections from 20 to 30
+  - Improved connection timeout settings
+  - Added statement timeout to prevent hanging queries
+  - Implemented exponential backoff for deadlock retries
+  - Enhanced query logging for better debugging
+
+- Settings Handler
+  - Completely refactored with cleaner code organization
+  - Improved error handling with consistent error embeds
+  - Enhanced display formatting for different setting types
+  - Added better validation for setting values
+
+- Bot Constructor
+  - Optimized Discord.js client options for better performance
+  - Added cache limits and sweepers to reduce memory usage
+  - Improved presence update handling
+  - Added reconnection mechanism for disconnected services
+
+### Fixed
+- Prevented database resource exhaustion during high load
+- Fixed potential memory leaks in database client checkout
+- Improved error recovery in database operations
+- Enhanced error reporting in interactions and commands
+
 ## [1.2.3] - 2025-04-24
 
 ### Fixed
