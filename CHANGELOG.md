@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Application handler
   - Fixed error in apply command with channel permission checking
   - Added validation for channel types to prevent "permissionsFor is not a function" error
+  - Updated channel validation to use database-stored channel IDs instead of environment variables
+  - Fixed "permissionsFor is not a function" error when accessing application channels
+  - Added proper error messages when application channel is not configured
 - Command registration
   - Fixed duplicate command registration of "apply" command
   - Added automatic detection and removal of duplicate command definitions
