@@ -1,0 +1,408 @@
+import { EmbedBuilder } from "discord.js";
+import { db } from "../../utils/database.js";
+
+async function handleSetSetting(interaction, type, name, value) {
+  try {
+    const guildSettings = await db.getGuildSettings(interaction.guildId);
+    let updateData = { ...guildSettings };
+
+    switch (type) {
+      case "channel":
+        if (!updateData.channel_ids) updateData.channel_ids = {};
+        updateData.channel_ids[name] = value;
+        break;
+      case "role":
+        if (!updateData.role_ids) updateData.role_ids = {};
+        if (name === "additional_verified") {
+          updateData.role_ids[name] = value.split(",").map((id) => id.trim());
+        } else {
+          updateData.role_ids[name] = value;
+        }
+        break;
+      case "api":
+        if (!updateData.api_keys) updateData.api_keys = {};
+        updateData.api_keys[name] = value;
+        break;
+      case "link":
+        if (!updateData.external_links) updateData.external_links = {};
+        updateData.external_links[name] = value;
+        break;
+      default:
+        await interaction.reply({
+          content:
+            "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
+          flags: 64,
+        });
+        return;
+    }
+
+    await db.updateGuildSettings(interaction.guildId, updateData);
+
+    await interaction.reply({
+      content: `✅ Successfully updated ${type} setting: ${name}`,
+      flags: 64,
+    });
+  } catch (error) {
+    console.error("Error setting guild setting:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while updating the setting.",
+      flags: 64,
+    });
+  }
+}
+
+async function handleGetSetting(interaction, type, name) {
+  try {
+    let value;
+    switch (type) {
+      case "channel":
+        value = await db.getChannelId(interaction.guildId, name);
+        break;
+      case "role":
+        value = await db.getRoleId(interaction.guildId, name);
+        break;
+      case "api":
+        value = await db.getApiKey(interaction.guildId, name);
+        break;
+      case "link":
+        value = await db.getExternalLink(interaction.guildId, name);
+        break;
+      default:
+        await interaction.reply({
+          content:
+            "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
+          flags: 64,
+        });
+        return;
+    }
+
+    await interaction.reply({
+      content: value
+        ? `${type}.${name} = ${value}`
+        : `${type}.${name} is not set`,
+      flags: 64,
+    });
+  } catch (error) {
+    console.error("Error getting guild setting:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while retrieving the setting.",
+      flags: 64,
+    });
+  }
+}
+
+async function handleListSettings(interaction, type) {
+  try {
+    const settings = await db.getGuildSettings(interaction.guildId);
+    let listEmbed = new EmbedBuilder()
+      .setTitle(`Guild Settings - ${type || "All"}`)
+      .setColor("#2F3136")
+      .setTimestamp();
+
+    if (!type || type === "channel") {
+      const channels = settings.channel_ids || {};
+      if (Object.keys(channels).length > 0) {
+        listEmbed.addFields({
+          name: "Channel Settings",
+          value:
+            Object.entries(channels)
+              .map(([key, value]) => `${key}: ${value || "Not set"}`)
+              .join("\n") || "No channel settings",
+        });
+      }
+    }
+
+    if (!type || type === "role") {
+      const roles = settings.role_ids || {};
+      if (Object.keys(roles).length > 0) {
+        listEmbed.addFields({
+          name: "Role Settings",
+          value:
+            Object.entries(roles)
+              .map(([key, value]) => {
+                if (Array.isArray(value)) {
+                  return `${key}: ${value.join(", ") || "None"}`;
+                }
+                return `${key}: ${value || "Not set"}`;
+              })
+              .join("\n") || "No role settings",
+        });
+      }
+    }
+
+    if (!type || type === "api") {
+      const apis = settings.api_keys || {};
+      if (Object.keys(apis).length > 0) {
+        listEmbed.addFields({
+          name: "API Settings",
+          value:
+            Object.entries(apis)
+              .map(([key, value]) => `${key}: ${value ? "[Set]" : "Not set"}`)
+              .join("\n") || "No API settings",
+        });
+      }
+    }
+
+    if (!type || type === "link") {
+      const links = settings.external_links || {};
+      if (Object.keys(links).length > 0) {
+        listEmbed.addFields({
+          name: "External Links",
+          value:
+            Object.entries(links)
+              .map(([key, value]) => `${key}: ${value || "Not set"}`)
+              .join("\n") || "No external links",
+        });
+      }
+    }
+
+    await interaction.reply({
+      embeds: [listEmbed],
+      flags: 64,
+    });
+  } catch (error) {
+    console.error("Error listing guild settings:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while retrieving the settings.",
+      flags: 64,
+    });
+  }
+}
+
+async function handleRemoveSetting(interaction, type, name) {
+  try {
+    const guildSettings = await db.getGuildSettings(interaction.guildId);
+    let updateData = { ...guildSettings };
+    let removed = false;
+
+    switch (type) {
+      case "channel":
+        if (
+          updateData.channel_ids &&
+          updateData.channel_ids[name] !== undefined
+        ) {
+          delete updateData.channel_ids[name];
+          removed = true;
+        }
+        break;
+      case "role":
+        if (updateData.role_ids && updateData.role_ids[name] !== undefined) {
+          delete updateData.role_ids[name];
+          removed = true;
+        }
+        break;
+      case "api":
+        if (updateData.api_keys && updateData.api_keys[name] !== undefined) {
+          delete updateData.api_keys[name];
+          removed = true;
+        }
+        break;
+      case "link":
+        if (
+          updateData.external_links &&
+          updateData.external_links[name] !== undefined
+        ) {
+          delete updateData.external_links[name];
+          removed = true;
+        }
+        break;
+      default:
+        await interaction.reply({
+          content:
+            "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
+          flags: 64,
+        });
+        return;
+    }
+
+    if (removed) {
+      await db.updateGuildSettings(interaction.guildId, updateData);
+      await interaction.reply({
+        content: `✅ Successfully removed ${type} setting: ${name}`,
+        flags: 64,
+      });
+    } else {
+      await interaction.reply({
+        content: `❌ Setting ${type}.${name} does not exist or is already not set.`,
+        flags: 64,
+      });
+    }
+  } catch (error) {
+    console.error("Error removing guild setting:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while removing the setting.",
+      flags: 64,
+    });
+  }
+}
+
+async function handleAvailableKeys(interaction, type) {
+  try {
+    const settings = await db.getGuildSettings(interaction.guildId);
+    let configuredSettings;
+
+    const availableKeys = {
+      channel: [
+        "welcome",
+        "goodbye",
+        "verification",
+        "logs",
+        "boost_channel",
+        "applications",
+        "ticket_category",
+        "stats_members",
+        "stats_bots",
+        "stats_total_tickets",
+        "stats_open_tickets",
+        "stats_online_members",
+        "stats_roles",
+        "announcements",
+        "rules",
+        "moderation_logs",
+      ],
+      role: [
+        "verified",
+        "unverified",
+        "staff",
+        "admin",
+        "moderator",
+        "muted",
+        "member",
+        "bot",
+        "additional_verified",
+        "support",
+        "ticket_manager",
+        "giveaway_manager",
+      ],
+      api: [
+        "youtube",
+        "twitter",
+        "twitch",
+        "reddit",
+        "spotify",
+        "github",
+        "stripe",
+        "paypal",
+        "weather",
+        "news",
+        "translation",
+      ],
+      link: [
+        "website",
+        "forum",
+        "store",
+        "documentation",
+        "support",
+        "twitter",
+        "instagram",
+        "youtube",
+        "twitch",
+        "discord",
+        "patreon",
+      ],
+    };
+
+    switch (type) {
+      case "channel":
+        configuredSettings = settings.channel_ids || {};
+        break;
+      case "role":
+        configuredSettings = settings.role_ids || {};
+        break;
+      case "api":
+        configuredSettings = settings.api_keys || {};
+        break;
+      case "link":
+        configuredSettings = settings.external_links || {};
+        break;
+      default:
+        await interaction.reply({
+          content:
+            "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
+          flags: 64,
+        });
+        return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(
+        `Available ${type.charAt(0).toUpperCase() + type.slice(1)} Settings`,
+      )
+      .setColor("#2F3136")
+      .setDescription(
+        "Below is a list of all available setting keys and their configuration status:",
+      )
+      .setTimestamp();
+
+    const keys = availableKeys[type];
+    if (keys && keys.length > 0) {
+      const configStatus = keys.map((key) => {
+        const isConfigured = configuredSettings[key] !== undefined;
+        return `${isConfigured ? "✅" : "❌"} \`${key}\``;
+      });
+
+      const chunkSize = Math.ceil(configStatus.length / 3);
+      for (let i = 0; i < configStatus.length; i += chunkSize) {
+        const chunk = configStatus.slice(i, i + chunkSize);
+        embed.addFields({
+          name: i === 0 ? "Status" : "\u200B",
+          value: chunk.join("\n"),
+          inline: true,
+        });
+      }
+    } else {
+      embed.setDescription("No available keys found for this setting type.");
+    }
+
+    await interaction.reply({
+      embeds: [embed],
+      flags: 64,
+    });
+  } catch (error) {
+    console.error("Error retrieving available keys:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while retrieving the available keys.",
+      flags: 64,
+    });
+  }
+}
+
+async function handleSetBoostChannel(interaction, channelId) {
+  try {
+    const guildSettings = await db.getGuildSettings(interaction.guildId);
+    let updateData = { ...guildSettings };
+
+    if (!updateData.channel_ids) updateData.channel_ids = {};
+    updateData.channel_ids.boost_channel = channelId;
+
+    await db.updateGuildSettings(interaction.guildId, updateData);
+
+    await db.updateLoggingSettings(interaction.guildId, "BOOST", {
+      channel_id: channelId,
+      enabled: true,
+      allowed_roles: [],
+      ping_roles: [],
+    });
+
+    const channel = interaction.guild.channels.cache.get(channelId);
+    await interaction.reply({
+      content: `✅ Server boost notifications will now be sent to ${channel.toString()}`,
+      flags: 64,
+    });
+  } catch (error) {
+    console.error("Error setting boost channel:", error);
+    await interaction.reply({
+      content: "❌ An error occurred while setting up the boost channel.",
+      flags: 64,
+    });
+  }
+}
+
+export {
+  handleSetSetting,
+  handleGetSetting,
+  handleListSettings,
+  handleRemoveSetting,
+  handleAvailableKeys,
+  handleSetBoostChannel,
+};

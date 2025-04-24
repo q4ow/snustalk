@@ -15,6 +15,7 @@ import {
 } from "../handlers/settingsHandler.js";
 import { antiRaidCommands } from "../handlers/antiRaid/commands.js";
 import { automodCommands } from "../handlers/automod/commands.js";
+import { settingsCommands } from "../handlers/settings/commands.js";
 import {
   getAutomodSettings,
   updateAutomodSettings,
@@ -96,7 +97,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -180,7 +181,7 @@ const slashCommandHandlers = {
       embeds: [purgeEmbed],
     });
     setTimeout(() => {
-      interaction.deleteReply().catch(() => {});
+      interaction.deleteReply().catch(() => { });
     }, timeoutSeconds * 1000);
   },
 
@@ -765,10 +766,17 @@ export async function registerSlashCommands(client) {
       process.env.DISCORD_TOKEN,
     );
 
+    // Filter out the "settings" and "setboostchannel" commands from slashCommands
+    // since they're now defined in settingsCommands
+    const filteredSlashCommands = slashCommands.filter(
+      (command) => !["settings", "setboostchannel"].includes(command.name)
+    );
+
     const allCommands = [
-      ...slashCommands.map((command) => command.toJSON()),
+      ...filteredSlashCommands.map((command) => command.toJSON()),
       ...automodCommands,
       ...antiRaidCommands,
+      ...settingsCommands,
     ];
 
     await rest.put(Routes.applicationCommands(client.user.id), {

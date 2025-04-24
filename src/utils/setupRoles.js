@@ -31,30 +31,51 @@ export async function ensureGuildRoles(guild) {
     const updates = { role_ids: { ...settings.role_ids } };
     let rolesCreated = false;
 
+    // Preload all guild roles to check by name
+    await guild.roles.fetch();
+
     for (const [roleType, roleConfig] of Object.entries(DEFAULT_ROLES)) {
+      // Check if the role is already configured in settings
       const roleId = settings.role_ids?.[roleType];
-      const existingRole = roleId
-        ? await guild.roles.fetch(roleId).catch(() => null)
-        : null;
 
+      // If role is configured in settings, try to fetch it
+      let existingRole = null;
+      if (roleId) {
+        existingRole = await guild.roles.fetch(roleId).catch(() => null);
+      }
+
+      // If no role ID in settings or role not found by ID, check if a role with the same name exists
       if (!existingRole) {
-        try {
-          console.log(`Creating ${roleType} role for guild ${guild.name}`);
-          const newRole = await guild.roles.create({
-            name: roleConfig.name,
-            color: roleConfig.color,
-            reason: roleConfig.reason,
-            permissions: roleConfig.permissions,
-          });
+        const roleByName = guild.roles.cache.find(
+          (role) => role.name.toLowerCase() === roleConfig.name.toLowerCase()
+        );
 
-          updates.role_ids[roleType] = newRole.id;
+        if (roleByName) {
+          // Role with this name exists, use it
+          existingRole = roleByName;
+          updates.role_ids[roleType] = roleByName.id;
+          console.log(`Found existing ${roleConfig.name} role by name for guild ${guild.name}`);
           rolesCreated = true;
-        } catch (error) {
-          console.error(`Error creating ${roleType} role:`, error);
-          if (error.code === 50013) {
-            console.error("Bot lacks permissions to create roles");
+        } else {
+          // No existing role found by ID or name, create a new one
+          try {
+            console.log(`Creating ${roleType} role for guild ${guild.name}`);
+            const newRole = await guild.roles.create({
+              name: roleConfig.name,
+              color: roleConfig.color,
+              reason: roleConfig.reason,
+              permissions: roleConfig.permissions,
+            });
+
+            updates.role_ids[roleType] = newRole.id;
+            rolesCreated = true;
+          } catch (error) {
+            console.error(`Error creating ${roleType} role:`, error);
+            if (error.code === 50013) {
+              console.error("Bot lacks permissions to create roles");
+            }
+            throw error;
           }
-          throw error;
         }
       }
     }
