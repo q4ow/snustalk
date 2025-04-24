@@ -1101,7 +1101,8 @@ export const db = {
       await dbPool.query(
         `INSERT INTO join_velocity 
          (guild_id, user_id, join_time)
-         VALUES ($1, $2, $3)`,
+         VALUES ($1, $2, $3)
+         ON CONFLICT (guild_id, user_id) DO UPDATE SET join_time = $3`,
         [guildId, userId, timestamp],
       );
     } catch (error) {
