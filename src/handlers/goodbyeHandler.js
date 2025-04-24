@@ -12,14 +12,24 @@ export async function handleGoodbye(member) {
       return;
     }
 
-    const goodbyeChannel = await guild.channels.fetch(goodbyeChannelId).catch(error => {
-      console.warn(`Could not fetch goodbye channel with ID ${goodbyeChannelId}: ${error}`);
-      return null;
-    });
+    const goodbyeChannel = await guild.channels
+      .fetch(goodbyeChannelId)
+      .catch((error) => {
+        console.warn(
+          `Could not fetch goodbye channel with ID ${goodbyeChannelId}: ${error}`,
+        );
+        return null;
+      });
 
-    if (!goodbyeChannel ||
-      ![ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(goodbyeChannel.type)) {
-      console.warn(`Goodbye channel not found or not a text channel: ${goodbyeChannelId}`);
+    if (
+      !goodbyeChannel ||
+      ![ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(
+        goodbyeChannel.type,
+      )
+    ) {
+      console.warn(
+        `Goodbye channel not found or not a text channel: ${goodbyeChannelId}`,
+      );
       return;
     }
 
@@ -46,8 +56,8 @@ export async function handleGoodbye(member) {
       })
       .setDescription(
         `**${member.user.tag}** has left the server 👋\n\n` +
-        `They were a member for ${durationText}\n` +
-        `We now have **${memberCount}** members remaining`,
+          `They were a member for ${durationText}\n` +
+          `We now have **${memberCount}** members remaining`,
       )
       .setColor("#FF6B6B")
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 1024 }))
