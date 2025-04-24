@@ -98,7 +98,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -182,7 +182,7 @@ const slashCommandHandlers = {
       embeds: [purgeEmbed],
     });
     setTimeout(() => {
-      interaction.deleteReply().catch(() => {});
+      interaction.deleteReply().catch(() => { });
     }, timeoutSeconds * 1000);
   },
 
@@ -726,7 +726,6 @@ export async function registerSlashCommands(client) {
 
     console.log(`Registering ${allCommands.length} slash commands`);
 
-    // Check for duplicate command names
     const commandNames = new Set();
     const duplicateNames = [];
 
@@ -742,7 +741,6 @@ export async function registerSlashCommands(client) {
         `Found duplicate command names: ${duplicateNames.join(", ")}`,
       );
 
-      // Filter out duplicates, keeping only the first occurrence
       const uniqueCommands = [];
       const seenNames = new Set();
 

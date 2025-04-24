@@ -296,11 +296,6 @@ export const slashCommands = [
     .setDescription("Shows all available commands"),
 
   new SlashCommandBuilder()
-    .setName("apply")
-    .setDescription("Start a staff application process")
-    .setDMPermission(true),
-
-  new SlashCommandBuilder()
     .setName("embed")
     .setDescription("Create and send a custom embed")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages.toString())
