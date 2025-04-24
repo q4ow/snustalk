@@ -1,13 +1,16 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, ChannelType } from "discord.js";
 
 export async function handleGoodbye(member) {
   try {
     const { guild } = member;
 
-    const goodbyeChannel = await guild.channels.fetch(
-      process.env.GOODBYE_CHANNEL_ID,
-    );
-    if (!goodbyeChannel) return;
+    const goodbyeChannel = await db.getChannelId(guild.id, "goodbye");
+
+    if (!goodbyeChannel ||
+      ![ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(goodbyeChannel.type)) {
+      console.warn(`Goodbye channel not found or not a text channel: ${goodbyeChannel}`);
+      return;
+    }
 
     const memberCount = guild.memberCount;
     const joinDate = member.joinedAt;
@@ -32,8 +35,8 @@ export async function handleGoodbye(member) {
       })
       .setDescription(
         `**${member.user.tag}** has left the server 👋\n\n` +
-          `They were a member for ${durationText}\n` +
-          `We now have **${memberCount}** members remaining`,
+        `They were a member for ${durationText}\n` +
+        `We now have **${memberCount}** members remaining`,
       )
       .setColor("#FF6B6B")
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 1024 }))
@@ -57,7 +60,11 @@ export async function handleGoodbye(member) {
       .setFooter({ text: `ID: ${member.user.id}` })
       .setTimestamp();
 
-    await goodbyeChannel.send({ embeds: [goodbyeEmbed] });
+    try {
+      await goodbyeChannel.send({ embeds: [goodbyeEmbed] });
+    } catch (sendError) {
+      console.error("Failed to send goodbye message:", sendError);
+    }
   } catch (error) {
     console.error("Error in goodbye handler:", error);
   }

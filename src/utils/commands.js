@@ -98,7 +98,7 @@ export async function handleCommand(message, commands) {
     console.error(`Error executing command ${commandName}:`, error);
     await message.reply(
       command.errorMessage ||
-        "❌ An error occurred while executing the command.",
+      "❌ An error occurred while executing the command.",
     );
   }
 
@@ -135,9 +135,13 @@ const slashCommandHandlers = {
 
   "resend-verify": async (interaction) => {
     try {
+      const verificationChannelId = await db.getChannelId(
+        interaction.guild.id,
+        "verification",
+      );
       const mockReaction = {
         message: {
-          channelId: process.env.VERIFICATION_CHANNEL_ID,
+          channelId: verificationChannelId,
           guild: interaction.guild,
           channel: interaction.channel,
         },
@@ -182,7 +186,7 @@ const slashCommandHandlers = {
       embeds: [purgeEmbed],
     });
     setTimeout(() => {
-      interaction.deleteReply().catch(() => {});
+      interaction.deleteReply().catch(() => { });
     }, timeoutSeconds * 1000);
   },
 
