@@ -2,7 +2,7 @@
 
 A Discord bot built with discord.js, originally developed for the SnusTalk Central server but available for anyone to use and modify under the MIT license.
 
-**Current Version:** 1.2.0
+**Current Version:** 1.2.1
 
 ## I AM ONLY HUMAN
 I maintain this project in my spare time. I am 16 and my exams are next month, this bot **WILL NOT** get frequent, meaningful updates.
@@ -366,16 +366,6 @@ All slash commands are also available as prefix commands using `$`:
    - Channels: `/automod exempt type:add_channel target:CHANNEL_ID`
 
 > **Note**: All automod commands require the Manage Server permission.
-
-## Recent Changes
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed changes in each version.
-
-### Version 1.1.0
-- Fixed BigInt permission flag serialization issues
-- Improved command registration reliability
-- Enhanced permission handling
-- Various stability improvements
 
 ## Roadmap
 
