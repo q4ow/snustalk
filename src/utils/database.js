@@ -37,7 +37,7 @@ class DatabasePool {
         application_name: "snussy",
       });
 
-      this.pool.on("error", (err, client) => {
+      this.pool.on("error", (err) => {
         console.error("Unexpected error on idle client", err);
       });
 

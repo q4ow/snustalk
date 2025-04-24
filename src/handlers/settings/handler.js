@@ -30,39 +30,47 @@ async function handleSetSetting(interaction, type, name, value) {
   try {
     const guildSettings = await getSettings(interaction.guildId);
     let updateData = { ...guildSettings };
+    let updatedValue;
 
     switch (type) {
-      case "channel":
+      case "channel": {
         if (!updateData.channel_ids) updateData.channel_ids = {};
         updateData.channel_ids[name] = value;
+        updatedValue = value;
         break;
-      case "role":
+      }
+      case "role": {
         if (!updateData.role_ids) updateData.role_ids = {};
         if (name === "additional_verified") {
           updateData.role_ids[name] = value.split(",").map((id) => id.trim());
         } else {
           updateData.role_ids[name] = value;
         }
+        updatedValue = value;
         break;
-      case "api":
+      }
+      case "api": {
         if (!updateData.api_keys) updateData.api_keys = {};
         updateData.api_keys[name] = value;
+        updatedValue = value;
         break;
-      case "link":
+      }
+      case "link": {
         if (!updateData.external_links) updateData.external_links = {};
         updateData.external_links[name] = value;
+        updatedValue = value;
         break;
+      }
       default:
         await interaction.reply({
           content:
             "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
-          ephemeral: true,
+          flags: 64,
         });
         return;
     }
 
     await db.updateGuildSettings(interaction.guildId, updateData);
-
     invalidateCache(interaction.guildId);
 
     if (type === "channel" && name === "boost_channel") {
@@ -73,15 +81,19 @@ async function handleSetSetting(interaction, type, name, value) {
       .setTitle("Setting Updated")
       .setDescription(`Successfully updated \`${type}.${name}\` setting`)
       .setColor("#00FF00")
-      .addFields({ name: "New Value", value: `\`${value}\``, inline: true })
+      .addFields({
+        name: "New Value",
+        value: `\`${updatedValue}\``,
+        inline: true,
+      })
       .setTimestamp();
 
     await interaction.reply({
       embeds: [successEmbed],
-      ephemeral: true,
+      flags: 64,
     });
-  } catch (error) {
-    console.error("Error setting guild setting:", error);
+  } catch (err) {
+    console.error("Error setting guild setting:", err);
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -89,14 +101,14 @@ async function handleSetSetting(interaction, type, name, value) {
       .setColor("#FF0000")
       .addFields({
         name: "Details",
-        value: error.message || "Unknown error",
+        value: err.message || "Unknown error",
         inline: false,
       })
       .setTimestamp();
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
@@ -104,6 +116,8 @@ async function handleSetSetting(interaction, type, name, value) {
 async function handleGetSetting(interaction, type, name) {
   try {
     let value;
+    let errorEmbed;
+
     switch (type) {
       case "channel":
         value = await db.getChannelId(interaction.guildId, name);
@@ -118,7 +132,7 @@ async function handleGetSetting(interaction, type, name) {
         value = await db.getExternalLink(interaction.guildId, name);
         break;
       default:
-        const errorEmbed = new EmbedBuilder()
+        errorEmbed = new EmbedBuilder()
           .setTitle("Invalid Type")
           .setDescription(
             "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
@@ -128,7 +142,7 @@ async function handleGetSetting(interaction, type, name) {
 
         await interaction.reply({
           embeds: [errorEmbed],
-          ephemeral: true,
+          flags: 64,
         });
         return;
     }
@@ -148,7 +162,7 @@ async function handleGetSetting(interaction, type, name) {
 
     await interaction.reply({
       embeds: [responseEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error getting guild setting:", error);
@@ -166,7 +180,7 @@ async function handleGetSetting(interaction, type, name) {
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
@@ -270,7 +284,7 @@ async function handleListSettings(interaction, type) {
 
     await interaction.reply({
       embeds: [listEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error listing guild settings:", error);
@@ -283,29 +297,21 @@ async function handleListSettings(interaction, type) {
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
 
 function formatChannelValue(value, interaction) {
   if (!value) return "Not set";
-  try {
-    const channel = interaction.guild.channels.cache.get(value);
-    return channel ? `<#${value}> (${value})` : `${value} (Not found)`;
-  } catch (error) {
-    return `${value} (Error)`;
-  }
+  const channel = interaction.guild.channels.cache.get(value);
+  return channel ? `<#${value}> (${value})` : `${value} (Not found)`;
 }
 
 function formatRoleValue(value, interaction) {
   if (!value) return "Not set";
-  try {
-    const role = interaction.guild.roles.cache.get(value);
-    return role ? `<@&${value}> (${value})` : `${value} (Not found)`;
-  } catch (error) {
-    return `${value} (Error)`;
-  }
+  const role = interaction.guild.roles.cache.get(value);
+  return role ? `<@&${value}> (${value})` : `${value} (Not found)`;
 }
 
 async function handleRemoveSetting(interaction, type, name) {
@@ -313,6 +319,7 @@ async function handleRemoveSetting(interaction, type, name) {
     const guildSettings = await getSettings(interaction.guildId);
     let updateData = { ...guildSettings };
     let removed = false;
+    let errorEmbed;
 
     switch (type) {
       case "channel":
@@ -346,7 +353,7 @@ async function handleRemoveSetting(interaction, type, name) {
         }
         break;
       default:
-        const errorEmbed = new EmbedBuilder()
+        errorEmbed = new EmbedBuilder()
           .setTitle("Invalid Type")
           .setDescription(
             "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
@@ -356,7 +363,7 @@ async function handleRemoveSetting(interaction, type, name) {
 
         await interaction.reply({
           embeds: [errorEmbed],
-          ephemeral: true,
+          flags: 64,
         });
         return;
     }
@@ -373,7 +380,7 @@ async function handleRemoveSetting(interaction, type, name) {
 
       await interaction.reply({
         embeds: [successEmbed],
-        ephemeral: true,
+        flags: 64,
       });
     } else {
       const notFoundEmbed = new EmbedBuilder()
@@ -386,7 +393,7 @@ async function handleRemoveSetting(interaction, type, name) {
 
       await interaction.reply({
         embeds: [notFoundEmbed],
-        ephemeral: true,
+        flags: 64,
       });
     }
   } catch (error) {
@@ -405,7 +412,7 @@ async function handleRemoveSetting(interaction, type, name) {
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
@@ -413,8 +420,7 @@ async function handleRemoveSetting(interaction, type, name) {
 async function handleAvailableKeys(interaction, type) {
   try {
     const settings = await getSettings(interaction.guildId);
-    let configuredSettings;
-
+    let configuredSettings = {};
     const availableKeys = {
       channel: [
         "welcome",
@@ -489,7 +495,7 @@ async function handleAvailableKeys(interaction, type) {
       case "link":
         configuredSettings = settings.external_links || {};
         break;
-      default:
+      default: {
         const errorEmbed = new EmbedBuilder()
           .setTitle("Invalid Type")
           .setDescription(
@@ -500,9 +506,10 @@ async function handleAvailableKeys(interaction, type) {
 
         await interaction.reply({
           embeds: [errorEmbed],
-          ephemeral: true,
+          flags: 64,
         });
         return;
+      }
     }
 
     const embed = new EmbedBuilder()
@@ -537,7 +544,7 @@ async function handleAvailableKeys(interaction, type) {
 
     await interaction.reply({
       embeds: [embed],
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error retrieving available keys:", error);
@@ -555,7 +562,7 @@ async function handleAvailableKeys(interaction, type) {
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
@@ -603,7 +610,7 @@ async function handleSetBoostChannel(interaction, channelId) {
 
     await interaction.reply({
       embeds: [successEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   } catch (error) {
     console.error("Error setting boost channel:", error);
@@ -621,7 +628,7 @@ async function handleSetBoostChannel(interaction, channelId) {
 
     await interaction.reply({
       embeds: [errorEmbed],
-      ephemeral: true,
+      flags: 64,
     });
   }
 }
