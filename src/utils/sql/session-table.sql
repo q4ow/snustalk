@@ -215,3 +215,14 @@ CREATE TABLE IF NOT EXISTS raid_incidents (
     affected_users TEXT[] DEFAULT '{}',
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS join_events (
+    id SERIAL PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT join_events_guild_id_fk FOREIGN KEY (guild_id) 
+        REFERENCES guild_settings(guild_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_join_events_guild_timestamp 
+ON join_events(guild_id, timestamp);

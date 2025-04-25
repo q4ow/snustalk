@@ -414,4 +414,98 @@ export const db = {
       throw error;
     }
   },
+
+  async getExternalLinks(guildId) {
+    try {
+      const result = await dbPool.query(
+        'SELECT external_links FROM guild_settings WHERE guild_id = $1',
+        [guildId],
+      );
+      return result.rows[0]?.external_links || {};
+    } catch (error) {
+      logger.error(`Error getting external links for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async getExternalLink(guildId, linkType) {
+    try {
+      const links = await this.getExternalLinks(guildId);
+      return links[linkType];
+    } catch (error) {
+      logger.error(`Error getting ${linkType} link for guild ${guildId}:`, error);
+      return null;
+    }
+  },
+
+  async updateExternalLinks(guildId, links) {
+    try {
+      await dbPool.query(
+        `UPDATE guild_settings 
+         SET external_links = $2,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE guild_id = $1`,
+        [guildId, links],
+      );
+      logger.info(`Updated external links for guild ${guildId}`);
+    } catch (error) {
+      logger.error(`Error updating external links for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async trackJoinVelocity(guildId, timestamp) {
+    try {
+      await dbPool.query(
+        `INSERT INTO join_events (guild_id, timestamp)
+         VALUES ($1, $2)`,
+        [guildId, timestamp],
+      );
+
+      await dbPool.query(
+        'DELETE FROM join_events WHERE timestamp < NOW() - INTERVAL \'1 hour\'',
+      );
+
+      const result = await dbPool.query(
+        `SELECT COUNT(*) as joins
+         FROM join_events
+         WHERE guild_id = $1
+         AND timestamp > NOW() - INTERVAL '1 minute'`,
+        [guildId],
+      );
+
+      return parseInt(result.rows[0].joins);
+    } catch (error) {
+      logger.error(`Error tracking join velocity for guild ${guildId}:`, error);
+      return 0;
+    }
+  },
+
+  async getRecentJoins(guildId, timeWindow) {
+    try {
+      const result = await dbPool.query(
+        `SELECT guild_id, timestamp
+         FROM join_events
+         WHERE guild_id = $1
+         AND timestamp > NOW() - INTERVAL '1 second' * $2
+         ORDER BY timestamp DESC`,
+        [guildId, timeWindow / 1000],
+      );
+      return result.rows;
+    } catch (error) {
+      logger.error(`Error getting recent joins for guild ${guildId}:`, error);
+      return [];
+    }
+  },
+
+  async cleanOldJoinData(guildId) {
+    try {
+      await dbPool.query(
+        'DELETE FROM join_events WHERE guild_id = $1 AND timestamp < NOW() - INTERVAL \'1 day\'',
+        [guildId],
+      );
+    } catch (error) {
+      logger.error(`Error cleaning old join data for guild ${guildId}:`, error);
+    }
+  },
 };

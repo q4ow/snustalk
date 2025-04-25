@@ -30,7 +30,7 @@ export class AntiRaidHandler {
 
     if (RaidProtection.isExemptFromRaidProtection(member, settings)) return;
 
-    await db.trackJoinVelocity(member.guild.id, member.id, new Date());
+    await db.trackJoinVelocity(member.guild.id, new Date());
     const recentJoins = await db.getRecentJoins(
       member.guild.id,
       settings.joinTimeWindow,
