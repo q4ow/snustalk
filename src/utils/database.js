@@ -235,7 +235,20 @@ export const db = {
         'SELECT settings FROM automod_settings WHERE guild_id = $1',
         [guildId],
       );
-      return result.rows[0]?.settings || {};
+      const settings = result.rows[0]?.settings;
+      return settings || {
+        enabled: false,
+        filters: {
+          spam: {
+            enabled: true,
+            maxMessages: 5,
+            timeWindow: 5000,
+            action: "timeout",
+            duration: 300000,
+            whitelistRoles: []
+          },
+        }
+      };
     } catch (error) {
       logger.error(`Error getting automod settings for guild ${guildId}:`, error);
       throw error;

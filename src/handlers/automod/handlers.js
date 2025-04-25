@@ -74,8 +74,33 @@ async function migrateWhitelistRoles(settings) {
 }
 
 export async function getAutomodSettings(guildId) {
-  const settings = (await db.getAutomodSettings(guildId)) || DEFAULT_SETTINGS;
-  return await migrateWhitelistRoles(settings);
+  try {
+    const settings = await db.getAutomodSettings(guildId);
+    if (!settings || !settings.filters) {
+      return DEFAULT_SETTINGS;
+    }
+
+    const mergedSettings = {
+      ...DEFAULT_SETTINGS,
+      ...settings,
+      filters: {
+        ...DEFAULT_SETTINGS.filters,
+        ...settings.filters,
+      },
+    };
+
+    Object.keys(DEFAULT_SETTINGS.filters).forEach(filterName => {
+      mergedSettings.filters[filterName] = {
+        ...DEFAULT_SETTINGS.filters[filterName],
+        ...mergedSettings.filters[filterName],
+      };
+    });
+
+    return await migrateWhitelistRoles(mergedSettings);
+  } catch (error) {
+    console.error('Error getting automod settings:', error);
+    return DEFAULT_SETTINGS;
+  }
 }
 
 export async function updateAutomodSettings(guildId, settings) {
