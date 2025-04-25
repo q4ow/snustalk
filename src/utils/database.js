@@ -369,4 +369,17 @@ export const db = {
       throw error;
     }
   },
+
+  async getTicketCounter(guildId) {
+    try {
+      const result = await dbPool.query(
+        'SELECT ticket_counter FROM guild_settings WHERE guild_id = $1',
+        [guildId]
+      );
+      return result.rows[0]?.ticket_counter || { counter: 0 };
+    } catch (error) {
+      logger.error(`Error getting ticket counter for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
 };
