@@ -49,13 +49,9 @@ export async function ensureGuildRoles(guild) {
         if (roleByName) {
           existingRole = roleByName;
           updates.role_ids[roleType] = roleByName.id;
-          console.log(
-            `Found existing ${roleConfig.name} role by name for guild ${guild.name}`,
-          );
           rolesCreated = true;
         } else {
           try {
-            console.log(`Creating ${roleType} role for guild ${guild.name}`);
             const newRole = await guild.roles.create({
               name: roleConfig.name,
               color: roleConfig.color,
@@ -78,7 +74,6 @@ export async function ensureGuildRoles(guild) {
 
     if (rolesCreated) {
       await db.updateGuildSettings(guild.id, updates);
-      console.log(`✅ Roles configured for guild ${guild.name}`);
     }
 
     return updates.role_ids;

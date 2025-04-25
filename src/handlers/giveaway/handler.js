@@ -16,7 +16,6 @@ export class GiveawayHandler {
   async initialize() {
     this.checkInterval = setInterval(() => this.checkEndedGiveaways(), 60000);
     await this.checkEndedGiveaways();
-    console.log("✅ Giveaway handler initialized");
   }
 
   async createGiveaway(options) {
@@ -129,7 +128,7 @@ export class GiveawayHandler {
         if (requirements.roles?.length) {
           reqText.push(
             "Required Roles: " +
-              requirements.roles.map((r) => `<@&${r}>`).join(", "),
+            requirements.roles.map((r) => `<@&${r}>`).join(", "),
           );
         }
         if (requirements.min_account_age) {
@@ -307,13 +306,13 @@ export class GiveawayHandler {
       const components = giveaway.ended
         ? []
         : [
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId("giveaway_enter")
-                .setLabel(giveaway.button_label || "Enter Giveaway 🎉")
-                .setStyle(ButtonStyle.Primary),
-            ),
-          ];
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("giveaway_enter")
+              .setLabel(giveaway.button_label || "Enter Giveaway 🎉")
+              .setStyle(ButtonStyle.Primary),
+          ),
+        ];
 
       await message.edit({ embeds: [embed], components });
     } catch (error) {

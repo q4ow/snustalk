@@ -9,7 +9,6 @@ export function setupLoggingEvents(client) {
   logger
     .initialize()
     .then(() => {
-      console.log("✅ Event Logger initialized successfully");
     })
     .catch((error) => {
       console.error("Failed to initialize logger:", error);

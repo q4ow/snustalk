@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   guild_id TEXT PRIMARY KEY,
   ticket_settings JSONB,
   ticket_counter JSONB,
+  welcome_message TEXT,
+  goodbye_message TEXT,
   channel_ids JSONB DEFAULT '{
     "welcome": null,
     "goodbye": null,
@@ -38,7 +40,9 @@ CREATE TABLE IF NOT EXISTS guild_settings (
   }',
   external_links JSONB DEFAULT '{
     "restorecord": null
-  }'
+  }',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 DO $$ 

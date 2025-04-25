@@ -26,7 +26,6 @@ class LogHandler {
   }
 
   async initialize() {
-    console.log("✅ Logging handler initialized");
   }
 
   isChannelBlacklisted(channelId) {

@@ -1,16 +1,20 @@
 import express from "express";
 import cors from "cors";
 import { db } from "../utils/database.js";
+import { logger } from '../utils/logger.js';
+import { requestLogger, errorLogger } from '../utils/logMiddleware.js';
+import { config } from '../config.js';
 
 const app = express();
+
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || "*",
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+app.use(cors(config.api.cors));
+
+app.use(requestLogger({
+  excludePaths: ['/health'],
+  logBody: true,
+  maskFields: ['password', 'token', 'apiKey', 'authorization', 'discord_token']
+}));
 
 async function authenticate(req, res, next) {
   const apiKey = req.headers.authorization?.replace("Bearer ", "");
@@ -26,7 +30,7 @@ async function authenticate(req, res, next) {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Authentication error:", error);
+    logger.error("Authentication error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -35,7 +39,7 @@ app.get("/api/user", authenticate, async (req, res) => {
   try {
     res.json({ user: req.user });
   } catch (error) {
-    console.error("Error fetching user:", error);
+    logger.error("Error fetching user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -62,7 +66,7 @@ app.get("/api/guilds", authenticate, async (req, res) => {
       });
     res.json({ guilds });
   } catch (error) {
-    console.error("Error fetching guilds:", error);
+    logger.error("Error fetching guilds:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -72,7 +76,7 @@ app.get("/api/guilds/:guildId/settings", authenticate, async (req, res) => {
     const settings = await db.getGuildSettings(req.params.guildId);
     res.json({ settings });
   } catch (error) {
-    console.error("Error fetching guild settings:", error);
+    logger.error("Error fetching guild settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -91,7 +95,7 @@ app.patch("/api/guilds/:guildId/settings", authenticate, async (req, res) => {
     await db.updateGuildSettings(req.params.guildId, req.body);
     res.json({ success: true });
   } catch (error) {
-    console.error("Error updating guild settings:", error);
+    logger.error("Error updating guild settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -121,7 +125,7 @@ app.get("/api/guilds/:guildId/tickets", authenticate, async (req, res) => {
 
     res.json({ tickets });
   } catch (error) {
-    console.error("Error fetching tickets:", error);
+    logger.error("Error fetching tickets:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -153,7 +157,7 @@ app.get(
       const messages = await db.getTicketMessages(req.params.ticketId);
       res.json({ messages });
     } catch (error) {
-      console.error("Error fetching ticket messages:", error);
+      logger.error("Error fetching ticket messages:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -195,12 +199,12 @@ app.post(
         .fetch(ticket.channel_id)
         .catch(() => null);
       if (channel) {
-        await channel.delete().catch(console.error);
+        await channel.delete().catch(logger.error);
       }
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error closing ticket:", error);
+      logger.error("Error closing ticket:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -220,7 +224,7 @@ app.get("/api/guilds/:guildId/automod", authenticate, async (req, res) => {
     const settings = await db.getAutomodSettings(req.params.guildId);
     res.json({ settings });
   } catch (error) {
-    console.error("Error fetching automod settings:", error);
+    logger.error("Error fetching automod settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -239,7 +243,7 @@ app.patch("/api/guilds/:guildId/automod", authenticate, async (req, res) => {
     await db.saveAutomodSettings(req.params.guildId, req.body);
     res.json({ success: true });
   } catch (error) {
-    console.error("Error updating automod settings:", error);
+    logger.error("Error updating automod settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -258,7 +262,7 @@ app.get("/api/guilds/:guildId/logs", authenticate, async (req, res) => {
     const settings = await db.getLoggingSettings(req.params.guildId);
     res.json({ settings });
   } catch (error) {
-    console.error("Error fetching logging settings:", error);
+    logger.error("Error fetching logging settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -284,16 +288,31 @@ app.patch(
       );
       res.json({ success: true });
     } catch (error) {
-      console.error("Error updating logging settings:", error);
+      logger.error("Error updating logging settings:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
 );
 
+app.use(errorLogger);
+
 export function startApiServer(client, port = process.env.API_PORT || 3090) {
   app.set("client", client);
 
-  app.listen(port, () => {
-    console.log(`✅ API Server running on port ${port}`);
+  const server = app.listen(port, () => {
+    logger.info(`API Server running on port ${port}`);
   });
+
+  server.on('error', (error) => {
+    logger.error('API Server error:', error);
+  });
+
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down API server...');
+    server.close(() => {
+      logger.info('API Server closed');
+    });
+  });
+
+  return server;
 }

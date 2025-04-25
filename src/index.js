@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import {
   Client,
   GatewayIntentBits,
@@ -6,7 +9,6 @@ import {
   ActivityType,
   Options,
 } from "discord.js";
-import dotenv from "dotenv";
 import { handleVerification } from "./handlers/verificationHandler.js";
 import { handleWelcome } from "./handlers/welcomeHandler.js";
 import { handleGoodbye } from "./handlers/goodbyeHandler.js";
@@ -34,8 +36,7 @@ import { handleReactionRole } from "./handlers/reactionRolesHandler.js";
 import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
 import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 import { startStatsTracker } from "./handlers/statsHandler.js";
-
-dotenv.config();
+import { logger } from './utils/logger.js';
 
 const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
 const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
@@ -106,7 +107,7 @@ class SnusTalkBot {
   }
 
   handleError(context, error) {
-    console.error(`❌ Error in ${context}:`, error);
+    logger.error(`Error in ${context}:`, error);
     this.metrics.errors += 1;
     return error;
   }
@@ -122,7 +123,7 @@ class SnusTalkBot {
       );
     }
 
-    console.log("✅ Environment variables validated");
+    logger.info("Environment variables validated");
   }
 
   updateBotPresence() {
@@ -142,12 +143,12 @@ class SnusTalkBot {
     try {
       const dbHealthy = await db.healthCheck();
       if (!dbHealthy) {
-        console.error("❌ Database health check failed");
+        logger.error("Database health check failed");
         process.exit(1);
       }
 
       if (!this.client.isReady()) {
-        console.error("❌ Bot is not ready, attempting to reconnect...");
+        logger.error("Bot is not ready, attempting to reconnect...");
         await this.client.destroy();
         await this.client.login(process.env.DISCORD_TOKEN);
       }
@@ -155,7 +156,7 @@ class SnusTalkBot {
       for (const [guildId, guild] of this.client.guilds.cache) {
         try {
           if (!guild.available) {
-            console.warn(`⚠️ Guild ${guildId} is unavailable`);
+            logger.warn(`Guild ${guildId} is unavailable`);
             continue;
           }
 
@@ -183,8 +184,8 @@ class SnusTalkBot {
           }
 
           if (missingPermissions.length > 0) {
-            console.warn(
-              `⚠️ Missing permissions in ${guild.name}: ${missingPermissions.join(", ")}`,
+            logger.warn(
+              `Missing permissions in ${guild.name}: ${missingPermissions.join(", ")}`,
             );
           }
         } catch (error) {
@@ -235,7 +236,7 @@ class SnusTalkBot {
     try {
       startTypingApi();
       startApiServer(this.client);
-      console.log("✅ API servers initialized");
+      logger.info("API servers initialized");
 
       this.client.antiRaid = new AntiRaidHandler(this.client);
       await this.client.antiRaid.initialize();
@@ -247,11 +248,11 @@ class SnusTalkBot {
 
       await registerSlashCommands(this.client);
 
-      console.log("✅ Ticketing handler initialized");
-      console.log("✅ Purge handler initialized");
-      console.log("✅ Automod initialized");
-      console.log("✅ Application handler initialized");
-      console.log("✅ Stats tracker initialized");
+      logger.info("Ticketing handler initialized");
+      logger.info("Purge handler initialized");
+      logger.info("Automod initialized");
+      logger.info("Application handler initialized");
+      logger.info("Stats tracker initialized");
 
       for (const guild of this.client.guilds.cache.values()) {
         await startStatsTracker(guild);
@@ -263,13 +264,13 @@ class SnusTalkBot {
         () => this.runHealthCheck(),
         HEALTH_CHECK_INTERVAL,
       );
-      console.log("✅ Health monitoring started");
+      logger.info("Health monitoring started");
 
       this.metricsInterval = setInterval(
         () => this.collectMetrics(),
         HEALTH_CHECK_INTERVAL,
       );
-      console.log("✅ Metrics collection started");
+      logger.info("Metrics collection started");
 
       await this.initializeGuilds();
     } catch (error) {
@@ -282,36 +283,36 @@ class SnusTalkBot {
     for (const [guildId, guild] of this.client.guilds.cache) {
       try {
         await ensureGuildRoles(guild);
-        console.log(`✅ Roles initialized for guild ${guild.name}`);
+        logger.info(`Roles initialized for guild ${guild.name}`);
 
         const settings = await db.getGuildSettings(guildId);
 
         const verificationChannel = settings.channel_ids?.verification
           ? await this.client.channels
-              .fetch(settings.channel_ids.verification)
-              .catch(() => null)
+            .fetch(settings.channel_ids.verification)
+            .catch(() => null)
           : null;
 
         if (verificationChannel) {
           await this.setupVerificationMessage(verificationChannel);
-          console.log(`✅ Verification initialized for guild ${guild.name}`);
+          logger.info(`Verification initialized for guild ${guild.name}`);
         }
 
         const unverifiedRole = settings.role_ids?.unverified
           ? await guild.roles
-              .fetch(settings.role_ids.unverified)
-              .catch(() => null)
+            .fetch(settings.role_ids.unverified)
+            .catch(() => null)
           : null;
 
         const verifiedRole = settings.role_ids?.verified
           ? await guild.roles
-              .fetch(settings.role_ids.verified)
-              .catch(() => null)
+            .fetch(settings.role_ids.verified)
+            .catch(() => null)
           : null;
 
         if (!unverifiedRole || !verifiedRole) {
-          console.warn(
-            `⚠️ Missing required roles in guild ${guild.name} (${guildId})`,
+          logger.warn(
+            `Missing required roles in guild ${guild.name} (${guildId})`,
           );
         }
       } catch (error) {
@@ -414,7 +415,7 @@ class SnusTalkBot {
             const user = await guild.client.users
               .fetch(userId)
               .catch((error) => {
-                console.error(`Failed to fetch user ${userId}:`, error);
+                logger.error(`Failed to fetch user ${userId}:`, error);
                 return null;
               });
 
@@ -427,7 +428,7 @@ class SnusTalkBot {
             }
 
             const member = await guild.members.fetch(userId).catch((error) => {
-              console.error(`Failed to fetch member ${userId}:`, error);
+              logger.error(`Failed to fetch member ${userId}:`, error);
               return null;
             });
 
@@ -442,11 +443,11 @@ class SnusTalkBot {
                     await guild.roles.fetch(moderatorRoleId);
                   if (moderatorRole) {
                     await member.roles.add(moderatorRole);
-                    console.log(`Added moderator role to ${member.user.tag}`);
+                    logger.info(`Added moderator role to ${member.user.tag}`);
                   }
                 }
               } catch (error) {
-                console.error(
+                logger.error(
                   `Failed to add moderator role to member ${userId}:`,
                   error,
                 );
@@ -490,13 +491,13 @@ class SnusTalkBot {
             }
 
             await user.send({ embeds: [responseEmbed] }).catch(() => {
-              console.log(`Failed to DM user ${user.tag}`);
+              logger.info(`Failed to DM user ${user.tag}`);
             });
 
             await interaction.message
               .edit({ components: [] })
               .catch((error) => {
-                console.error("Failed to edit original message:", error);
+                logger.error("Failed to edit original message:", error);
               });
 
             const logEmbed = new EmbedBuilder()
@@ -512,7 +513,7 @@ class SnusTalkBot {
             await interaction.message
               .reply({ embeds: [logEmbed] })
               .catch((error) => {
-                console.error("Failed to reply to original message:", error);
+                logger.error("Failed to reply to original message:", error);
               });
 
             await interaction.reply({
@@ -520,14 +521,14 @@ class SnusTalkBot {
               flags: 64,
             });
           } catch (error) {
-            console.error("Error processing application modal:", error);
+            logger.error("Error processing application modal:", error);
             await interaction
               .reply({
                 content:
                   "There was an error processing the application. Please try again.",
                 flags: 64,
               })
-              .catch(console.error);
+              .catch(logger.error);
           }
 
           return;
@@ -542,7 +543,7 @@ class SnusTalkBot {
             content: "An error occurred while processing your request.",
             flags: 64,
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       this.client.emit("interactionError", interaction, error);
@@ -551,12 +552,12 @@ class SnusTalkBot {
 
   collectMetrics() {
     const uptime = Date.now() - this.startTime;
-    console.log("📊 Metrics:");
-    console.log(`Commands processed: ${this.metrics.commands}`);
-    console.log(`Errors encountered: ${this.metrics.errors}`);
-    console.log(`Messages processed: ${this.metrics.messages}`);
-    console.log(`Interactions processed: ${this.metrics.interactions}`);
-    console.log(`Uptime: ${uptime / 1000}s`);
+    logger.info("📊 Metrics:");
+    logger.info(`Commands processed: ${this.metrics.commands}`);
+    logger.info(`Errors encountered: ${this.metrics.errors}`);
+    logger.info(`Messages processed: ${this.metrics.messages}`);
+    logger.info(`Interactions processed: ${this.metrics.interactions}`);
+    logger.info(`Uptime: ${uptime / 1000}s`);
   }
 
   setupEventHandlers() {
@@ -619,7 +620,7 @@ class SnusTalkBot {
     this.client.on("error", (error) => {
       this.handleError("Discord client", error);
       if (!this.client.isReady()) {
-        console.log("🔄 Attempting to reconnect...");
+        logger.warn("Attempting to reconnect...");
         this.client.destroy();
         this.client.login(process.env.DISCORD_TOKEN);
       }
@@ -630,7 +631,7 @@ class SnusTalkBot {
     });
 
     this.client.on("warn", (info) => {
-      console.warn("⚠️ Warning:", info);
+      logger.warn(info);
     });
 
     process.on("unhandledRejection", (error) => {
@@ -646,7 +647,7 @@ class SnusTalkBot {
     });
 
     process.on("SIGTERM", async () => {
-      console.log("🛑 Received SIGTERM signal, shutting down gracefully...");
+      logger.warn("Received SIGTERM signal, shutting down gracefully...");
       clearInterval(this.healthCheckInterval);
       clearInterval(this.metricsInterval);
       await this.client.destroy();
@@ -654,7 +655,7 @@ class SnusTalkBot {
     });
 
     process.on("SIGINT", async () => {
-      console.log("🛑 Received SIGINT signal, shutting down gracefully...");
+      logger.warn("Received SIGINT signal, shutting down gracefully...");
       clearInterval(this.healthCheckInterval);
       clearInterval(this.metricsInterval);
       await this.client.destroy();
@@ -667,13 +668,13 @@ class SnusTalkBot {
     this.setupEventHandlers();
 
     this.client.once("ready", async () => {
-      console.log();
-      console.log(`🚀 Bot is online as ${this.client.user.tag}`);
-      console.log(`👥 Connected to ${this.client.guilds.cache.size} guild(s)`);
-      console.log(`🔗 Bot ID: ${this.client.user.id}`);
-      console.log(`📅 Current time: ${new Date().toLocaleString()}`);
-      console.log(`🔧 Initializing Snussy v${this.version}...`);
-      console.log();
+      logger.info("");
+      logger.info(`🚀 Bot is online as ${this.client.user.tag}`);
+      logger.info(`👥 Connected to ${this.client.guilds.cache.size} guild(s)`);
+      logger.info(`🔗 Bot ID: ${this.client.user.id}`);
+      logger.info(`📅 Current time: ${new Date().toLocaleString()}`);
+      logger.info(`🔧 Initializing Snussy v${this.version}...`);
+      logger.info("");
 
       await this.initializeBot();
     });
@@ -681,15 +682,15 @@ class SnusTalkBot {
     for (let i = 0; i < retries; i++) {
       try {
         await this.client.login(process.env.DISCORD_TOKEN);
-        console.log("✅ Successfully logged in to Discord");
+        logger.info("Successfully logged in to Discord");
         return;
       } catch (error) {
         this.handleError(`login attempt ${i + 1}/${retries}`, error);
         if (i < retries - 1) {
-          console.log(`Retrying in ${delay / 1000} seconds...`);
+          logger.warn(`Retrying in ${delay / 1000} seconds...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
         } else {
-          console.error("❌ Maximum retry attempts reached. Exiting...");
+          logger.error("Maximum retry attempts reached. Exiting...");
           process.exit(1);
         }
       }
