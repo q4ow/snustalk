@@ -600,23 +600,64 @@ Ping Roles: ${pingRoles}`;
       "../handlers/reactionRolesHandler.js"
     );
     try {
-      const roles = JSON.parse(rolesJson);
-      if (!Array.isArray(roles)) {
+      let roles;
+      try {
+        roles = JSON.parse(rolesJson);
+      } catch (error) {
+        console.error("Error parsing roles JSON:", error);
         await interaction.reply({
-          content: "❌ Roles must be provided as an array.",
+          content:
+            '❌ Invalid JSON format. Please use this format:\n```json\n[\n  {\n    "id": "1234567890",\n    "label": "Role Name",\n    "emoji": "👍",\n    "style": "Primary"\n  }\n]\n```\nValid styles: Primary, Secondary, Success, Danger',
           flags: 64,
         });
         return;
       }
+
+      if (!Array.isArray(roles)) {
+        await interaction.reply({
+          content: "❌ Roles must be provided as an array []",
+          flags: 64,
+        });
+        return;
+      }
+
       for (const role of roles) {
-        if (!role.id || !interaction.guild.roles.cache.has(role.id)) {
+        if (!role || typeof role !== "object") {
           await interaction.reply({
-            content: `❌ Invalid role ID: ${role.id}`,
+            content:
+              "❌ Each role must be an object with id, label, emoji, and style properties",
+            flags: 64,
+          });
+          return;
+        }
+
+        if (!role.id || !role.label || !role.style) {
+          await interaction.reply({
+            content:
+              "❌ Each role must have 'id', 'label', and 'style' properties",
+            flags: 64,
+          });
+          return;
+        }
+
+        const validStyles = ["Primary", "Secondary", "Success", "Danger"];
+        if (!validStyles.includes(role.style)) {
+          await interaction.reply({
+            content: `❌ Invalid style: ${role.style}. Must be one of: ${validStyles.join(", ")}`,
+            flags: 64,
+          });
+          return;
+        }
+
+        if (!interaction.guild.roles.cache.has(role.id)) {
+          await interaction.reply({
+            content: `❌ Role with ID ${role.id} does not exist in this server`,
             flags: 64,
           });
           return;
         }
       }
+
       await createReactionRoles(channel, {
         title,
         description,
@@ -629,11 +670,19 @@ Ping Roles: ${pingRoles}`;
       });
     } catch (error) {
       console.error("Error creating reaction roles:", error);
-      await interaction.reply({
-        content:
-          '❌ Invalid JSON format for roles. Example format:\n```json\n[\n  {\n    "id": "role_id",\n    "label": "Display Name",\n    "emoji": "👍",\n    "style": "Primary"\n  }\n]```\nValid styles: Primary, Secondary, Success, Danger',
-        flags: 64,
-      });
+      if (error.code === "22P02") {
+        await interaction.reply({
+          content:
+            "❌ There was an error saving the roles configuration. Please make sure your JSON is properly formatted.",
+          flags: 64,
+        });
+      } else {
+        await interaction.reply({
+          content:
+            "❌ An error occurred while creating reaction roles. Make sure the bot has the necessary permissions.",
+          flags: 64,
+        });
+      }
     }
   },
 

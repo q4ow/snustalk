@@ -42,7 +42,8 @@ export async function createReactionRoles(channel, options) {
     components: rows,
   });
 
-  await db.createReactionRoles(message.id, channel.id, roles);
+  const rolesData = JSON.stringify(roles);
+  await db.createReactionRoles(message.id, channel.id, rolesData);
   return message;
 }
 
