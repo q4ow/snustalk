@@ -382,4 +382,23 @@ export const db = {
       throw error;
     }
   },
+
+  async getRaidProtectionSettings(guildId) {
+    try {
+      const result = await dbPool.query(
+        'SELECT raid_protection FROM guild_settings WHERE guild_id = $1',
+        [guildId]
+      );
+      return result.rows[0]?.raid_protection || {
+        enabled: false,
+        joinThreshold: 10,
+        joinTimeWindow: 10000,
+        action: 'kick',
+        logChannel: null
+      };
+    } catch (error) {
+      logger.error(`Error getting raid protection settings for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
 };
