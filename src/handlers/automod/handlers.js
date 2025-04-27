@@ -89,7 +89,7 @@ export async function getAutomodSettings(guildId) {
       },
     };
 
-    Object.keys(DEFAULT_SETTINGS.filters).forEach(filterName => {
+    Object.keys(DEFAULT_SETTINGS.filters).forEach((filterName) => {
       mergedSettings.filters[filterName] = {
         ...DEFAULT_SETTINGS.filters[filterName],
         ...mergedSettings.filters[filterName],
@@ -98,7 +98,7 @@ export async function getAutomodSettings(guildId) {
 
     return await migrateWhitelistRoles(mergedSettings);
   } catch (error) {
-    console.error('Error getting automod settings:', error);
+    console.error("Error getting automod settings:", error);
     return DEFAULT_SETTINGS;
   }
 }

@@ -25,8 +25,7 @@ class LogHandler {
     this.blacklistedChannels = [];
   }
 
-  async initialize() {
-  }
+  async initialize() {}
 
   isChannelBlacklisted(channelId) {
     return this.blacklistedChannels.includes(channelId);
@@ -782,17 +781,21 @@ class LogHandler {
       {
         name: "Filename(s)",
         value: data.files.map((f) => f.name).join(", "),
-      }
+      },
     );
 
-    const mediaFile = data.files.find(f =>
-      f.contentType?.startsWith('image/') ||
-      f.contentType?.startsWith('video/') ||
-      f.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)
+    const mediaFile = data.files.find(
+      (f) =>
+        f.contentType?.startsWith("image/") ||
+        f.contentType?.startsWith("video/") ||
+        f.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i),
     );
 
     if (mediaFile) {
-      if (mediaFile.contentType?.startsWith('video/') || mediaFile.url?.match(/\.(mp4|webm|mov)$/i)) {
+      if (
+        mediaFile.contentType?.startsWith("video/") ||
+        mediaFile.url?.match(/\.(mp4|webm|mov)$/i)
+      ) {
         embed.setVideo(mediaFile.url);
       } else {
         embed.setImage(mediaFile.url);

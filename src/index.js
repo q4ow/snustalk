@@ -36,7 +36,7 @@ import { handleReactionRole } from "./handlers/reactionRolesHandler.js";
 import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
 import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 import { startStatsTracker } from "./handlers/statsHandler.js";
-import { logger } from './utils/logger.js';
+import { logger } from "./utils/logger.js";
 
 const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
 const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
@@ -289,8 +289,8 @@ class SnusTalkBot {
 
         const verificationChannel = settings.channel_ids?.verification
           ? await this.client.channels
-            .fetch(settings.channel_ids.verification)
-            .catch(() => null)
+              .fetch(settings.channel_ids.verification)
+              .catch(() => null)
           : null;
 
         if (verificationChannel) {
@@ -300,14 +300,14 @@ class SnusTalkBot {
 
         const unverifiedRole = settings.role_ids?.unverified
           ? await guild.roles
-            .fetch(settings.role_ids.unverified)
-            .catch(() => null)
+              .fetch(settings.role_ids.unverified)
+              .catch(() => null)
           : null;
 
         const verifiedRole = settings.role_ids?.verified
           ? await guild.roles
-            .fetch(settings.role_ids.verified)
-            .catch(() => null)
+              .fetch(settings.role_ids.verified)
+              .catch(() => null)
           : null;
 
         if (!unverifiedRole || !verifiedRole) {
@@ -543,7 +543,7 @@ class SnusTalkBot {
             content: "An error occurred while processing your request.",
             flags: 64,
           })
-          .catch(() => { });
+          .catch(() => {});
       }
 
       this.client.emit("interactionError", interaction, error);

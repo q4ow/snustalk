@@ -8,8 +8,7 @@ export function setupLoggingEvents(client) {
 
   logger
     .initialize()
-    .then(() => {
-    })
+    .then(() => {})
     .catch((error) => {
       console.error("Failed to initialize logger:", error);
     });
@@ -451,7 +450,7 @@ export function setupLoggingEvents(client) {
         files: attachments.map((att) => ({
           name: att.name,
           url: att.proxyURL || att.url,
-          contentType: att.contentType
+          contentType: att.contentType,
         })),
         messageContent: message.content,
         message,

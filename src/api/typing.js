@@ -77,6 +77,5 @@ function calculateWPM(rawText, typedText, duration) {
 
 export function startTypingApi() {
   const port = process.env.TYPING_API_PORT || 3001;
-  app.listen(port, () => {
-  });
+  app.listen(port, () => {});
 }

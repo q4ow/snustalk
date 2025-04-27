@@ -1,11 +1,11 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import pg from 'pg';
+import pg from "pg";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { logger } from './logger.js';
+import { logger } from "./logger.js";
 
 const { Pool } = pg;
 
@@ -20,8 +20,8 @@ const dbPool = new Pool({
   database: process.env.DB_NAME,
 });
 
-dbPool.on('error', (err) => {
-  logger.error('Unexpected database error:', err);
+dbPool.on("error", (err) => {
+  logger.error("Unexpected database error:", err);
 });
 
 const initDb = async () => {
@@ -48,11 +48,11 @@ export { dbPool };
 export const db = {
   async healthCheck() {
     try {
-      await dbPool.query('SELECT NOW()');
-      logger.debug('Database health check passed');
+      await dbPool.query("SELECT NOW()");
+      logger.debug("Database health check passed");
       return true;
     } catch (error) {
-      logger.error('Database health check failed:', error);
+      logger.error("Database health check failed:", error);
       return false;
     }
   },
@@ -60,7 +60,7 @@ export const db = {
   async getGuildSettings(guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM guild_settings WHERE guild_id = $1',
+        "SELECT * FROM guild_settings WHERE guild_id = $1",
         [guildId],
       );
       return result.rows[0] || {};
@@ -103,7 +103,10 @@ export const db = {
       const settings = await this.getGuildSettings(guildId);
       return settings.role_ids?.[roleType];
     } catch (error) {
-      logger.error(`Error getting ${roleType} role ID for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting ${roleType} role ID for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -113,7 +116,10 @@ export const db = {
       const settings = await this.getGuildSettings(guildId);
       return settings.channel_ids?.[channelType];
     } catch (error) {
-      logger.error(`Error getting ${channelType} channel ID for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting ${channelType} channel ID for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -121,12 +127,12 @@ export const db = {
   async verifyApiKey(apiKey) {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM api_keys WHERE key = $1 AND revoked = false',
+        "SELECT * FROM api_keys WHERE key = $1 AND revoked = false",
         [apiKey],
       );
       return result.rows[0];
     } catch (error) {
-      logger.error('Error verifying API key:', error);
+      logger.error("Error verifying API key:", error);
       throw error;
     }
   },
@@ -135,19 +141,22 @@ export const db = {
     try {
       if (logType) {
         const result = await dbPool.query(
-          'SELECT * FROM logging_settings WHERE guild_id = $1 AND log_type = $2',
+          "SELECT * FROM logging_settings WHERE guild_id = $1 AND log_type = $2",
           [guildId, logType],
         );
         return result.rows[0];
       } else {
         const result = await dbPool.query(
-          'SELECT * FROM logging_settings WHERE guild_id = $1',
+          "SELECT * FROM logging_settings WHERE guild_id = $1",
           [guildId],
         );
         return result.rows;
       }
     } catch (error) {
-      logger.error(`Error getting logging settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -175,7 +184,10 @@ export const db = {
       );
       logger.info(`Updated ${logType} logging settings for guild ${guildId}`);
     } catch (error) {
-      logger.error(`Error updating logging settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error updating logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -183,12 +195,15 @@ export const db = {
   async deleteLoggingSettings(guildId, logType) {
     try {
       await dbPool.query(
-        'DELETE FROM logging_settings WHERE guild_id = $1 AND log_type = $2',
+        "DELETE FROM logging_settings WHERE guild_id = $1 AND log_type = $2",
         [guildId, logType],
       );
       logger.info(`Deleted ${logType} logging settings for guild ${guildId}`);
     } catch (error) {
-      logger.error(`Error deleting logging settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error deleting logging settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -224,7 +239,10 @@ export const db = {
       );
       logger.info(`Updated automod settings for guild ${guildId}`);
     } catch (error) {
-      logger.error(`Error saving automod settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error saving automod settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -232,25 +250,30 @@ export const db = {
   async getAutomodSettings(guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT settings FROM automod_settings WHERE guild_id = $1',
+        "SELECT settings FROM automod_settings WHERE guild_id = $1",
         [guildId],
       );
       const settings = result.rows[0]?.settings;
-      return settings || {
-        enabled: false,
-        filters: {
-          spam: {
-            enabled: true,
-            maxMessages: 5,
-            timeWindow: 5000,
-            action: "timeout",
-            duration: 300000,
-            whitelistRoles: []
+      return (
+        settings || {
+          enabled: false,
+          filters: {
+            spam: {
+              enabled: true,
+              maxMessages: 5,
+              timeWindow: 5000,
+              action: "timeout",
+              duration: 300000,
+              whitelistRoles: [],
+            },
           },
         }
-      };
+      );
     } catch (error) {
-      logger.error(`Error getting automod settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting automod settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -269,7 +292,9 @@ export const db = {
           incident.affectedUsers,
         ],
       );
-      logger.warn(`Raid incident logged for guild ${guildId}: ${incident.type}`);
+      logger.warn(
+        `Raid incident logged for guild ${guildId}: ${incident.type}`,
+      );
     } catch (error) {
       logger.error(`Error logging raid incident for guild ${guildId}:`, error);
       throw error;
@@ -279,11 +304,11 @@ export const db = {
   async getEndedGiveaways() {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM giveaways WHERE ends_at <= NOW() AND ended = FALSE'
+        "SELECT * FROM giveaways WHERE ends_at <= NOW() AND ended = FALSE",
       );
       return result.rows;
     } catch (error) {
-      logger.error('Error getting ended giveaways:', error);
+      logger.error("Error getting ended giveaways:", error);
       throw error;
     }
   },
@@ -291,8 +316,8 @@ export const db = {
   async getGiveaway(id) {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM giveaways WHERE id = $1',
-        [id]
+        "SELECT * FROM giveaways WHERE id = $1",
+        [id],
       );
       return result.rows[0];
     } catch (error) {
@@ -324,12 +349,12 @@ export const db = {
           giveaway.embed_color,
           giveaway.image,
           giveaway.end_message,
-          giveaway.blacklisted_users || []
-        ]
+          giveaway.blacklisted_users || [],
+        ],
       );
       return result.rows[0].id;
     } catch (error) {
-      logger.error('Error creating giveaway:', error);
+      logger.error("Error creating giveaway:", error);
       throw error;
     }
   },
@@ -337,11 +362,14 @@ export const db = {
   async enterGiveaway(giveawayId, userId) {
     try {
       await dbPool.query(
-        'INSERT INTO giveaway_entries (giveaway_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [giveawayId, userId]
+        "INSERT INTO giveaway_entries (giveaway_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [giveawayId, userId],
       );
     } catch (error) {
-      logger.error(`Error entering giveaway ${giveawayId} for user ${userId}:`, error);
+      logger.error(
+        `Error entering giveaway ${giveawayId} for user ${userId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -349,8 +377,8 @@ export const db = {
   async getGiveawayEntries(giveawayId) {
     try {
       const result = await dbPool.query(
-        'SELECT * FROM giveaway_entries WHERE giveaway_id = $1',
-        [giveawayId]
+        "SELECT * FROM giveaway_entries WHERE giveaway_id = $1",
+        [giveawayId],
       );
       return result.rows;
     } catch (error) {
@@ -361,10 +389,9 @@ export const db = {
 
   async endGiveaway(giveawayId) {
     try {
-      await dbPool.query(
-        'UPDATE giveaways SET ended = TRUE WHERE id = $1',
-        [giveawayId]
-      );
+      await dbPool.query("UPDATE giveaways SET ended = TRUE WHERE id = $1", [
+        giveawayId,
+      ]);
     } catch (error) {
       logger.error(`Error ending giveaway ${giveawayId}:`, error);
       throw error;
@@ -374,11 +401,14 @@ export const db = {
   async blacklistUser(giveawayId, userId) {
     try {
       await dbPool.query(
-        'UPDATE giveaways SET blacklisted_users = array_append(blacklisted_users, $2) WHERE id = $1',
-        [giveawayId, userId]
+        "UPDATE giveaways SET blacklisted_users = array_append(blacklisted_users, $2) WHERE id = $1",
+        [giveawayId, userId],
       );
     } catch (error) {
-      logger.error(`Error blacklisting user ${userId} from giveaway ${giveawayId}:`, error);
+      logger.error(
+        `Error blacklisting user ${userId} from giveaway ${giveawayId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -386,8 +416,8 @@ export const db = {
   async getTicketCounter(guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT ticket_counter FROM guild_settings WHERE guild_id = $1',
-        [guildId]
+        "SELECT ticket_counter FROM guild_settings WHERE guild_id = $1",
+        [guildId],
       );
       return result.rows[0]?.ticket_counter || { counter: 0 };
     } catch (error) {
@@ -399,18 +429,23 @@ export const db = {
   async getRaidProtectionSettings(guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT raid_protection FROM guild_settings WHERE guild_id = $1',
-        [guildId]
+        "SELECT raid_protection FROM guild_settings WHERE guild_id = $1",
+        [guildId],
       );
-      return result.rows[0]?.raid_protection || {
-        enabled: false,
-        joinThreshold: 10,
-        joinTimeWindow: 10000,
-        action: 'kick',
-        logChannel: null
-      };
+      return (
+        result.rows[0]?.raid_protection || {
+          enabled: false,
+          joinThreshold: 10,
+          joinTimeWindow: 10000,
+          action: "kick",
+          logChannel: null,
+        }
+      );
     } catch (error) {
-      logger.error(`Error getting raid protection settings for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting raid protection settings for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -418,7 +453,7 @@ export const db = {
   async getExternalLinks(guildId) {
     try {
       const result = await dbPool.query(
-        'SELECT external_links FROM guild_settings WHERE guild_id = $1',
+        "SELECT external_links FROM guild_settings WHERE guild_id = $1",
         [guildId],
       );
       return result.rows[0]?.external_links || {};
@@ -433,7 +468,10 @@ export const db = {
       const links = await this.getExternalLinks(guildId);
       return links[linkType];
     } catch (error) {
-      logger.error(`Error getting ${linkType} link for guild ${guildId}:`, error);
+      logger.error(
+        `Error getting ${linkType} link for guild ${guildId}:`,
+        error,
+      );
       return null;
     }
   },
@@ -449,7 +487,10 @@ export const db = {
       );
       logger.info(`Updated external links for guild ${guildId}`);
     } catch (error) {
-      logger.error(`Error updating external links for guild ${guildId}:`, error);
+      logger.error(
+        `Error updating external links for guild ${guildId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -463,7 +504,7 @@ export const db = {
       );
 
       await dbPool.query(
-        'DELETE FROM join_events WHERE timestamp < NOW() - INTERVAL \'1 hour\'',
+        "DELETE FROM join_events WHERE timestamp < NOW() - INTERVAL '1 hour'",
       );
 
       const result = await dbPool.query(
@@ -501,7 +542,7 @@ export const db = {
   async cleanOldJoinData(guildId) {
     try {
       await dbPool.query(
-        'DELETE FROM join_events WHERE guild_id = $1 AND timestamp < NOW() - INTERVAL \'1 day\'',
+        "DELETE FROM join_events WHERE guild_id = $1 AND timestamp < NOW() - INTERVAL '1 day'",
         [guildId],
       );
     } catch (error) {

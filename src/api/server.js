@@ -1,20 +1,28 @@
 import express from "express";
 import cors from "cors";
 import { db } from "../utils/database.js";
-import { logger } from '../utils/logger.js';
-import { requestLogger, errorLogger } from '../utils/logMiddleware.js';
-import { config } from '../config.js';
+import { logger } from "../utils/logger.js";
+import { requestLogger, errorLogger } from "../utils/logMiddleware.js";
+import { config } from "../config.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors(config.api.cors));
 
-app.use(requestLogger({
-  excludePaths: ['/health'],
-  logBody: true,
-  maskFields: ['password', 'token', 'apiKey', 'authorization', 'discord_token']
-}));
+app.use(
+  requestLogger({
+    excludePaths: ["/health"],
+    logBody: true,
+    maskFields: [
+      "password",
+      "token",
+      "apiKey",
+      "authorization",
+      "discord_token",
+    ],
+  }),
+);
 
 async function authenticate(req, res, next) {
   const apiKey = req.headers.authorization?.replace("Bearer ", "");
@@ -303,14 +311,14 @@ export function startApiServer(client, port = process.env.API_PORT || 3090) {
     logger.info(`API Server running on port ${port}`);
   });
 
-  server.on('error', (error) => {
-    logger.error('API Server error:', error);
+  server.on("error", (error) => {
+    logger.error("API Server error:", error);
   });
 
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down API server...');
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down API server...");
     server.close(() => {
-      logger.info('API Server closed');
+      logger.info("API Server closed");
     });
   });
 
