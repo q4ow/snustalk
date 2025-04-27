@@ -558,14 +558,15 @@ export const db = {
 
   async createReactionRoles(messageId, channelId, rolesData) {
     try {
+      const jsonData = JSON.stringify(rolesData);
       await dbPool.query(
         `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
-         VALUES ($1, $2, $3)
+         VALUES ($1, $2, $3::jsonb)
          ON CONFLICT (message_id) 
          DO UPDATE SET 
-           roles_data = $3,
+           roles_data = $3::jsonb,
            channel_id = $2`,
-        [messageId, channelId, rolesData],
+        [messageId, channelId, jsonData],
       );
       logger.info(`Created/updated reaction roles for message ${messageId}`);
     } catch (error) {
@@ -580,14 +581,16 @@ export const db = {
   async getReactionRole(messageId, roleId) {
     try {
       const result = await dbPool.query(
-        "SELECT roles_data FROM reaction_roles WHERE message_id = $1",
+        "SELECT roles_data::text FROM reaction_roles WHERE message_id = $1",
         [messageId],
       );
 
       if (!result.rows[0]) return null;
 
       const roles = JSON.parse(result.rows[0].roles_data);
-      return roles.find((role) => role.id === roleId) || null;
+      return Array.isArray(roles)
+        ? roles.find((role) => role.id === roleId)
+        : null;
     } catch (error) {
       logger.error(
         `Error getting reaction role for message ${messageId}:`,
