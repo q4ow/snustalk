@@ -26,12 +26,18 @@ dbPool.on("error", (err) => {
 
 const initDb = async () => {
   try {
-    const sqlPath = path.join(__dirname, "sql", "session-table.sql");
-    if (!fs.existsSync(sqlPath)) {
-      throw new Error(`SQL file not found at ${sqlPath}`);
+    const sqlFiles = [
+      path.join(__dirname, "sql", "session-table.sql"),
+      path.join(__dirname, "sql", "reaction-roles.sql")
+    ];
+
+    for (const sqlPath of sqlFiles) {
+      if (!fs.existsSync(sqlPath)) {
+        throw new Error(`SQL file not found at ${sqlPath}`);
+      }
+      await dbPool.query(fs.readFileSync(sqlPath, "utf8"));
     }
 
-    await dbPool.query(fs.readFileSync(sqlPath, "utf8"));
     logger.info("✅ Database tables initialized");
   } catch (error) {
     logger.error("❌ Database initialization error:", error);
@@ -549,4 +555,39 @@ export const db = {
       logger.error(`Error cleaning old join data for guild ${guildId}:`, error);
     }
   },
+
+  async createReactionRoles(messageId, channelId, rolesData) {
+    try {
+      await dbPool.query(
+        `INSERT INTO reaction_roles (message_id, channel_id, roles_data)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (message_id) 
+         DO UPDATE SET 
+           roles_data = $3,
+           updated_at = CURRENT_TIMESTAMP`,
+        [messageId, channelId, rolesData]
+      );
+      logger.info(`Created/updated reaction roles for message ${messageId}`);
+    } catch (error) {
+      logger.error(`Error creating reaction roles for message ${messageId}:`, error);
+      throw error;
+    }
+  },
+
+  async getReactionRole(messageId, roleId) {
+    try {
+      const result = await dbPool.query(
+        "SELECT roles_data FROM reaction_roles WHERE message_id = $1",
+        [messageId]
+      );
+
+      if (!result.rows[0]) return null;
+
+      const roles = JSON.parse(result.rows[0].roles_data);
+      return roles.find(role => role.id === roleId) || null;
+    } catch (error) {
+      logger.error(`Error getting reaction role for message ${messageId}:`, error);
+      throw error;
+    }
+  }
 };
