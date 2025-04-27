@@ -27,8 +27,14 @@ export async function createReactionRoles(channel, options) {
     const button = new ButtonBuilder()
       .setCustomId(`role_${role.id}`)
       .setLabel(role.label || role.name)
-      .setStyle(role.style ? ButtonStyle[role.style] : ButtonStyle.Primary)
-      .setEmoji(role.emoji || null);
+      .setStyle(role.style ? ButtonStyle[role.style] : ButtonStyle.Primary);
+
+    if (role.emoji) {
+      const cleanEmoji = role.emoji.trim();
+      if (cleanEmoji) {
+        button.setEmoji(cleanEmoji);
+      }
+    }
 
     currentRow.push(button);
   }

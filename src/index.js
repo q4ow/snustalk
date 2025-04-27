@@ -26,7 +26,6 @@ import {
 } from "./utils/commands.js";
 import { setupLoggingEvents } from "./handlers/eventHandler.js";
 import { handleMessage as handleAutomod } from "./handlers/automodHandler.js";
-import { startTypingApi } from "./api/typing.js";
 import { startApiServer } from "./api/server.js";
 import { GiveawayHandler } from "./handlers/giveawayHandler.js";
 import { db } from "./utils/database.js";
@@ -234,7 +233,6 @@ class SnusTalkBot {
 
   async initializeBot() {
     try {
-      startTypingApi();
       startApiServer(this.client);
       logger.info("API servers initialized");
 
