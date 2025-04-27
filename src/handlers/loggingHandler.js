@@ -788,6 +788,18 @@ class LogHandler {
         value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
       },
     );
+
+    const mediaFile = data.files.find(f =>
+      f.url.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)
+    );
+    if (mediaFile) {
+      if (mediaFile.url.match(/\.(mp4|webm|mov)$/i)) {
+        embed.setVideo(mediaFile.url);
+      } else {
+        embed.setImage(mediaFile.url);
+      }
+    }
+
     if (data.messageContent) {
       embed.addFields({ name: "Message Content", value: data.messageContent });
     }
