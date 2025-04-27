@@ -777,28 +777,32 @@ class LogHandler {
 
   formatFileLog(embed, data) {
     embed.setTitle("📁 File Uploaded").addFields(
-      { name: "User", value: `${data.user}` },
-      { name: "Channel", value: `${data.channel}` },
+      { name: "User", value: `${data.user}`, inline: true },
+      { name: "Channel", value: `${data.channel}`, inline: true },
       {
         name: "Filename(s)",
         value: data.files.map((f) => f.name).join(", "),
-      },
-      {
-        name: "File URL(s)",
-        value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
-      },
+      }
     );
 
     const mediaFile = data.files.find(f =>
-      f.url.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)
+      f.contentType?.startsWith('image/') ||
+      f.contentType?.startsWith('video/') ||
+      f.url?.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i)
     );
+
     if (mediaFile) {
-      if (mediaFile.url.match(/\.(mp4|webm|mov)$/i)) {
+      if (mediaFile.contentType?.startsWith('video/') || mediaFile.url?.match(/\.(mp4|webm|mov)$/i)) {
         embed.setVideo(mediaFile.url);
       } else {
         embed.setImage(mediaFile.url);
       }
     }
+
+    embed.addFields({
+      name: "File URL(s)",
+      value: data.files.map((f) => `[${f.name}](${f.url})`).join("\n"),
+    });
 
     if (data.messageContent) {
       embed.addFields({ name: "Message Content", value: data.messageContent });

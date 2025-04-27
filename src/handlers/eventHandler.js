@@ -443,13 +443,15 @@ export function setupLoggingEvents(client) {
       message.attachments.size > 0 &&
       !message.author.bot
     ) {
+      const attachments = [...message.attachments.values()];
       logger.createLog("FILE", {
-        action: "UPLOAD",
+        action: "FILE",
         user: message.author,
         channel: message.channel,
-        files: message.attachments.map((att) => ({
+        files: attachments.map((att) => ({
           name: att.name,
-          url: att.url,
+          url: att.proxyURL || att.url,
+          contentType: att.contentType
         })),
         messageContent: message.content,
         message,
