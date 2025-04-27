@@ -90,7 +90,7 @@ class SnusTalkBot {
     });
     this.healthCheckInterval = null;
     this.metricsInterval = null;
-    this.version = SNUSSY_VERSION || "1.2.4";
+    this.version = SNUSSY_VERSION || "1.2.5";
     this.startTime = Date.now();
     this.metrics = {
       commands: 0,

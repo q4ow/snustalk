@@ -117,11 +117,6 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
   sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS mod_actions (
-  guild_id TEXT,
-  action JSONB
-);
-
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   discord_id TEXT UNIQUE,

@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { logger } from "./logger.js";
+import { MOD_ACTIONS } from "./moderation.js";
 
 const { Pool } = pg;
 
@@ -29,6 +30,7 @@ const initDb = async () => {
     const sqlFiles = [
       path.join(__dirname, "sql", "session-table.sql"),
       path.join(__dirname, "sql", "reaction-roles.sql"),
+      path.join(__dirname, "sql", "mod-actions.sql"),
     ];
 
     for (const sqlPath of sqlFiles) {
@@ -597,6 +599,133 @@ export const db = {
         error,
       );
       throw error;
+    }
+  },
+
+  async addModAction(guildId, action) {
+    try {
+      const result = await dbPool.query(
+        `INSERT INTO mod_actions 
+         (guild_id, target_id, moderator_id, action_type, reason, duration, expires_at, requires_acknowledgment, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
+        [
+          guildId,
+          action.targetId,
+          action.moderatorId,
+          action.type,
+          action.reason,
+          action.duration || null,
+          action.duration ? new Date(Date.now() + action.duration) : null,
+          action.type === MOD_ACTIONS.BAN ||
+            (action.duration && action.duration > 24 * 60 * 60 * 1000),
+          action.metadata || {},
+        ],
+      );
+      return result.rows[0].id;
+    } catch (error) {
+      logger.error(`Error adding mod action for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async getModActions(guildId, options = {}) {
+    try {
+      let query = "SELECT * FROM mod_actions WHERE guild_id = $1";
+      const params = [guildId];
+      let paramCount = 1;
+
+      if (options.targetId) {
+        paramCount++;
+        query += ` AND target_id = $${paramCount}`;
+        params.push(options.targetId);
+      }
+
+      if (options.actionType) {
+        paramCount++;
+        query += ` AND action_type = $${paramCount}`;
+        params.push(options.actionType);
+      }
+
+      if (options.activeOnly) {
+        query += " AND is_active = true";
+      }
+
+      query += " ORDER BY created_at DESC";
+
+      if (options.limit) {
+        paramCount++;
+        query += ` LIMIT $${paramCount}`;
+        params.push(options.limit);
+      }
+
+      const result = await dbPool.query(query, params);
+      return result.rows;
+    } catch (error) {
+      logger.error(`Error getting mod actions for guild ${guildId}:`, error);
+      throw error;
+    }
+  },
+
+  async expireModAction(guildId, actionId) {
+    try {
+      await dbPool.query(
+        "UPDATE mod_actions SET is_active = false WHERE guild_id = $1 AND id = $2",
+        [guildId, actionId],
+      );
+    } catch (error) {
+      logger.error(`Error expiring mod action ${actionId}:`, error);
+      throw error;
+    }
+  },
+
+  async acknowledgeModAction(guildId, actionId) {
+    try {
+      await dbPool.query(
+        "UPDATE mod_actions SET acknowledged_at = CURRENT_TIMESTAMP WHERE guild_id = $1 AND id = $2",
+        [guildId, actionId],
+      );
+    } catch (error) {
+      logger.error(`Error acknowledging mod action ${actionId}:`, error);
+      throw error;
+    }
+  },
+
+  async updateAppealStatus(guildId, actionId, status) {
+    try {
+      await dbPool.query(
+        "UPDATE mod_actions SET appeal_status = $3 WHERE guild_id = $1 AND id = $2",
+        [guildId, actionId, status],
+      );
+    } catch (error) {
+      logger.error(
+        `Error updating appeal status for action ${actionId}:`,
+        error,
+      );
+      throw error;
+    }
+  },
+
+  async getRateLimitedActions(
+    guildId,
+    moderatorId,
+    timeWindow = 5 * 60 * 1000,
+  ) {
+    try {
+      const result = await dbPool.query(
+        `SELECT COUNT(*) as count FROM mod_actions 
+         WHERE guild_id = $1 
+         AND moderator_id = $2 
+         AND created_at > NOW() - INTERVAL '1 second' * $3`,
+        [guildId, moderatorId, timeWindow / 1000],
+      );
+      return parseInt(result.rows[0].count);
+    } catch (error) {
+      logger.error(
+        `Error checking rate limit for moderator ${moderatorId}:`,
+        error,
+      );
+      return 0;
     }
   },
 };

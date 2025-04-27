@@ -6,6 +6,31 @@ import {
   getActionColor,
 } from "../../utils/moderation.js";
 
+const RATE_LIMITS = {
+  ACTIONS_PER_WINDOW: 10,
+  TIME_WINDOW_MS: 5 * 60 * 1000,
+};
+
+const APPEAL_STATUS = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  DENIED: "denied",
+};
+
+async function checkRateLimit(guild, moderator) {
+  const actionsCount = await db.getRateLimitedActions(
+    guild.id,
+    moderator.id,
+    RATE_LIMITS.TIME_WINDOW_MS,
+  );
+
+  if (actionsCount >= RATE_LIMITS.ACTIONS_PER_WINDOW) {
+    throw new Error(
+      `You are being rate limited. Please wait before taking more moderation actions.`,
+    );
+  }
+}
+
 async function sendModActionDM(guild, target, action) {
   try {
     const embed = new EmbedBuilder()
@@ -32,6 +57,18 @@ async function sendModActionDM(guild, target, action) {
       });
     }
 
+    if (
+      action.type === MOD_ACTIONS.BAN ||
+      (action.duration && action.duration > 24 * 60 * 60 * 1000)
+    ) {
+      embed.addFields({
+        name: "📝 Appeal Information",
+        value:
+          "You can appeal this action by contacting the server moderators. Include your case ID in your appeal: " +
+          action.id,
+      });
+    }
+
     let consequenceText = "";
     switch (action.type) {
       case MOD_ACTIONS.WARN:
@@ -44,7 +81,7 @@ async function sendModActionDM(guild, target, action) {
         break;
       case MOD_ACTIONS.BAN:
         consequenceText =
-          "This is a permanent ban from the server. If you believe this was in error, you may appeal this decision.";
+          "This is a permanent ban from the server. If you believe this was in error, you may appeal this decision using the information above.";
         break;
       case MOD_ACTIONS.TIMEOUT:
         consequenceText =
@@ -67,16 +104,18 @@ async function sendModActionDM(guild, target, action) {
 
     const user = await guild.client.users.fetch(action.targetId);
     await user.send({ embeds: [embed] });
+    return true;
   } catch (error) {
     console.error("Failed to send moderation DM:", error);
+    return false;
   }
 }
 
 export async function warnUser(guild, moderator, target, reason) {
+  await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
   const warning = {
-    id: Date.now().toString(),
     type: MOD_ACTIONS.WARN,
     moderatorId: moderator.id,
     targetId: target.id,
@@ -84,23 +123,13 @@ export async function warnUser(guild, moderator, target, reason) {
     timestamp: new Date().toISOString(),
   };
 
-  await db.addModAction(guild.id, warning);
+  warning.id = await db.addModAction(guild.id, warning);
   await sendModActionDM(guild, target, warning);
   return warning;
 }
 
 export async function removeWarning(guildId, moderator, warningId) {
-  const removed = await db.removeModAction(
-    guildId,
-    warningId,
-    MOD_ACTIONS.WARN,
-  );
-  if (!removed) {
-    throw new Error(
-      "Warning not found or you do not have permission to remove it.",
-    );
-  }
-
+  const removed = await db.expireModAction(guildId, warningId);
   return {
     id: warningId,
     type: "warning_removed",
@@ -110,10 +139,10 @@ export async function removeWarning(guildId, moderator, warningId) {
 }
 
 export async function kickUser(guild, moderator, target, reason) {
+  await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
   const kick = {
-    id: Date.now().toString(),
     type: MOD_ACTIONS.KICK,
     moderatorId: moderator.id,
     targetId: target.id,
@@ -121,10 +150,11 @@ export async function kickUser(guild, moderator, target, reason) {
     timestamp: new Date().toISOString(),
   };
 
-  await sendModActionDM(guild, target, kick);
+  kick.id = await db.addModAction(guild.id, kick);
+  const dmSent = await sendModActionDM(guild, target, kick);
   await target.kick(reason);
-  await db.addModAction(guild.id, kick);
-  return kick;
+
+  return { ...kick, dmSent };
 }
 
 export async function banUser(
@@ -134,29 +164,30 @@ export async function banUser(
   reason,
   deleteDays = 0,
 ) {
+  await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
   const ban = {
-    id: Date.now().toString(),
     type: MOD_ACTIONS.BAN,
     moderatorId: moderator.id,
     targetId: target.id,
     reason,
-    deleteDays,
     timestamp: new Date().toISOString(),
+    metadata: { deleteDays },
   };
 
-  await sendModActionDM(guild, target, ban);
+  ban.id = await db.addModAction(guild.id, ban);
+  const dmSent = await sendModActionDM(guild, target, ban);
   await guild.members.ban(target, { deleteMessageDays: deleteDays, reason });
-  await db.addModAction(guild.id, ban);
-  return ban;
+
+  return { ...ban, dmSent };
 }
 
 export async function timeoutUser(guild, moderator, target, duration, reason) {
+  await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
   const timeout = {
-    id: Date.now().toString(),
     type: MOD_ACTIONS.TIMEOUT,
     moderatorId: moderator.id,
     targetId: target.id,
@@ -165,17 +196,18 @@ export async function timeoutUser(guild, moderator, target, duration, reason) {
     timestamp: new Date().toISOString(),
   };
 
+  timeout.id = await db.addModAction(guild.id, timeout);
+  const dmSent = await sendModActionDM(guild, target, timeout);
   await target.timeout(duration, reason);
-  await db.addModAction(guild.id, timeout);
-  await sendModActionDM(guild, target, timeout);
-  return timeout;
+
+  return { ...timeout, dmSent };
 }
 
 export async function removeTimeout(guild, moderator, target, reason) {
+  await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
   const untimeout = {
-    id: Date.now().toString(),
     type: MOD_ACTIONS.REMOVE_TIMEOUT,
     moderatorId: moderator.id,
     targetId: target.id,
@@ -183,25 +215,47 @@ export async function removeTimeout(guild, moderator, target, reason) {
     timestamp: new Date().toISOString(),
   };
 
+  untimeout.id = await db.addModAction(guild.id, untimeout);
+  const dmSent = await sendModActionDM(guild, target, untimeout);
   await target.timeout(null, reason);
-  await db.addModAction(guild.id, untimeout);
-  await sendModActionDM(guild, target, untimeout);
-  return untimeout;
+
+  return { ...untimeout, dmSent };
 }
 
 export async function getUserWarnings(guildId, userId) {
-  const actions = await db.getModActions(guildId);
-  return actions.filter(
-    (action) => action.targetId === userId && action.type === MOD_ACTIONS.WARN,
-  );
+  return await db.getModActions(guildId, {
+    targetId: userId,
+    actionType: MOD_ACTIONS.WARN,
+    activeOnly: true,
+  });
 }
 
 export async function getUserModActions(guildId, userId) {
-  const actions = await db.getModActions(guildId);
-  return actions.filter((action) => action.targetId === userId);
+  return await db.getModActions(guildId, { targetId: userId });
 }
 
-export function createModActionEmbed(action) {
+export async function handleAppeal(guild, actionId, status, reason) {
+  if (!Object.values(APPEAL_STATUS).includes(status)) {
+    throw new Error("Invalid appeal status");
+  }
+
+  await db.updateAppealStatus(guild.id, actionId, status);
+  const action = await db.getModActions(guild.id, { actionId });
+
+  if (action && status === APPEAL_STATUS.APPROVED) {
+    const target = await guild.client.users.fetch(action.targetId);
+    if (action.type === MOD_ACTIONS.BAN) {
+      await guild.members.unban(target.id, `Appeal approved: ${reason}`);
+    } else if (action.type === MOD_ACTIONS.TIMEOUT) {
+      const member = await guild.members.fetch(target.id);
+      await member.timeout(null, `Appeal approved: ${reason}`);
+    }
+  }
+
+  return { actionId, status, reason };
+}
+
+export function createModActionEmbed(action, guild) {
   const embed = new EmbedBuilder()
     .setTitle(`Moderation Action - ${action.type.toUpperCase()}`)
     .setColor(getActionColor(action.type))
@@ -220,6 +274,30 @@ export function createModActionEmbed(action) {
     embed.addFields({
       name: "Duration",
       value: formatDuration(action.duration),
+      inline: true,
+    });
+  }
+
+  if (action.id) {
+    embed.addFields({
+      name: "Case ID",
+      value: action.id.toString(),
+      inline: true,
+    });
+  }
+
+  if (!action.dmSent) {
+    embed.addFields({
+      name: "⚠️ Notice",
+      value: "Unable to send DM to user",
+      inline: true,
+    });
+  }
+
+  if (action.appeal_status) {
+    embed.addFields({
+      name: "Appeal Status",
+      value: action.appeal_status.toUpperCase(),
       inline: true,
     });
   }

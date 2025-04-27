@@ -9,6 +9,7 @@ import {
   getUserModActions,
   createModActionEmbed,
   removeWarning,
+  handleAppeal,
 } from "./handler.js";
 
 function parseDuration(durationStr) {
@@ -41,6 +42,7 @@ function parseDuration(durationStr) {
 }
 
 export async function handleWarnCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
   const userToWarn = interaction.options.getUser("user");
   const warnReason = interaction.options.getString("reason");
   const warnMember = await interaction.guild.members.fetch(userToWarn.id);
@@ -49,24 +51,35 @@ export async function handleWarnCommand(interaction) {
     warnMember.roles.highest.position >=
     interaction.member.roles.highest.position
   ) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "❌ You cannot warn this user due to role hierarchy.",
-      flags: 64,
     });
     return;
   }
 
-  const warning = await warnUser(
-    interaction.guild,
-    interaction.user,
-    warnMember,
-    warnReason,
-  );
+  try {
+    const warning = await warnUser(
+      interaction.guild,
+      interaction.user,
+      warnMember,
+      warnReason,
+    );
 
-  await interaction.reply({
-    embeds: [createModActionEmbed(warning, interaction.guild)],
-    flags: 64,
-  });
+    await interaction.editReply({
+      embeds: [createModActionEmbed(warning, interaction.guild)],
+    });
+  } catch (error) {
+    if (error.message.includes("rate limited")) {
+      await interaction.editReply({
+        content: "❌ " + error.message,
+      });
+    } else {
+      await interaction.editReply({
+        content: "❌ Failed to warn user. Please try again.",
+      });
+      console.error("Warn error:", error);
+    }
+  }
 }
 
 export async function handleRemoveWarningCommand(interaction) {
@@ -102,6 +115,7 @@ export async function handleRemoveWarningCommand(interaction) {
 }
 
 export async function handleKickCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
   const userToKick = interaction.options.getUser("user");
   const kickReason = interaction.options.getString("reason");
   const kickMember = await interaction.guild.members.fetch(userToKick.id);
@@ -110,27 +124,39 @@ export async function handleKickCommand(interaction) {
     kickMember.roles.highest.position >=
     interaction.member.roles.highest.position
   ) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "❌ You cannot kick this user due to role hierarchy.",
-      flags: 64,
     });
     return;
   }
 
-  const kick = await kickUser(
-    interaction.guild,
-    interaction.user,
-    kickMember,
-    kickReason,
-  );
+  try {
+    const kick = await kickUser(
+      interaction.guild,
+      interaction.user,
+      kickMember,
+      kickReason,
+    );
 
-  await interaction.reply({
-    embeds: [createModActionEmbed(kick, interaction.guild)],
-    flags: 64,
-  });
+    await interaction.editReply({
+      embeds: [createModActionEmbed(kick, interaction.guild)],
+    });
+  } catch (error) {
+    if (error.message.includes("rate limited")) {
+      await interaction.editReply({
+        content: "❌ " + error.message,
+      });
+    } else {
+      await interaction.editReply({
+        content: "❌ Failed to kick user. Please try again.",
+      });
+      console.error("Kick error:", error);
+    }
+  }
 }
 
 export async function handleBanCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
   const userToBan = interaction.options.getUser("user");
   const banReason = interaction.options.getString("reason");
   const deleteDays = interaction.options.getInteger("delete_days") || 0;
@@ -140,28 +166,40 @@ export async function handleBanCommand(interaction) {
     banMember.roles.highest.position >=
     interaction.member.roles.highest.position
   ) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "❌ You cannot ban this user due to role hierarchy.",
-      flags: 64,
     });
     return;
   }
 
-  const ban = await banUser(
-    interaction.guild,
-    interaction.user,
-    banMember,
-    banReason,
-    deleteDays,
-  );
+  try {
+    const ban = await banUser(
+      interaction.guild,
+      interaction.user,
+      banMember,
+      banReason,
+      deleteDays,
+    );
 
-  await interaction.reply({
-    embeds: [createModActionEmbed(ban, interaction.guild)],
-    flags: 64,
-  });
+    await interaction.editReply({
+      embeds: [createModActionEmbed(ban, interaction.guild)],
+    });
+  } catch (error) {
+    if (error.message.includes("rate limited")) {
+      await interaction.editReply({
+        content: "❌ " + error.message,
+      });
+    } else {
+      await interaction.editReply({
+        content: "❌ Failed to ban user. Please try again.",
+      });
+      console.error("Ban error:", error);
+    }
+  }
 }
 
 export async function handleTimeoutCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
   try {
     const targetTimeoutUser = interaction.options.getUser("user");
     const timeoutReason = interaction.options.getString("reason");
@@ -176,7 +214,6 @@ export async function handleTimeoutCommand(interaction) {
     ) {
       await interaction.editReply({
         content: "❌ You cannot timeout this user due to role hierarchy.",
-        flags: 64,
       });
       return;
     }
@@ -185,23 +222,37 @@ export async function handleTimeoutCommand(interaction) {
     if (!duration) {
       await interaction.editReply({
         content: "❌ Invalid duration format. Use format like: 1h, 1d, 30m",
-        flags: 64,
       });
       return;
     }
 
-    const timeout = await timeoutUser(
-      interaction.guild,
-      interaction.user,
-      timeoutMember,
-      duration,
-      timeoutReason,
-    );
+    try {
+      const timeout = await timeoutUser(
+        interaction.guild,
+        interaction.user,
+        timeoutMember,
+        duration,
+        timeoutReason,
+      );
 
-    await interaction.editReply({
-      embeds: [createModActionEmbed(timeout, interaction.guild)],
-      flags: 64,
-    });
+      await interaction.editReply({
+        embeds: [createModActionEmbed(timeout, interaction.guild)],
+      });
+    } catch (error) {
+      if (error.message.includes("rate limited")) {
+        await interaction.editReply({
+          content: "❌ " + error.message,
+        });
+      } else {
+        await interaction.editReply({
+          content:
+            error.code === "UND_ERR_CONNECT_TIMEOUT"
+              ? "❌ Connection timeout. Please try again."
+              : "❌ Failed to timeout user. Please try again.",
+        });
+        console.error("Timeout error:", error);
+      }
+    }
   } catch (error) {
     console.error("Error in timeout command:", error);
     await interaction.editReply({
@@ -209,7 +260,6 @@ export async function handleTimeoutCommand(interaction) {
         error.code === "UND_ERR_CONNECT_TIMEOUT"
           ? "❌ Connection timeout. Please try again."
           : "❌ Failed to timeout user. Please try again.",
-      flags: 64,
     });
   }
 }
@@ -229,7 +279,6 @@ export async function handleUntimeoutCommand(interaction) {
       await interaction.editReply({
         content:
           "❌ You cannot remove timeout from this user due to role hierarchy.",
-        flags: 64,
       });
       return;
     }
@@ -243,7 +292,6 @@ export async function handleUntimeoutCommand(interaction) {
 
     await interaction.editReply({
       embeds: [createModActionEmbed(untimeout, interaction.guild)],
-      flags: 64,
     });
   } catch (error) {
     console.error("Error in untimeout command:", error);
@@ -252,7 +300,6 @@ export async function handleUntimeoutCommand(interaction) {
         error.code === "UND_ERR_CONNECT_TIMEOUT"
           ? "❌ Connection timeout. Please try again."
           : "❌ Failed to remove timeout. Please try again.",
-      flags: 64,
     });
   }
 }
@@ -305,4 +352,157 @@ export async function handleModlogsCommand(interaction) {
   }
 
   await interaction.reply({ embeds: [modlogsEmbed], flags: 64 });
+}
+
+export async function handleAppealCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
+  const actionId = interaction.options.getString("case_id");
+  const status = interaction.options.getString("status");
+  const reason = interaction.options.getString("reason");
+
+  try {
+    const result = await handleAppeal(
+      interaction.guild,
+      actionId,
+      status,
+      reason,
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle("Appeal Status Updated")
+      .setColor(
+        status === "approved"
+          ? "#32CD32"
+          : status === "denied"
+            ? "#FF0000"
+            : "#FFA500",
+      )
+      .addFields(
+        { name: "Case ID", value: actionId, inline: true },
+        { name: "Status", value: status.toUpperCase(), inline: true },
+        {
+          name: "Updated By",
+          value: `<@${interaction.user.id}>`,
+          inline: true,
+        },
+        { name: "Reason", value: reason },
+      )
+      .setTimestamp();
+
+    await interaction.editReply({
+      embeds: [embed],
+    });
+  } catch (error) {
+    await interaction.editReply({
+      content: `❌ ${error.message}`,
+    });
+  }
+}
+
+export async function handleBulkActionCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
+  const users = interaction.options.getString("users").split(/,\s*/);
+  const action = interaction.options.getString("action");
+  const reason = interaction.options.getString("reason");
+  const duration =
+    action === "timeout" ? interaction.options.getString("duration") : null;
+
+  const results = {
+    success: [],
+    failed: [],
+  };
+
+  for (const userId of users) {
+    try {
+      const cleanId = userId.replace(/[<@!>]/g, "");
+      const target = await interaction.guild.members.fetch(cleanId);
+
+      switch (action) {
+        case "warn":
+          await warnUser(interaction.guild, interaction.user, target, reason);
+          break;
+        case "kick":
+          await kickUser(interaction.guild, interaction.user, target, reason);
+          break;
+        case "ban":
+          await banUser(interaction.guild, interaction.user, target, reason, 0);
+          break;
+        case "timeout":
+          const parsedDuration = parseDuration(duration);
+          if (!parsedDuration) throw new Error("Invalid duration");
+          await timeoutUser(
+            interaction.guild,
+            interaction.user,
+            target,
+            parsedDuration,
+            reason,
+          );
+          break;
+      }
+      results.success.push(cleanId);
+    } catch (error) {
+      results.failed.push({ id: userId, reason: error.message });
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("Bulk Action Results")
+    .setColor(results.failed.length === 0 ? "#32CD32" : "#FFA500")
+    .addFields(
+      {
+        name: "✅ Successful Actions",
+        value:
+          results.success.length > 0
+            ? results.success.map((id) => `<@${id}>`).join("\n")
+            : "None",
+      },
+      {
+        name: "❌ Failed Actions",
+        value:
+          results.failed.length > 0
+            ? results.failed.map((f) => `<@${f.id}> - ${f.reason}`).join("\n")
+            : "None",
+      },
+    )
+    .setTimestamp();
+
+  await interaction.editReply({
+    embeds: [embed],
+  });
+}
+
+export async function handleActiveTimeoutsCommand(interaction) {
+  await interaction.deferReply({ flags: 64 });
+
+  try {
+    const timeouts = await db.getModActions(interaction.guild.id, {
+      actionType: MOD_ACTIONS.TIMEOUT,
+      activeOnly: true,
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle("Active Timeouts")
+      .setColor("#FFD700")
+      .setDescription(
+        timeouts.length > 0
+          ? timeouts
+              .map(
+                (t) =>
+                  `<@${t.targetId}> - Expires: <t:${Math.floor(
+                    new Date(t.expires_at).getTime() / 1000,
+                  )}:R>\nReason: ${t.reason}`,
+              )
+              .join("\n\n")
+          : "No active timeouts",
+      )
+      .setTimestamp();
+
+    await interaction.editReply({
+      embeds: [embed],
+    });
+  } catch (error) {
+    await interaction.editReply({
+      content: "❌ Failed to fetch active timeouts.",
+    });
+  }
 }

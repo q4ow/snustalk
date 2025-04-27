@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2025-04-27
+
+### Added
+- Enhanced Moderation System
+  - Added persistent mod action logging in database
+  - Added rate limiting (10 actions per 5 minutes per moderator)
+  - Added appeal system for bans and long timeouts
+  - Added acknowledgment requirement for serious actions
+  - Added bulk moderation action support
+  - Added active timeout tracking
+  - Added enhanced DM notifications with appeal info
+
+### Fixed
+- Fixed mod_actions table initialization
+- Fixed unique constraint syntax in mod_actions table
+- Fixed MOD_ACTIONS import in database.js
+- Fixed rate limiting implementation for moderation actions
+
+### Changed
+- Enhanced moderation action tracking with detailed logging
+- Improved moderation DM notifications with more context
+- Added appeal workflow for serious actions
+- Enhanced bulk action support for multiple users
+
 ## [1.2.4] - 2025-04-24
 
 ### Added

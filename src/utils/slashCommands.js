@@ -860,3 +860,202 @@ export const slashCommands = [
     .setName("donate")
     .setDescription("Get links to support the bot through Ko-fi and GitHub"),
 ];
+
+export const moderationCommands = [
+  {
+    name: "warn",
+    description: "Warn a user",
+    options: [
+      {
+        name: "user",
+        description: "The user to warn",
+        type: 6,
+        required: true,
+      },
+      {
+        name: "reason",
+        description: "The reason for the warning",
+        type: 3,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "kick",
+    description: "Kick a user from the server",
+    options: [
+      {
+        name: "user",
+        description: "The user to kick",
+        type: 6,
+        required: true,
+      },
+      {
+        name: "reason",
+        description: "The reason for kicking",
+        type: 3,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "ban",
+    description: "Ban a user from the server",
+    options: [
+      {
+        name: "user",
+        description: "The user to ban",
+        type: 6,
+        required: true,
+      },
+      {
+        name: "reason",
+        description: "The reason for banning",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "delete_days",
+        description: "Number of days of messages to delete",
+        type: 4,
+        required: false,
+        choices: [
+          { name: "None", value: 0 },
+          { name: "24 hours", value: 1 },
+          { name: "3 days", value: 3 },
+          { name: "7 days", value: 7 },
+        ],
+      },
+    ],
+  },
+  {
+    name: "timeout",
+    description: "Timeout a user",
+    options: [
+      {
+        name: "user",
+        description: "The user to timeout",
+        type: 6,
+        required: true,
+      },
+      {
+        name: "duration",
+        description: "Duration (e.g. 1h, 1d, 30m)",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "reason",
+        description: "The reason for the timeout",
+        type: 3,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "warnings",
+    description: "View warnings for a user",
+    options: [
+      {
+        name: "user",
+        description: "The user to check warnings for",
+        type: 6,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "remove_warning",
+    description: "Remove a warning from a user",
+    options: [
+      {
+        name: "id",
+        description: "The ID of the warning to remove",
+        type: 3,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "modlogs",
+    description: "View moderation history for a user",
+    options: [
+      {
+        name: "user",
+        description: "The user to check moderation history for",
+        type: 6,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "bulk_action",
+    description: "Apply a moderation action to multiple users",
+    options: [
+      {
+        name: "users",
+        description: "Comma-separated list of user IDs or mentions",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "action",
+        description: "The action to take",
+        type: 3,
+        required: true,
+        choices: [
+          { name: "Warn", value: "warn" },
+          { name: "Kick", value: "kick" },
+          { name: "Ban", value: "ban" },
+          { name: "Timeout", value: "timeout" },
+        ],
+      },
+      {
+        name: "reason",
+        description: "The reason for the action",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "duration",
+        description: "Duration for timeout (e.g. 1h, 1d, 30m)",
+        type: 3,
+        required: false,
+      },
+    ],
+  },
+  {
+    name: "appeal",
+    description: "Handle an appeal for a moderation action",
+    options: [
+      {
+        name: "case_id",
+        description: "The ID of the moderation case",
+        type: 3,
+        required: true,
+      },
+      {
+        name: "status",
+        description: "The status to set for the appeal",
+        type: 3,
+        required: true,
+        choices: [
+          { name: "Approve", value: "approved" },
+          { name: "Deny", value: "denied" },
+          { name: "Pending", value: "pending" },
+        ],
+      },
+      {
+        name: "reason",
+        description: "The reason for the decision",
+        type: 3,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: "active_timeouts",
+    description: "View all active timeouts in the server",
+    options: [],
+  },
+];
