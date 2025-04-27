@@ -104,13 +104,6 @@ with my code, I'd love to see it so drop me an email or add me on [Discord](http
   - Winner announcement system
   - Entry tracking
 
-- **Typing Game Integration**
-  - Built-in typing speed game
-  - WPM tracking and leaderboards
-  - Personal best tracking
-  - Web-based interface
-  - Real-time score updates
-
 - **API System**
   - RESTful API for bot interaction
   - Secure authentication system
@@ -218,9 +211,6 @@ DB_PORT=                        # Database port
 # Session Configuration
 SESSION_SECRET=                 # Secret for session management
 
-# Game Integration
-TYPING_GAME_URL=                 # URL for the typing game (defaults to https://snus.slop.sh)
-
 # API Configuration
 API_PORT=                        # Port for the API server
 API_HOST=                        # Host for the API server
@@ -283,48 +273,12 @@ Both slash commands and prefix commands are available:
 - `/giveaway reroll` - Rerolls winners for a giveaway
 - `/giveaway blacklist` - Blacklists a user from a giveaway
 - `/giveaway entries` - Lists all entries for a giveaway
-- `/typingscore` - Shows your best typing speed
-- `/typingleaderboard` - Shows typing speed leaderboard
-- `/typinggame` - Get link to the typing game
 - `/dashboard` - Get your API key for dashboard access
 - `/embed` - Create a custom embed message
 
 #### Prefix Commands
-All slash commands are also available as prefix commands using `$`:
-- `$setup-tickets` - Creates the ticket panel
-- `$purge <number>` - Deletes specified number of messages
-- `$resend-verify` - Resends verification embed (DEBUG)
-- `$welcome` - Manually triggers welcome message (DEBUG)
-- `$userinfo [@user]` - Shows detailed information about a user
-- `$serverinfo` - Shows information about the server
-- `$lock [#channel]` - Locks a channel from sending messages
-- `$unlock [#channel]` - Unlocks a previously locked channel
-- `$nickname @user <name>` - Changes a user's nickname
+Only for debug purposes.
 - `$ping` - Shows the bot's latency
-- `$avatar [@user]` - Shows user's avatar
-- `$help` - Displays all commands and their usage
-- `$warn @user [reason]` - Warns a user
-- `$removewarning <id>` - Removes a warning from a user
-- `$kick @user [reason]` - Kicks a user from the server
-- `$ban @user [reason] [delete_days]` - Bans a user from the server
-- `$timeout @user <duration> [reason]` - Timeouts a user
-- `$untimeout @user [reason]` - Removes timeout from a user
-- `$warnings @user` - Views warnings for a user
-- `$modlogs @user` - Views moderation history for a user
-- `$automod toggle <enabled>` - Enable or disable the automod system
-- `$automod logchannel <channel>` - Set the channel for automod logs
-- `$automod exempt <type> <target>` - Add/remove role/channel exemptions
-- `$automod filter <type> <action> <enabled> [settings]` - Configure automod filters
-- `$giveaway create` - Creates a new giveaway
-- `$giveaway end` - Ends an active giveaway
-- `$giveaway reroll` - Rerolls winners for a giveaway
-- `$giveaway blacklist` - Blacklists a user from a giveaway
-- `$giveaway entries` - Lists all entries for a giveaway
-- `$typingscore` - Shows your best typing speed
-- `$typingleaderboard` - Shows typing speed leaderboard
-- `$typinggame` - Get link to the typing game
-- `$dashboard` - Get your API key for dashboard access
-- `$embed` - Create a custom embed message
 
 > **Note**: 
 > - `<>` indicates required parameters
