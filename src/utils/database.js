@@ -28,7 +28,7 @@ const initDb = async () => {
   try {
     const sqlFiles = [
       path.join(__dirname, "sql", "session-table.sql"),
-      path.join(__dirname, "sql", "reaction-roles.sql")
+      path.join(__dirname, "sql", "reaction-roles.sql"),
     ];
 
     for (const sqlPath of sqlFiles) {
@@ -564,12 +564,15 @@ export const db = {
          ON CONFLICT (message_id) 
          DO UPDATE SET 
            roles_data = $3,
-           updated_at = CURRENT_TIMESTAMP`,
-        [messageId, channelId, rolesData]
+           channel_id = $2`,
+        [messageId, channelId, rolesData],
       );
       logger.info(`Created/updated reaction roles for message ${messageId}`);
     } catch (error) {
-      logger.error(`Error creating reaction roles for message ${messageId}:`, error);
+      logger.error(
+        `Error creating reaction roles for message ${messageId}:`,
+        error,
+      );
       throw error;
     }
   },
@@ -578,16 +581,19 @@ export const db = {
     try {
       const result = await dbPool.query(
         "SELECT roles_data FROM reaction_roles WHERE message_id = $1",
-        [messageId]
+        [messageId],
       );
 
       if (!result.rows[0]) return null;
 
       const roles = JSON.parse(result.rows[0].roles_data);
-      return roles.find(role => role.id === roleId) || null;
+      return roles.find((role) => role.id === roleId) || null;
     } catch (error) {
-      logger.error(`Error getting reaction role for message ${messageId}:`, error);
+      logger.error(
+        `Error getting reaction role for message ${messageId}:`,
+        error,
+      );
       throw error;
     }
-  }
+  },
 };
