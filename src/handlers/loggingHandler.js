@@ -53,6 +53,16 @@ class LogHandler {
       return;
     }
 
+    const botId = this.client.user.id;
+    if (
+      data.member?.id === botId ||
+      data.user?.id === botId ||
+      data.message?.author?.id === botId ||
+      data.executor?.id === botId
+    ) {
+      return;
+    }
+
     if (data.member && (await this.hasBotRole(data.member))) {
       return;
     }
