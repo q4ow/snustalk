@@ -26,6 +26,11 @@ class LogHandler {
     this.blacklistedChannels = [];
   }
 
+  truncateContent(str, maxLength = 100) {
+    if (!str) return "";
+    return str.length > maxLength ? str.slice(0, maxLength - 3) + "..." : str;
+  }
+
   async initialize() {}
 
   isChannelBlacklisted(channelId) {
@@ -188,8 +193,8 @@ class LogHandler {
 
   createMessageDiff(oldContent, newContent) {
     if (!oldContent && !newContent) return "No text content in either message";
-    if (!oldContent) return `+ ${newContent}`;
-    if (!newContent) return `- ${oldContent}`;
+    if (!oldContent) return `+ ${this.truncateContent(newContent)}`;
+    if (!newContent) return `- ${this.truncateContent(oldContent)}`;
 
     const lines = [];
     const oldLines = oldContent.split("\n");
@@ -197,25 +202,32 @@ class LogHandler {
 
     let i = 0,
       j = 0;
-    while (i < oldLines.length || j < newLines.length) {
+    const maxLines = 15;
+    while ((i < oldLines.length || j < newLines.length) && lines.length < maxLines) {
       if (i >= oldLines.length) {
-        lines.push(`+ ${newLines[j]}`);
+        lines.push(`+ ${this.truncateContent(newLines[j])}`);
         j++;
       } else if (j >= newLines.length) {
-        lines.push(`- ${oldLines[i]}`);
+        lines.push(`- ${this.truncateContent(oldLines[i])}`);
         i++;
       } else if (oldLines[i] === newLines[j]) {
-        lines.push(`  ${oldLines[i]}`);
+        lines.push(`  ${this.truncateContent(oldLines[i])}`);
         i++;
         j++;
       } else {
-        lines.push(`- ${oldLines[i]}`);
-        lines.push(`+ ${newLines[j]}`);
+        lines.push(`- ${this.truncateContent(oldLines[i])}`);
+        lines.push(`+ ${this.truncateContent(newLines[j])}`);
         i++;
         j++;
       }
     }
-    return lines.join("\n");
+
+    if (i < oldLines.length || j < newLines.length) {
+      lines.push("  ... (content truncated)");
+    }
+
+    const diff = lines.join("\n");
+    return diff.length > 1000 ? diff.slice(0, 997) + "..." : diff;
   }
 
   formatChannelLog(embed, data) {
