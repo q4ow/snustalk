@@ -166,7 +166,6 @@ export async function banUser(
   await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
-  // Get any active bans and expire them first
   const activeBans = await db.getModActions(guild.id, {
     targetId: target.id,
     actionType: MOD_ACTIONS.BAN,
@@ -215,7 +214,6 @@ export async function unbanUser(guild, moderator, target, reason) {
     throw error;
   }
 
-  // Find and expire any active bans
   const activeBans = await db.getModActions(guild.id, {
     targetId: target.id,
     actionType: MOD_ACTIONS.BAN,
