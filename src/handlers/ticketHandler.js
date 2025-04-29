@@ -31,7 +31,7 @@ const TICKET_DEFAULTS = {
   color: "#5865F2",
   enableClaiming: true,
   thumbnail: null,
-  footer: "SnusTalk Support System",
+  footer: "Unity Support System",
   generalButtonLabel: "General Support",
   managementButtonLabel: "Management Support",
   generalButtonEmoji: "📝",

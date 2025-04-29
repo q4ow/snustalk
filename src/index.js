@@ -37,7 +37,7 @@ import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 import { logger } from "./utils/logger.js";
 import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
 
-const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
+const UNITY_VERSION = process.env.VERSION || "1.2.5";
 const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
 
 const requiredEnvVars = [
@@ -49,7 +49,7 @@ const requiredEnvVars = [
   "DB_PORT",
 ];
 
-class SnusTalkBot {
+class UnityBot {
   constructor() {
     this.client = new Client({
       intents: [
@@ -90,7 +90,7 @@ class SnusTalkBot {
     });
     this.healthCheckInterval = null;
     this.metricsInterval = null;
-    this.version = SNUSSY_VERSION || "1.2.5";
+    this.version = UNITY_VERSION || "1.2.5";
     this.startTime = Date.now();
     this.metrics = {
       commands: 0,
@@ -131,7 +131,7 @@ class SnusTalkBot {
         {
           name: `${this.client.guilds.cache.size} servers`,
           type: ActivityType.Watching,
-          state: `Snussy v${this.version}`,
+          state: `Unity v${this.version}`,
         },
       ],
       status: "dnd",
@@ -671,7 +671,7 @@ class SnusTalkBot {
       logger.info(`👥 Connected to ${this.client.guilds.cache.size} guild(s)`);
       logger.info(`🔗 Bot ID: ${this.client.user.id}`);
       logger.info(`📅 Current time: ${new Date().toLocaleString()}`);
-      logger.info(`🔧 Initializing Snussy v${this.version}...`);
+      logger.info(`🔧 Initializing Unity v${this.version}...`);
       logger.info("");
 
       await this.initializeBot();
@@ -696,5 +696,5 @@ class SnusTalkBot {
   }
 }
 
-const snusTalk = new SnusTalkBot();
-snusTalk.start();
+const unity = new UnityBot();
+unity.start();

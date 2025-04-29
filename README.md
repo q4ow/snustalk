@@ -1,8 +1,8 @@
-# SnusTalk Central Bot
+# Unity
 
 A Discord bot built with discord.js, originally developed for the SnusTalk Central server but available for anyone to use and modify under the MIT license.
 
-**Current Version:** 1.2.1
+**Current Version:** 1.2.5
 
 ## I AM ONLY HUMAN
 I maintain this project in my spare time. I am 16 and my exams are next month, this bot **WILL NOT** get frequent, meaningful updates.
@@ -131,8 +131,8 @@ with my code, I'd love to see it so drop me an email or add me on [Discord](http
 ### Installation
 1. Clone the repository
 ```bash
-git clone https://github.com/q4ow/snustalk.git
-cd snustalk-bot
+git clone https://github.com/q4ow/unity.git
+cd unity
 ```
 
 2. Install dependencies
