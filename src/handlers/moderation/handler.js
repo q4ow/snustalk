@@ -129,7 +129,6 @@ export async function warnUser(guild, moderator, target, reason) {
 }
 
 export async function removeWarning(guildId, moderator, warningId) {
-  const removed = await db.expireModAction(guildId, warningId);
   return {
     id: warningId,
     type: "warning_removed",
@@ -167,6 +166,15 @@ export async function banUser(
   await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
+  try {
+    await guild.bans.fetch(target.id);
+    throw new Error("User is already banned from this server.");
+  } catch (error) {
+    if (!error.message.includes("Unknown Ban")) {
+      throw error;
+    }
+  }
+
   const ban = {
     type: MOD_ACTIONS.BAN,
     moderatorId: moderator.id,
@@ -178,9 +186,48 @@ export async function banUser(
 
   ban.id = await db.addModAction(guild.id, ban);
   const dmSent = await sendModActionDM(guild, target, ban);
-  await guild.members.ban(target, { deleteMessageDays: deleteDays, reason });
+
+  let deleteMessageSeconds = 0;
+  if (typeof deleteDays === "number" && deleteDays > 0) {
+    deleteMessageSeconds = Math.min(deleteDays * 86400, 604800);
+  }
+
+  await guild.members.ban(target, {
+    deleteMessageSeconds,
+    reason,
+  });
 
   return { ...ban, dmSent };
+}
+
+export async function unbanUser(guild, moderator, target, reason) {
+  await checkRateLimit(guild, moderator);
+  if (!reason) reason = "No reason provided";
+
+  try {
+    await guild.bans.fetch(target.id);
+  } catch (error) {
+    if (error.message.includes("Unknown Ban")) {
+      throw new Error("This user is not banned from this server.");
+    }
+    throw error;
+  }
+
+  const unban = {
+    type: MOD_ACTIONS.UNBAN,
+    moderatorId: moderator.id,
+    targetId: target.id,
+    reason,
+    timestamp: new Date().toISOString(),
+  };
+
+  unban.id = await db.addModAction(guild.id, unban);
+
+  const dmSent = false;
+
+  await guild.members.unban(target.id, reason);
+
+  return { ...unban, dmSent };
 }
 
 export async function timeoutUser(guild, moderator, target, duration, reason) {
@@ -255,7 +302,7 @@ export async function handleAppeal(guild, actionId, status, reason) {
   return { actionId, status, reason };
 }
 
-export function createModActionEmbed(action, guild) {
+export function createModActionEmbed(action) {
   const embed = new EmbedBuilder()
     .setTitle(`Moderation Action - ${action.type.toUpperCase()}`)
     .setColor(getActionColor(action.type))

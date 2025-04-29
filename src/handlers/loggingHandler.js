@@ -796,7 +796,10 @@ class LogHandler {
         mediaFile.contentType?.startsWith("video/") ||
         mediaFile.url?.match(/\.(mp4|webm|mov)$/i)
       ) {
-        embed.setVideo(mediaFile.url);
+        embed.addFields({
+          name: "Video",
+          value: `[View Video](${mediaFile.url})`,
+        });
       } else {
         embed.setImage(mediaFile.url);
       }

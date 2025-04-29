@@ -32,10 +32,10 @@ import { db } from "./utils/database.js";
 import { ensureGuildRoles } from "./utils/setupRoles.js";
 import { handleApplicationResponse } from "./handlers/applicationHandler.js";
 import { handleReactionRole } from "./handlers/reactionRolesHandler.js";
-import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
-import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 import { startStatsTracker } from "./handlers/statsHandler.js";
+import { handleAntiRaidCommand } from "./handlers/antiRaid/commands.js";
 import { logger } from "./utils/logger.js";
+import { AntiRaidHandler } from "./handlers/antiRaid/handler.js";
 
 const SNUSSY_VERSION = process.env.VERSION || "1.1.0";
 const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;

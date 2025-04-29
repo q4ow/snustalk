@@ -2,6 +2,7 @@ export const MOD_ACTIONS = {
   WARN: "warn",
   KICK: "kick",
   BAN: "ban",
+  UNBAN: "unban",
   TIMEOUT: "timeout",
   REMOVE_TIMEOUT: "untimeout",
 };
@@ -11,6 +12,7 @@ export function getActionColor(type) {
     [MOD_ACTIONS.WARN]: "#FFA500",
     [MOD_ACTIONS.KICK]: "#FF7F50",
     [MOD_ACTIONS.BAN]: "#FF0000",
+    [MOD_ACTIONS.UNBAN]: "#00FF00",
     [MOD_ACTIONS.TIMEOUT]: "#FFD700",
     [MOD_ACTIONS.REMOVE_TIMEOUT]: "#32CD32",
   };

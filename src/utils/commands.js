@@ -31,6 +31,7 @@ import {
   handleRemoveWarningCommand,
   handleKickCommand,
   handleBanCommand,
+  handleUnbanCommand,
   handleTimeoutCommand,
   handleUntimeoutCommand,
   handleWarningsCommand,
@@ -271,6 +272,7 @@ const slashCommandHandlers = {
   removewarning: handleRemoveWarningCommand,
   kick: handleKickCommand,
   ban: handleBanCommand,
+  unban: handleUnbanCommand,
   timeout: handleTimeoutCommand,
   untimeout: handleUntimeoutCommand,
   warnings: handleWarningsCommand,
@@ -530,18 +532,20 @@ const slashCommandHandlers = {
           .setDescription(
             settings
               .map((setting) => {
-                const channel = interaction.guild.channels.cache.get(
-                  setting.channel_id,
-                );
+                const channel = setting.channel_id
+                  ? interaction.guild.channels.cache.get(setting.channel_id)
+                  : null;
                 const allowedRoles =
-                  setting.allowed_roles.map((id) => `<@&${id}>`).join(", ") ||
-                  "None";
+                  setting.allowed_roles && setting.allowed_roles.length
+                    ? setting.allowed_roles.map((id) => `<@&${id}>`).join(", ")
+                    : "None";
                 const pingRoles =
-                  setting.ping_roles.map((id) => `<@&${id}>`).join(", ") ||
-                  "None";
+                  setting.ping_roles && setting.ping_roles.length
+                    ? setting.ping_roles.map((id) => `<@&${id}>`).join(", ")
+                    : "None";
 
                 return `**${setting.log_type}**
-Channel: ${channel ? channel.toString() : "Invalid Channel"}
+Channel: ${channel ? channel.toString() : "Not configured"}
 Enabled: ${setting.enabled ? "Yes" : "No"}
 Allowed Roles: ${allowedRoles}
 Ping Roles: ${pingRoles}`;
@@ -714,7 +718,9 @@ Ping Roles: ${pingRoles}`;
 export async function handleSlashCommand(interaction, client) {
   try {
     if (
-      ["timeout", "untimeout", "ban", "kick"].includes(interaction.commandName)
+      ["timeout", "untimeout", "ban", "unban", "kick"].includes(
+        interaction.commandName,
+      )
     ) {
       await interaction.deferReply({ flags: 64 });
     }

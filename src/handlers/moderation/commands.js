@@ -3,14 +3,17 @@ import {
   warnUser,
   kickUser,
   banUser,
+  unbanUser,
   timeoutUser,
   removeTimeout,
   getUserWarnings,
   getUserModActions,
   createModActionEmbed,
   removeWarning,
-  handleAppeal,
 } from "./handler.js";
+import { db } from "../../utils/database.js";
+import { MOD_ACTIONS } from "../../utils/moderation.js";
+import { logger } from "../../utils/logger.js";
 
 function parseDuration(durationStr) {
   const match = durationStr.match(/^(\d+)([smhd])$/);
@@ -115,7 +118,6 @@ export async function handleRemoveWarningCommand(interaction) {
 }
 
 export async function handleKickCommand(interaction) {
-  await interaction.deferReply({ flags: 64 });
   const userToKick = interaction.options.getUser("user");
   const kickReason = interaction.options.getString("reason");
   const kickMember = await interaction.guild.members.fetch(userToKick.id);
@@ -156,7 +158,6 @@ export async function handleKickCommand(interaction) {
 }
 
 export async function handleBanCommand(interaction) {
-  await interaction.deferReply({ flags: 64 });
   const userToBan = interaction.options.getUser("user");
   const banReason = interaction.options.getString("reason");
   const deleteDays = interaction.options.getInteger("delete_days") || 0;
@@ -198,8 +199,41 @@ export async function handleBanCommand(interaction) {
   }
 }
 
+export async function handleUnbanCommand(interaction) {
+  const userToUnban = interaction.options.getUser("user");
+  const unbanReason =
+    interaction.options.getString("reason") || "No reason provided";
+
+  try {
+    const unban = await unbanUser(
+      interaction.guild,
+      interaction.user,
+      userToUnban,
+      unbanReason,
+    );
+
+    await interaction.editReply({
+      embeds: [createModActionEmbed(unban, interaction.guild)],
+    });
+  } catch (error) {
+    if (error.message.includes("rate limited")) {
+      await interaction.editReply({
+        content: "❌ " + error.message,
+      });
+    } else if (error.message.includes("not banned")) {
+      await interaction.editReply({
+        content: "❌ This user is not banned from this server.",
+      });
+    } else {
+      await interaction.editReply({
+        content: "❌ Failed to unban user. Please try again.",
+      });
+      console.error("Unban error:", error);
+    }
+  }
+}
+
 export async function handleTimeoutCommand(interaction) {
-  await interaction.deferReply({ flags: 64 });
   try {
     const targetTimeoutUser = interaction.options.getUser("user");
     const timeoutReason = interaction.options.getString("reason");
@@ -361,13 +395,6 @@ export async function handleAppealCommand(interaction) {
   const reason = interaction.options.getString("reason");
 
   try {
-    const result = await handleAppeal(
-      interaction.guild,
-      actionId,
-      status,
-      reason,
-    );
-
     const embed = new EmbedBuilder()
       .setTitle("Appeal Status Updated")
       .setColor(
@@ -427,7 +454,7 @@ export async function handleBulkActionCommand(interaction) {
         case "ban":
           await banUser(interaction.guild, interaction.user, target, reason, 0);
           break;
-        case "timeout":
+        case "timeout": {
           const parsedDuration = parseDuration(duration);
           if (!parsedDuration) throw new Error("Invalid duration");
           await timeoutUser(
@@ -438,6 +465,7 @@ export async function handleBulkActionCommand(interaction) {
             reason,
           );
           break;
+        }
       }
       results.success.push(cleanId);
     } catch (error) {
@@ -501,6 +529,7 @@ export async function handleActiveTimeoutsCommand(interaction) {
       embeds: [embed],
     });
   } catch (error) {
+    logger.error("Error fetching active timeouts:", error);
     await interaction.editReply({
       content: "❌ Failed to fetch active timeouts.",
     });
