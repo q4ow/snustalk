@@ -14,6 +14,7 @@ import {
 import { db } from "../../utils/database.js";
 import { MOD_ACTIONS } from "../../utils/moderation.js";
 import { logger } from "../../utils/logger.js";
+import { getSettings } from "../settings/handler.js";
 
 function parseDuration(durationStr) {
   const match = durationStr.match(/^(\d+)([smhd])$/);
@@ -185,6 +186,58 @@ export async function handleBanCommand(interaction) {
     await interaction.editReply({
       embeds: [createModActionEmbed(ban, interaction.guild)],
     });
+
+    const settings = await getSettings(interaction.guild.id);
+    const wallOfShameId = settings?.channel_ids?.wall_of_shame;
+
+    if (wallOfShameId) {
+      const wallOfShame = await interaction.guild.channels.fetch(wallOfShameId);
+      if (wallOfShame) {
+        const totalBans = await db.getModActions(interaction.guild.id, {
+          targetId: userToBan.id,
+          actionType: MOD_ACTIONS.BAN,
+        });
+
+        const shameEmbed = new EmbedBuilder()
+          .setTitle("🔨 Member Banned")
+          .setColor("#FF0000")
+          .setThumbnail(userToBan.displayAvatarURL())
+          .addFields(
+            {
+              name: "User",
+              value: `${userToBan.tag} (<@${userToBan.id}>)`,
+              inline: true,
+            },
+            { 
+              name: "Moderator", 
+              value: `<@${interaction.user.id}>`, 
+              inline: true 
+            },
+            { 
+              name: "Ban Number", 
+              value: `#${totalBans.length || 1}`, 
+              inline: true 
+            },
+            { 
+              name: "Reason", 
+              value: banReason || "No reason provided" 
+            },
+            {
+              name: "Message Deletion",
+              value: `${deleteDays || 0} days of messages`,
+              inline: true,
+            },
+            { 
+              name: "Date", 
+              value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
+              inline: true 
+            }
+          )
+          .setTimestamp();
+
+        await wallOfShame.send({ embeds: [shameEmbed] });
+      }
+    }
   } catch (error) {
     if (error.message.includes("rate limited")) {
       await interaction.editReply({

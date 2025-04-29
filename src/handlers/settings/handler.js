@@ -439,6 +439,7 @@ async function handleAvailableKeys(interaction, type) {
         "announcements",
         "rules",
         "moderation_logs",
+        "wall_of_shame",
       ],
       role: [
         "verified",
@@ -640,4 +641,5 @@ export {
   handleRemoveSetting,
   handleAvailableKeys,
   handleSetBoostChannel,
+  getSettings,
 };

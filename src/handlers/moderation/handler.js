@@ -166,13 +166,15 @@ export async function banUser(
   await checkRateLimit(guild, moderator);
   if (!reason) reason = "No reason provided";
 
-  try {
-    await guild.bans.fetch(target.id);
-    throw new Error("User is already banned from this server.");
-  } catch (error) {
-    if (!error.message.includes("Unknown Ban")) {
-      throw error;
-    }
+  // Get any active bans and expire them first
+  const activeBans = await db.getModActions(guild.id, {
+    targetId: target.id,
+    actionType: MOD_ACTIONS.BAN,
+    activeOnly: true
+  });
+
+  for (const ban of activeBans) {
+    await db.expireModAction(guild.id, ban.id);
   }
 
   const ban = {
@@ -213,6 +215,17 @@ export async function unbanUser(guild, moderator, target, reason) {
     throw error;
   }
 
+  // Find and expire any active bans
+  const activeBans = await db.getModActions(guild.id, {
+    targetId: target.id,
+    actionType: MOD_ACTIONS.BAN,
+    activeOnly: true
+  });
+
+  for (const ban of activeBans) {
+    await db.expireModAction(guild.id, ban.id);
+  }
+
   const unban = {
     type: MOD_ACTIONS.UNBAN,
     moderatorId: moderator.id,
@@ -222,7 +235,6 @@ export async function unbanUser(guild, moderator, target, reason) {
   };
 
   unban.id = await db.addModAction(guild.id, unban);
-
   const dmSent = false;
 
   await guild.members.unban(target.id, reason);
