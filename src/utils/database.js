@@ -81,21 +81,17 @@ export const db = {
   async updateGuildSettings(guildId, settings) {
     try {
       const result = await dbPool.query(
-        `INSERT INTO guild_settings (guild_id, role_ids, channel_ids, welcome_message, goodbye_message, updated_at)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+        `INSERT INTO guild_settings (guild_id, role_ids, channel_ids, updated_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
          ON CONFLICT (guild_id) 
          DO UPDATE SET 
            role_ids = $2,
            channel_ids = $3,
-           welcome_message = $4,
-           goodbye_message = $5,
            updated_at = CURRENT_TIMESTAMP`,
         [
           guildId,
           settings.role_ids || {},
           settings.channel_ids || {},
-          settings.welcome_message,
-          settings.goodbye_message,
         ],
       );
       logger.info(`Updated settings for guild ${guildId}`);
