@@ -87,11 +87,7 @@ export const db = {
          DO UPDATE SET 
            role_ids = $2,
            channel_ids = $3`,
-        [
-          guildId,
-          settings.role_ids || {},
-          settings.channel_ids || {},
-        ],
+        [guildId, settings.role_ids || {}, settings.channel_ids || {}],
       );
       logger.info(`Updated settings for guild ${guildId}`);
       return result;

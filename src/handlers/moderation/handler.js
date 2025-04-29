@@ -169,7 +169,7 @@ export async function banUser(
   const activeBans = await db.getModActions(guild.id, {
     targetId: target.id,
     actionType: MOD_ACTIONS.BAN,
-    activeOnly: true
+    activeOnly: true,
   });
 
   for (const ban of activeBans) {
@@ -217,7 +217,7 @@ export async function unbanUser(guild, moderator, target, reason) {
   const activeBans = await db.getModActions(guild.id, {
     targetId: target.id,
     actionType: MOD_ACTIONS.BAN,
-    activeOnly: true
+    activeOnly: true,
   });
 
   for (const ban of activeBans) {

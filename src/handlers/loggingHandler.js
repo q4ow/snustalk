@@ -1,6 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { formatDuration } from "../utils/moderation.js";
 import { db } from "../utils/database.js";
+import { getSettings } from "./settings/handler.js";
 
 const LOG_TYPES = {
   MEMBER: { color: "#3498db", emoji: "👥" },
@@ -38,10 +39,41 @@ class LogHandler {
     return allSettings.some((setting) => setting.channel_id === channelId);
   }
 
+  async hasBotRole(member) {
+    if (!member || !member.guild) return false;
+    const settings = await getSettings(member.guild.id);
+    const botRoleId = settings.role_ids?.bot;
+    if (!botRoleId) return false;
+    return member.roles.cache.has(botRoleId);
+  }
+
   async createLog(type, data) {
     if (!LOG_TYPES[type]) {
       console.warn(`Unknown log type: ${type}`);
       return;
+    }
+
+    if (data.member && (await this.hasBotRole(data.member))) {
+      return;
+    }
+    if (data.user && data.guild) {
+      const member = await data.guild.members
+        .fetch(data.user.id)
+        .catch(() => null);
+      if (member && (await this.hasBotRole(member))) {
+        return;
+      }
+    }
+    if (data.message?.member && (await this.hasBotRole(data.message.member))) {
+      return;
+    }
+    if (data.executor) {
+      const member = await data.guild.members
+        .fetch(data.executor.id)
+        .catch(() => null);
+      if (member && (await this.hasBotRole(member))) {
+        return;
+      }
     }
 
     const guildId =

@@ -215,19 +215,21 @@ async function handleListSettings(interaction, type) {
       const channels = settings.channel_ids || {};
       if (Object.keys(channels).length > 0) {
         hasSettings = true;
-        const channelEntries = Object.entries(channels)
-          .map(
-            ([key, value]) =>
-              `• **${key}**: ${formatChannelValue(value, interaction)}`,
-          );
-        
+        const channelEntries = Object.entries(channels).map(
+          ([key, value]) =>
+            `• **${key}**: ${formatChannelValue(value, interaction)}`,
+        );
+
         let currentChunk = [];
         let currentLength = 0;
-        
+
         for (const entry of channelEntries) {
           if (currentLength + entry.length + 1 > 1024) {
             listEmbed.addFields({
-              name: currentChunk === channelEntries ? "📝 Channel Settings" : "📝 Channel Settings (cont.)",
+              name:
+                currentChunk === channelEntries
+                  ? "📝 Channel Settings"
+                  : "📝 Channel Settings (cont.)",
               value: currentChunk.join("\n"),
             });
             currentChunk = [entry];
@@ -237,10 +239,13 @@ async function handleListSettings(interaction, type) {
             currentLength += entry.length + 1;
           }
         }
-        
+
         if (currentChunk.length > 0) {
           listEmbed.addFields({
-            name: channelEntries.length === currentChunk.length ? "📝 Channel Settings" : "📝 Channel Settings (cont.)",
+            name:
+              channelEntries.length === currentChunk.length
+                ? "📝 Channel Settings"
+                : "📝 Channel Settings (cont.)",
             value: currentChunk.join("\n") || "No channel settings",
           });
         }
@@ -251,21 +256,23 @@ async function handleListSettings(interaction, type) {
       const roles = settings.role_ids || {};
       if (Object.keys(roles).length > 0) {
         hasSettings = true;
-        const roleEntries = Object.entries(roles)
-          .map(([key, value]) => {
-            if (Array.isArray(value)) {
-              return `• **${key}**: ${value.length > 0 ? value.join(", ") : "None"}`;
-            }
-            return `• **${key}**: ${formatRoleValue(value, interaction)}`;
-          });
-        
+        const roleEntries = Object.entries(roles).map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return `• **${key}**: ${value.length > 0 ? value.join(", ") : "None"}`;
+          }
+          return `• **${key}**: ${formatRoleValue(value, interaction)}`;
+        });
+
         let currentChunk = [];
         let currentLength = 0;
-        
+
         for (const entry of roleEntries) {
           if (currentLength + entry.length + 1 > 1024) {
             listEmbed.addFields({
-              name: currentChunk === roleEntries ? "👑 Role Settings" : "👑 Role Settings (cont.)",
+              name:
+                currentChunk === roleEntries
+                  ? "👑 Role Settings"
+                  : "👑 Role Settings (cont.)",
               value: currentChunk.join("\n"),
             });
             currentChunk = [entry];
@@ -275,10 +282,13 @@ async function handleListSettings(interaction, type) {
             currentLength += entry.length + 1;
           }
         }
-        
+
         if (currentChunk.length > 0) {
           listEmbed.addFields({
-            name: roleEntries.length === currentChunk.length ? "👑 Role Settings" : "👑 Role Settings (cont.)",
+            name:
+              roleEntries.length === currentChunk.length
+                ? "👑 Role Settings"
+                : "👑 Role Settings (cont.)",
             value: currentChunk.join("\n") || "No role settings",
           });
         }
@@ -289,19 +299,20 @@ async function handleListSettings(interaction, type) {
       const apis = settings.api_keys || {};
       if (Object.keys(apis).length > 0) {
         hasSettings = true;
-        const apiEntries = Object.entries(apis)
-          .map(
-            ([key, value]) =>
-              `• **${key}**: ${value ? "✅ Set" : "❌ Not set"}`,
-          );
-        
+        const apiEntries = Object.entries(apis).map(
+          ([key, value]) => `• **${key}**: ${value ? "✅ Set" : "❌ Not set"}`,
+        );
+
         let currentChunk = [];
         let currentLength = 0;
-        
+
         for (const entry of apiEntries) {
           if (currentLength + entry.length + 1 > 1024) {
             listEmbed.addFields({
-              name: currentChunk === apiEntries ? "🔑 API Settings" : "🔑 API Settings (cont.)",
+              name:
+                currentChunk === apiEntries
+                  ? "🔑 API Settings"
+                  : "🔑 API Settings (cont.)",
               value: currentChunk.join("\n"),
             });
             currentChunk = [entry];
@@ -311,10 +322,13 @@ async function handleListSettings(interaction, type) {
             currentLength += entry.length + 1;
           }
         }
-        
+
         if (currentChunk.length > 0) {
           listEmbed.addFields({
-            name: apiEntries.length === currentChunk.length ? "🔑 API Settings" : "🔑 API Settings (cont.)",
+            name:
+              apiEntries.length === currentChunk.length
+                ? "🔑 API Settings"
+                : "🔑 API Settings (cont.)",
             value: currentChunk.join("\n") || "No API settings",
           });
         }
@@ -325,16 +339,20 @@ async function handleListSettings(interaction, type) {
       const links = settings.external_links || {};
       if (Object.keys(links).length > 0) {
         hasSettings = true;
-        const linkEntries = Object.entries(links)
-          .map(([key, value]) => `• **${key}**: ${value || "Not set"}`);
-        
+        const linkEntries = Object.entries(links).map(
+          ([key, value]) => `• **${key}**: ${value || "Not set"}`,
+        );
+
         let currentChunk = [];
         let currentLength = 0;
-        
+
         for (const entry of linkEntries) {
           if (currentLength + entry.length + 1 > 1024) {
             listEmbed.addFields({
-              name: currentChunk === linkEntries ? "🔗 External Links" : "🔗 External Links (cont.)",
+              name:
+                currentChunk === linkEntries
+                  ? "🔗 External Links"
+                  : "🔗 External Links (cont.)",
               value: currentChunk.join("\n"),
             });
             currentChunk = [entry];
@@ -344,10 +362,13 @@ async function handleListSettings(interaction, type) {
             currentLength += entry.length + 1;
           }
         }
-        
+
         if (currentChunk.length > 0) {
           listEmbed.addFields({
-            name: linkEntries.length === currentChunk.length ? "🔗 External Links" : "🔗 External Links (cont.)",
+            name:
+              linkEntries.length === currentChunk.length
+                ? "🔗 External Links"
+                : "🔗 External Links (cont.)",
             value: currentChunk.join("\n") || "No external links",
           });
         }

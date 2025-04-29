@@ -208,30 +208,30 @@ export async function handleBanCommand(interaction) {
               value: `${userToBan.tag} (<@${userToBan.id}>)`,
               inline: true,
             },
-            { 
-              name: "Moderator", 
-              value: `<@${interaction.user.id}>`, 
-              inline: true 
+            {
+              name: "Moderator",
+              value: `<@${interaction.user.id}>`,
+              inline: true,
             },
-            { 
-              name: "Ban Number", 
-              value: `#${totalBans.length || 1}`, 
-              inline: true 
+            {
+              name: "Ban Number",
+              value: `#${totalBans.length || 1}`,
+              inline: true,
             },
-            { 
-              name: "Reason", 
-              value: banReason || "No reason provided" 
+            {
+              name: "Reason",
+              value: banReason || "No reason provided",
             },
             {
               name: "Message Deletion",
               value: `${deleteDays || 0} days of messages`,
               inline: true,
             },
-            { 
-              name: "Date", 
-              value: `<t:${Math.floor(Date.now() / 1000)}:F>`, 
-              inline: true 
-            }
+            {
+              name: "Date",
+              value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+              inline: true,
+            },
           )
           .setTimestamp();
 
