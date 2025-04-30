@@ -203,7 +203,10 @@ class LogHandler {
     let i = 0,
       j = 0;
     const maxLines = 15;
-    while ((i < oldLines.length || j < newLines.length) && lines.length < maxLines) {
+    while (
+      (i < oldLines.length || j < newLines.length) &&
+      lines.length < maxLines
+    ) {
       if (i >= oldLines.length) {
         lines.push(`+ ${this.truncateContent(newLines[j])}`);
         j++;
