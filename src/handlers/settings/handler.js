@@ -1,33 +1,47 @@
 import { EmbedBuilder } from "discord.js";
 import { db } from "../../utils/database.js";
+import { logger } from "../../utils/logger.js";
 
 const settingsCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 
 async function getSettings(guildId) {
-  const cacheKey = `settings_${guildId}`;
-  const cachedSettings = settingsCache.get(cacheKey);
+  try {
+    const cacheKey = `settings_${guildId}`;
+    const cachedSettings = settingsCache.get(cacheKey);
 
-  if (cachedSettings && cachedSettings.timestamp > Date.now() - CACHE_TTL) {
-    return cachedSettings.data;
+    if (cachedSettings && cachedSettings.timestamp > Date.now() - CACHE_TTL) {
+      logger.debug(`Using cached settings for guild ${guildId}`);
+      return cachedSettings.data;
+    }
+
+    logger.debug(`Fetching fresh settings for guild ${guildId}`);
+    const settings = await db.getGuildSettings(guildId);
+    settingsCache.set(cacheKey, {
+      data: settings,
+      timestamp: Date.now(),
+    });
+
+    return settings;
+  } catch (error) {
+    logger.error(`Error getting settings for guild ${guildId}:`, error);
+    throw error;
   }
-
-  const settings = await db.getGuildSettings(guildId);
-  settingsCache.set(cacheKey, {
-    data: settings,
-    timestamp: Date.now(),
-  });
-
-  return settings;
 }
 
 function invalidateCache(guildId) {
-  const cacheKey = `settings_${guildId}`;
-  settingsCache.delete(cacheKey);
+  try {
+    const cacheKey = `settings_${guildId}`;
+    settingsCache.delete(cacheKey);
+    logger.debug(`Cache invalidated for guild ${guildId}`);
+  } catch (error) {
+    logger.error(`Error invalidating cache for guild ${guildId}:`, error);
+  }
 }
 
 async function handleSetSetting(interaction, type, name, value) {
   try {
+    logger.info(`Setting ${type}.${name} for guild ${interaction.guildId}`);
     const guildSettings = await getSettings(interaction.guildId);
     let updateData = { ...guildSettings };
     let updatedValue;
@@ -62,6 +76,7 @@ async function handleSetSetting(interaction, type, name, value) {
         break;
       }
       default:
+        logger.warn(`Invalid setting type attempted: ${type}`);
         await interaction.reply({
           content:
             "Invalid setting type. Use 'channel', 'role', 'api', or 'link'.",
@@ -76,6 +91,10 @@ async function handleSetSetting(interaction, type, name, value) {
     if (type === "channel" && name === "boost_channel") {
       await setupBoostChannel(interaction, value);
     }
+
+    logger.info(
+      `Successfully updated ${type}.${name} for guild ${interaction.guildId}`,
+    );
 
     const successEmbed = new EmbedBuilder()
       .setTitle("Setting Updated")
@@ -92,8 +111,11 @@ async function handleSetSetting(interaction, type, name, value) {
       embeds: [successEmbed],
       flags: 64,
     });
-  } catch (err) {
-    console.error("Error setting guild setting:", err);
+  } catch (error) {
+    logger.error(
+      `Error setting ${type}.${name} for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -101,7 +123,7 @@ async function handleSetSetting(interaction, type, name, value) {
       .setColor("#FF0000")
       .addFields({
         name: "Details",
-        value: err.message || "Unknown error",
+        value: error.message || "Unknown error",
         inline: false,
       })
       .setTimestamp();
@@ -165,7 +187,10 @@ async function handleGetSetting(interaction, type, name) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error getting guild setting:", error);
+    logger.error(
+      `Error getting ${type}.${name} for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -384,7 +409,10 @@ async function handleListSettings(interaction, type) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error listing guild settings:", error);
+    logger.error(
+      `Error listing settings for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -413,6 +441,7 @@ function formatRoleValue(value, interaction) {
 
 async function handleRemoveSetting(interaction, type, name) {
   try {
+    logger.info(`Removing ${type}.${name} for guild ${interaction.guildId}`);
     const guildSettings = await getSettings(interaction.guildId);
     let updateData = { ...guildSettings };
     let removed = false;
@@ -469,6 +498,10 @@ async function handleRemoveSetting(interaction, type, name) {
       await db.updateGuildSettings(interaction.guildId, updateData);
       invalidateCache(interaction.guildId);
 
+      logger.info(
+        `Successfully removed ${type}.${name} for guild ${interaction.guildId}`,
+      );
+
       const successEmbed = new EmbedBuilder()
         .setTitle("Setting Removed")
         .setDescription(`Successfully removed \`${type}.${name}\` setting`)
@@ -494,7 +527,10 @@ async function handleRemoveSetting(interaction, type, name) {
       });
     }
   } catch (error) {
-    console.error("Error removing guild setting:", error);
+    logger.error(
+      `Error removing ${type}.${name} for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -645,7 +681,10 @@ async function handleAvailableKeys(interaction, type) {
       flags: 64,
     });
   } catch (error) {
-    console.error("Error retrieving available keys:", error);
+    logger.error(
+      `Error retrieving available keys for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")
@@ -674,17 +713,24 @@ async function setupBoostChannel(interaction, channelId) {
       ping_roles: [],
     });
 
-    console.log(
-      `Successfully set up boost logging for channel ${channelId} in guild ${interaction.guildId}`,
+    logger.info(
+      `Set up boost logging for channel ${channelId} in guild ${interaction.guildId}`,
     );
   } catch (error) {
-    console.error("Error setting up boost channel:", error);
+    logger.error(
+      `Error setting up boost channel ${channelId} in guild ${interaction.guildId}:`,
+      error,
+    );
     throw error;
   }
 }
 
 async function handleSetBoostChannel(interaction, channelId) {
   try {
+    logger.info(
+      `Setting boost channel ${channelId} for guild ${interaction.guildId}`,
+    );
+
     const guildSettings = await getSettings(interaction.guildId);
     let updateData = { ...guildSettings };
 
@@ -710,8 +756,15 @@ async function handleSetBoostChannel(interaction, channelId) {
       embeds: [successEmbed],
       flags: 64,
     });
+
+    logger.info(
+      `Successfully configured boost channel ${channelId} for guild ${interaction.guildId}`,
+    );
   } catch (error) {
-    console.error("Error setting boost channel:", error);
+    logger.error(
+      `Error setting boost channel for guild ${interaction.guildId}:`,
+      error,
+    );
 
     const errorEmbed = new EmbedBuilder()
       .setTitle("Error")

@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import { db, dbPool } from "../utils/database.js";
 import { fetchWithRetry } from "../utils/requests.js";
+import { logger } from "../utils/logger.js";
 
 const ticketTypes = {
   GENERAL: {
@@ -54,27 +55,44 @@ async function canManageTicket(member, ticketType) {
 
     return member.roles.cache.has(moderatorRoleId);
   } catch (error) {
-    console.error("Error checking ticket permissions:", error);
+    logger.error("Error checking ticket permissions:", error);
     return false;
   }
 }
 
 async function getNextTicketNumber(guild) {
-  const ticketData = await db.getTicketCounter(guild.id);
-  const nextNumber = (ticketData?.counter || 0) + 1;
-  await db.updateTicketCounter(guild.id, nextNumber);
-  return nextNumber.toString().padStart(4, "0");
+  try {
+    const ticketData = await db.getTicketCounter(guild.id);
+    const nextNumber = (ticketData?.counter || 0) + 1;
+    await db.updateTicketCounter(guild.id, nextNumber);
+    return nextNumber.toString().padStart(4, "0");
+  } catch (error) {
+    logger.error(
+      `Error getting next ticket number for guild ${guild.name}:`,
+      error,
+    );
+    throw error;
+  }
 }
 
 async function logTicketAction(guild, channelId, action) {
   try {
     await db.addTicketAction(channelId, action);
+    logger.debug(`Ticket action logged: ${action}`);
 
     const logChannelId = await db.getChannelId(guild.id, "ticket_logs");
-    if (!logChannelId) return;
+    if (!logChannelId) {
+      logger.warn(`No ticket log channel configured for guild ${guild.name}`);
+      return;
+    }
 
     const logChannel = await guild.channels.fetch(logChannelId);
-    if (!logChannel) return;
+    if (!logChannel) {
+      logger.warn(
+        `Could not find ticket log channel ${logChannelId} in guild ${guild.name}`,
+      );
+      return;
+    }
 
     const embed = new EmbedBuilder()
       .setTitle("Ticket Action")
@@ -84,62 +102,75 @@ async function logTicketAction(guild, channelId, action) {
 
     await logChannel.send({ embeds: [embed] });
   } catch (error) {
-    console.error("Error logging ticket action:", error);
+    logger.error("Error logging ticket action:", error);
   }
 }
 
 export async function setupTicketSystem(channel, options = {}) {
-  const settings = {
-    ...TICKET_DEFAULTS,
-    ...options,
-  };
+  try {
+    const settings = {
+      ...TICKET_DEFAULTS,
+      ...options,
+    };
 
-  await db.saveTicketSettings(channel.guild.id, settings);
+    await db.saveTicketSettings(channel.guild.id, settings);
+    logger.info(`Ticket system configured for guild ${channel.guild.name}`);
 
-  let description = settings.description || TICKET_DEFAULTS.description;
+    let description = settings.description || TICKET_DEFAULTS.description;
 
-  description = description.replace(/\\n/g, "\n");
+    description = description.replace(/\\n/g, "\n");
 
-  const descriptionLines = [
-    description,
-    settings.description_line2,
-    settings.description_line3,
-  ].filter(Boolean);
+    const descriptionLines = [
+      description,
+      settings.description_line2,
+      settings.description_line3,
+    ].filter(Boolean);
 
-  const embed = new EmbedBuilder()
-    .setTitle(settings.title)
-    .setDescription(
-      [
-        ...descriptionLines,
-        "",
-        "Please select the appropriate category below:",
-        "• General Support - For general questions and issues",
-        "• Management Support - For business inquiries and management issues",
-      ].join("\n"),
-    )
-    .setColor(settings.color)
-    .setTimestamp();
+    const embed = new EmbedBuilder()
+      .setTitle(settings.title)
+      .setDescription(
+        [
+          ...descriptionLines,
+          "",
+          "Please select the appropriate category below:",
+          "• General Support - For general questions and issues",
+          "• Management Support - For business inquiries and management issues",
+        ].join("\n"),
+      )
+      .setColor(settings.color)
+      .setTimestamp();
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("create_general_ticket")
-      .setLabel("General Support")
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji("📝"),
-    new ButtonBuilder()
-      .setCustomId("create_management_ticket")
-      .setLabel("Management Support")
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji("👑"),
-  );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("create_general_ticket")
+        .setLabel("General Support")
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji("📝"),
+      new ButtonBuilder()
+        .setCustomId("create_management_ticket")
+        .setLabel("Management Support")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("👑"),
+    );
 
-  await channel.send({ embeds: [embed], components: [row] });
+    await channel.send({ embeds: [embed], components: [row] });
+  } catch (error) {
+    logger.error(
+      `Error setting up ticket system in ${channel.guild.name}:`,
+      error,
+    );
+    throw error;
+  }
 }
 
 export async function handleTicketCreate(interaction, type) {
   try {
     const guild = interaction.guild;
     const member = await guild.members.fetch(interaction.user.id);
+    logger.info(
+      `Creating ${type} ticket for ${member.user.tag} in ${guild.name}`,
+    );
+
     const settings = (await db.getTicketSettings(guild.id)) || TICKET_DEFAULTS;
 
     const userTickets = guild.channels.cache.filter(
@@ -277,7 +308,7 @@ export async function handleTicketCreate(interaction, type) {
               await channel
                 .delete("Auto-closed due to inactivity")
                 .catch((err) => {
-                  console.error(
+                  logger.error(
                     `Error auto-deleting channel ${channel.id}:`,
                     err,
                   );
@@ -302,8 +333,10 @@ export async function handleTicketCreate(interaction, type) {
       content: `Your ticket has been created: ${ticketChannel}`,
       flags: MessageFlags.Ephemeral,
     });
+
+    logger.info(`Created ticket #${ticketNumber} for ${member.user.tag}`);
   } catch (error) {
-    console.error("Error creating ticket:", error);
+    logger.error(`Error creating ticket for ${interaction.user.tag}:`, error);
 
     const errorMessage = "There was an error creating your ticket.";
 
@@ -327,7 +360,10 @@ export async function handleTicketClaim(interaction) {
     const moderator = interaction.member;
     const user = interaction.user;
 
+    logger.info(`${user.tag} attempting to claim ticket ${channel.name}`);
+
     if (!(await canManageTicket(moderator, "STAFF"))) {
+      logger.warn(`${user.tag} attempted to claim ticket without permission`);
       await interaction.reply({
         content: "You do not have permission to claim tickets.",
         flags: MessageFlags.Ephemeral,
@@ -380,8 +416,10 @@ export async function handleTicketClaim(interaction) {
       content: `Ticket claimed by ${moderator.toString()}`,
       flags: MessageFlags.Ephemeral,
     });
+
+    logger.info(`Ticket ${channel.name} claimed by ${user.tag}`);
   } catch (error) {
-    console.error("Error claiming ticket:", error);
+    logger.error(`Error claiming ticket for ${interaction.user.tag}:`, error);
     await interaction.reply({
       content: "There was an error claiming the ticket.",
       flags: MessageFlags.Ephemeral,
@@ -394,6 +432,8 @@ export async function handleTicketUnclaim(interaction) {
     const channel = interaction.channel;
     const moderator = interaction.member;
     const user = interaction.user;
+
+    logger.info(`${user.tag} attempting to unclaim ticket ${channel.name}`);
 
     const currentClaimId = await db.getTicketClaim(channel.id);
     if (!currentClaimId) {
@@ -454,8 +494,10 @@ export async function handleTicketUnclaim(interaction) {
       content: `Ticket unclaimed by ${moderator.toString()}`,
       flags: MessageFlags.Ephemeral,
     });
+
+    logger.info(`Ticket ${channel.name} unclaimed by ${user.tag}`);
   } catch (error) {
-    console.error("Error unclaiming ticket:", error);
+    logger.error(`Error unclaiming ticket for ${interaction.user.tag}:`, error);
     await interaction.reply({
       content: "There was an error unclaiming the ticket.",
       flags: MessageFlags.Ephemeral,
@@ -465,23 +507,20 @@ export async function handleTicketUnclaim(interaction) {
 
 export async function handleTicketClose(interaction) {
   try {
-    if (
-      !interaction ||
-      !interaction.channel ||
-      !interaction.guild ||
-      !interaction.user
-    ) {
-      console.error("Invalid interaction object passed to handleTicketClose");
-      if (interaction && interaction.reply) {
-        await interaction
-          .reply({
-            content: "An internal error occurred.",
-            flags: MessageFlags.Ephemeral,
-          })
-          .catch(console.error);
+    if (!interaction?.channel || !interaction?.guild || !interaction?.user) {
+      logger.error("Invalid interaction object passed to handleTicketClose");
+      if (interaction?.reply) {
+        await interaction.reply({
+          content: "An internal error occurred.",
+          flags: MessageFlags.Ephemeral,
+        });
       }
       return;
     }
+
+    logger.info(
+      `${interaction.user.tag} attempting to close ticket ${interaction.channel.name}`,
+    );
 
     if (interaction.deferred) return;
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -493,7 +532,7 @@ export async function handleTicketClose(interaction) {
     );
 
     if (!logChannelId) {
-      console.error(
+      logger.error(
         `Log channel ID not found for guild ${interaction.guild.id}`,
       );
       await interaction.editReply({
@@ -508,7 +547,7 @@ export async function handleTicketClose(interaction) {
       logChannel = await interaction.guild.channels.fetch(logChannelId);
       if (!logChannel) throw new Error("Fetched channel is null or undefined.");
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch log channel with ID ${logChannelId}:`,
         error,
       );
@@ -572,7 +611,7 @@ export async function handleTicketClose(interaction) {
           ticketHistory.push(`[${time}] ${author}: ${content}`);
         }
       } catch (error) {
-        console.error("Error processing message:", error);
+        logger.error("Error processing message:", error);
         continue;
       }
     }
@@ -585,68 +624,78 @@ export async function handleTicketClose(interaction) {
 
     const ezHostKey = await db.getApiKey(interaction.guild.id, "ez_host");
     if (!ezHostKey) {
+      logger.error(
+        `EZ Host API key not configured for guild ${interaction.guild.name}`,
+      );
       throw new Error("EZ Host API key not configured");
     }
 
-    const response = await fetchWithRetry("https://api.e-z.host/paste", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        key: ezHostKey,
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        text: cleanTranscript,
-        title: channel.name.replace(/[^\w-]/g, "-"),
-        description: `Ticket transcript for ${channel.name}`,
-        language: "plaintext",
-      }),
-    });
-
-    const data = await response.json();
-    if (!data.rawUrl) {
-      throw new Error("API response missing rawUrl");
-    }
-
-    const embed = new EmbedBuilder()
-      .setTitle("Ticket Closed")
-      .setDescription(
-        `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`,
-      )
-      .setColor("#ED4245")
-      .setTimestamp();
-
-    await logChannel.send({ embeds: [embed] });
-    await interaction.editReply({
-      content: "Ticket closed and transcript saved.",
-    });
-
-    const result = await dbPool.query(
-      "SELECT id FROM tickets WHERE channel_id = $1",
-      [channel.id],
-    );
-
-    const ticketId = result.rows[0]?.id;
-
-    if (ticketId) {
-      await db.closeTicket(ticketId, interaction.user.id);
-
-      await db.addTicketMessage(ticketId, {
-        authorId: "SYSTEM",
-        content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`,
+    try {
+      const response = await fetchWithRetry("https://api.e-z.host/paste", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          key: ezHostKey,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          text: cleanTranscript,
+          title: channel.name.replace(/[^\w-]/g, "-"),
+          description: `Ticket transcript for ${channel.name}`,
+          language: "plaintext",
+        }),
       });
-    } else {
-      console.warn(`No ticket found with channel ID ${channel.id}`);
-    }
 
-    await db.clearTicketActions(channel.id);
-    await channel.delete().catch((error) => {
-      console.error("Error deleting channel:", error);
-      throw new Error("Failed to delete ticket channel");
-    });
+      const data = await response.json();
+      if (!data.rawUrl) {
+        throw new Error("API response missing rawUrl");
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle("Ticket Closed")
+        .setDescription(
+          `Ticket ${channel.name} was closed by ${interaction.user.toString()}\n\n[View Transcript](${data.rawUrl})`,
+        )
+        .setColor("#ED4245")
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
+      await interaction.editReply({
+        content: "Ticket closed and transcript saved.",
+      });
+
+      const result = await dbPool.query(
+        "SELECT id FROM tickets WHERE channel_id = $1",
+        [channel.id],
+      );
+
+      const ticketId = result.rows[0]?.id;
+
+      if (ticketId) {
+        await db.closeTicket(ticketId, interaction.user.id);
+
+        await db.addTicketMessage(ticketId, {
+          authorId: "SYSTEM",
+          content: `Ticket closed by ${interaction.user.tag}\nTranscript: ${data.rawUrl}`,
+        });
+      } else {
+        logger.warn(`No ticket found with channel ID ${channel.id}`);
+      }
+
+      await db.clearTicketActions(channel.id);
+      await channel.delete().catch((error) => {
+        logger.error("Error deleting channel:", error);
+        throw new Error("Failed to delete ticket channel");
+      });
+
+      logger.info(`Ticket ${channel.name} closed by ${interaction.user.tag}`);
+    } catch (error) {
+      logger.error("Error saving ticket transcript:", error);
+      throw error;
+    }
   } catch (error) {
-    console.error("Error closing ticket:", error);
-    console.error("Full error details:", {
+    logger.error(`Error closing ticket ${interaction.channel?.name}:`, error);
+    logger.debug("Full error details:", {
       message: error.message,
       stack: error.stack,
     });

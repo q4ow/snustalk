@@ -1,9 +1,11 @@
 import { EmbedBuilder } from "discord.js";
 import { db } from "../utils/database.js";
+import { logger } from "../utils/logger.js";
 
 export async function handleWelcome(member) {
   try {
     const { guild } = member;
+    logger.info(`Processing welcome for ${member.user.tag} in ${guild.name}`);
 
     const unverifiedRoleId = await db.getRoleId(guild.id, "unverified");
     if (unverifiedRoleId) {
@@ -11,27 +13,51 @@ export async function handleWelcome(member) {
         const unverifiedRole = await guild.roles.fetch(unverifiedRoleId);
         if (unverifiedRole) {
           await member.roles.add(unverifiedRole);
+          logger.debug(`Added unverified role to ${member.user.tag}`);
+        } else {
+          logger.warn(
+            `Unverified role ${unverifiedRoleId} not found in guild ${guild.name}`,
+          );
         }
       } catch (error) {
         if (error.code === 50013) {
-          console.log(
+          logger.debug(
             `Skipping role modification for staff member: ${member.user.tag}`,
           );
         } else if (error.code === 10011) {
-          console.error(`Role no longer exists in the guild: ${error.message}`);
+          logger.error(
+            `Role ${unverifiedRoleId} no longer exists in guild ${guild.name}`,
+          );
         } else {
+          logger.error(
+            `Error adding unverified role to ${member.user.tag}:`,
+            error,
+          );
           throw error;
         }
       }
+    } else {
+      logger.debug(`No unverified role configured for guild ${guild.name}`);
     }
 
     const welcomeChannelId = await db.getChannelId(guild.id, "welcome");
-    if (!welcomeChannelId) return;
+    if (!welcomeChannelId) {
+      logger.debug(`No welcome channel configured for guild ${guild.name}`);
+      return;
+    }
 
     const welcomeChannel = await guild.channels.fetch(welcomeChannelId);
-    if (!welcomeChannel) return;
+    if (!welcomeChannel) {
+      logger.warn(
+        `Welcome channel ${welcomeChannelId} not found in guild ${guild.name}`,
+      );
+      return;
+    }
 
     const memberCount = guild.memberCount;
+    logger.debug(
+      `Creating welcome embed for ${member.user.tag} (Member #${memberCount})`,
+    );
 
     const welcomeEmbed = new EmbedBuilder()
       .setAuthor({
@@ -67,8 +93,10 @@ export async function handleWelcome(member) {
       content: `Welcome ${member}! 🎉`,
       embeds: [welcomeEmbed],
     });
+
+    logger.info(`Sent welcome message for ${member.user.tag} in ${guild.name}`);
   } catch (error) {
-    console.error("Error in welcome handler:", error);
+    logger.error(`Error welcoming member ${member?.user?.tag}:`, error);
   }
 }
 

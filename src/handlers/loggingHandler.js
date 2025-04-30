@@ -2,6 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import { formatDuration } from "../utils/moderation.js";
 import { db } from "../utils/database.js";
 import { getSettings } from "./settings/handler.js";
+import { logger } from "../utils/logger.js";
 
 const LOG_TYPES = {
   MEMBER: { color: "#3498db", emoji: "👥" },
@@ -19,7 +20,7 @@ const LOG_TYPES = {
   RAID: { color: "#e74c3c", emoji: "⚠️" },
 };
 
-class LogHandler {
+export class LogHandler {
   constructor(client) {
     this.client = client;
     this.channels = new Map();
@@ -31,100 +32,143 @@ class LogHandler {
     return str.length > maxLength ? str.slice(0, maxLength - 3) + "..." : str;
   }
 
-  async initialize() {}
+  async initialize() {
+    try {
+      logger.info("Initializing logging handler");
+      // Future initialization code will go here
+      logger.info("Logging handler initialized successfully");
+    } catch (error) {
+      logger.error("Failed to initialize logging handler:", error);
+      throw error;
+    }
+  }
 
   isChannelBlacklisted(channelId) {
     return this.blacklistedChannels.includes(channelId);
   }
 
   async isLoggingChannel(channelId) {
-    const allSettings = await db.getLoggingSettings(
-      this.client.guilds.cache.first().id,
-    );
-    return allSettings.some((setting) => setting.channel_id === channelId);
+    try {
+      const allSettings = await db.getLoggingSettings(
+        this.client.guilds.cache.first().id,
+      );
+      return allSettings.some((setting) => setting.channel_id === channelId);
+    } catch (error) {
+      logger.error(
+        `Failed to check if channel ${channelId} is a logging channel:`,
+        error,
+      );
+      return false;
+    }
   }
 
   async hasBotRole(member) {
-    if (!member || !member.guild) return false;
-    const settings = await getSettings(member.guild.id);
-    const botRoleId = settings.role_ids?.bot;
-    if (!botRoleId) return false;
-    return member.roles.cache.has(botRoleId);
+    try {
+      if (!member || !member.guild) return false;
+      const settings = await getSettings(member.guild.id);
+      const botRoleId = settings.role_ids?.bot;
+      if (!botRoleId) return false;
+      return member.roles.cache.has(botRoleId);
+    } catch (error) {
+      logger.error(`Failed to check bot role for member ${member?.id}:`, error);
+      return false;
+    }
   }
 
   async createLog(type, data) {
-    if (!LOG_TYPES[type]) {
-      console.warn(`Unknown log type: ${type}`);
-      return;
-    }
-
-    const botId = this.client.user.id;
-    if (
-      data.member?.id === botId ||
-      data.user?.id === botId ||
-      data.message?.author?.id === botId ||
-      data.executor?.id === botId
-    ) {
-      return;
-    }
-
-    if (data.member && (await this.hasBotRole(data.member))) {
-      return;
-    }
-    if (data.user && data.guild) {
-      const member = await data.guild.members
-        .fetch(data.user.id)
-        .catch(() => null);
-      if (member && (await this.hasBotRole(member))) {
-        return;
-      }
-    }
-    if (data.message?.member && (await this.hasBotRole(data.message.member))) {
-      return;
-    }
-    if (data.executor) {
-      const member = await data.guild.members
-        .fetch(data.executor.id)
-        .catch(() => null);
-      if (member && (await this.hasBotRole(member))) {
-        return;
-      }
-    }
-
-    const guildId =
-      data.guild?.id ||
-      data.message?.guild?.id ||
-      this.client.guilds.cache.first().id;
-    const settings = await db.getLoggingSettings(guildId, type);
-
-    if (!settings || !settings.enabled) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`Logging disabled for ${type} in guild ${guildId}`);
-      }
-      return;
-    }
-
-    const channel = await this.client.channels
-      .fetch(settings.channel_id)
-      .catch(() => null);
-    if (!channel) {
-      console.warn(`Could not find logging channel for ${type} logs`);
-      return;
-    }
-
-    if (
-      data.message?.channelId === settings.channel_id ||
-      data.channel?.id === settings.channel_id
-    ) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`Skipping log for logging channel: ${settings.channel_id}`);
-      }
-      return;
-    }
-
     try {
+      if (!LOG_TYPES[type]) {
+        logger.warn(`Unknown log type: ${type}`);
+        return;
+      }
+
+      const botId = this.client.user.id;
+      if (
+        data.member?.id === botId ||
+        data.user?.id === botId ||
+        data.message?.author?.id === botId ||
+        data.executor?.id === botId
+      ) {
+        logger.debug(`Skipping log for bot action of type ${type}`);
+        return;
+      }
+
+      // Bot role checks
+      if (data.member && (await this.hasBotRole(data.member))) {
+        logger.debug(`Skipping log for bot member action of type ${type}`);
+        return;
+      }
+      if (data.user && data.guild) {
+        try {
+          const member = await data.guild.members.fetch(data.user.id);
+          if (member && (await this.hasBotRole(member))) {
+            logger.debug(`Skipping log for bot user action of type ${type}`);
+            return;
+          }
+        } catch (error) {
+          logger.debug(`Could not fetch member ${data.user.id}:`, error);
+        }
+      }
+      if (
+        data.message?.member &&
+        (await this.hasBotRole(data.message.member))
+      ) {
+        logger.debug(`Skipping log for bot message action of type ${type}`);
+        return;
+      }
+      if (data.executor) {
+        try {
+          const member = await data.guild.members.fetch(data.executor.id);
+          if (member && (await this.hasBotRole(member))) {
+            logger.debug(
+              `Skipping log for bot executor action of type ${type}`,
+            );
+            return;
+          }
+        } catch (error) {
+          logger.debug(`Could not fetch executor ${data.executor.id}:`, error);
+        }
+      }
+
+      const guildId =
+        data.guild?.id ||
+        data.message?.guild?.id ||
+        this.client.guilds.cache.first().id;
+
+      const settings = await db.getLoggingSettings(guildId, type);
+      if (!settings || !settings.enabled) {
+        logger.debug(`Logging disabled for ${type} in guild ${guildId}`);
+        return;
+      }
+
+      let channel;
+      try {
+        channel = await this.client.channels.fetch(settings.channel_id);
+      } catch (error) {
+        logger.error(
+          `Could not find logging channel ${settings.channel_id}:`,
+          error,
+        );
+        return;
+      }
+
+      if (!channel) {
+        logger.warn(
+          `Could not find logging channel for ${type} logs in guild ${guildId}`,
+        );
+        return;
+      }
+
+      if (
+        data.message?.channelId === settings.channel_id ||
+        data.channel?.id === settings.channel_id
+      ) {
+        logger.debug(`Skipping log for logging channel ${settings.channel_id}`);
+        return;
+      }
+
       if (!data || !data.action) {
-        console.error(`Invalid log data for ${type}:`, data);
+        logger.error(`Invalid log data for ${type}:`, data);
         return;
       }
 
@@ -133,50 +177,58 @@ class LogHandler {
         .setTimestamp()
         .setFooter({ text: `${LOG_TYPES[type].emoji} ${type} Log` });
 
-      switch (type) {
-        case "MEMBER":
-          this.formatMemberLog(embed, data);
-          break;
-        case "MESSAGE":
-          this.formatMessageLog(embed, data);
-          break;
-        case "MOD":
-          this.formatModerationLog(embed, data);
-          break;
-        case "VOICE":
-          this.formatVoiceLog(embed, data);
-          break;
-        case "CHANNEL":
-          this.formatChannelLog(embed, data);
-          break;
-        case "ROLE":
-          this.formatRoleLog(embed, data);
-          break;
-        case "SERVER":
-          this.formatServerLog(embed, data);
-          break;
-        case "USER":
-          this.formatUserLog(embed, data);
-          break;
-        case "INVITE":
-          this.formatInviteLog(embed, data);
-          break;
-        case "THREAD":
-          this.formatThreadLog(embed, data);
-          break;
-        case "FILE":
-          this.formatFileLog(embed, data);
-          break;
-        case "BOOST":
-          this.formatBoostLog(embed, data);
-          break;
-        case "RAID":
-          this.formatRaidLog(embed, data);
-          break;
+      try {
+        switch (type) {
+          case "MEMBER":
+            this.formatMemberLog(embed, data);
+            break;
+          case "MESSAGE":
+            this.formatMessageLog(embed, data);
+            break;
+          case "MOD":
+            this.formatModerationLog(embed, data);
+            break;
+          case "VOICE":
+            this.formatVoiceLog(embed, data);
+            break;
+          case "CHANNEL":
+            this.formatChannelLog(embed, data);
+            break;
+          case "ROLE":
+            this.formatRoleLog(embed, data);
+            break;
+          case "SERVER":
+            this.formatServerLog(embed, data);
+            break;
+          case "USER":
+            await this.formatUserLog(embed, data);
+            break;
+          case "INVITE":
+            await this.formatInviteLog(embed, data);
+            break;
+          case "THREAD":
+            await this.formatThreadLog(embed, data);
+            break;
+          case "FILE":
+            this.formatFileLog(embed, data);
+            break;
+          case "BOOST":
+            this.formatBoostLog(embed, data);
+            break;
+          case "RAID":
+            this.formatRaidLog(embed, data);
+            break;
+          default:
+            logger.warn(`Unknown log type ${type} encountered`);
+            return;
+        }
+      } catch (error) {
+        logger.error(`Failed to format ${type} log:`, error);
+        return;
       }
 
       if (!embed.data.title || !embed.data.fields?.length) {
-        console.error(`Invalid embed generated for ${type} log:`, embed);
+        logger.error(`Invalid embed generated for ${type} log:`, embed);
         return;
       }
 
@@ -184,10 +236,19 @@ class LogHandler {
         ? settings.ping_roles.map((id) => `<@&${id}>`).join(" ")
         : "";
 
-      await channel.send({ content, embeds: [embed] });
-      // console.log(`Successfully sent ${type} log`);
+      try {
+        await channel.send({ content, embeds: [embed] });
+        logger.debug(
+          `Successfully sent ${type} log to channel ${channel.name}`,
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to send ${type} log to channel ${channel.name}:`,
+          error,
+        );
+      }
     } catch (error) {
-      console.error(`Failed to send ${type} log:`, error);
+      logger.error(`Failed to create ${type} log:`, error);
     }
   }
 
@@ -196,41 +257,14 @@ class LogHandler {
     if (!oldContent) return `+ ${this.truncateContent(newContent)}`;
     if (!newContent) return `- ${this.truncateContent(oldContent)}`;
 
-    const lines = [];
     const oldLines = oldContent.split("\n");
     const newLines = newContent.split("\n");
+    const diff = [];
 
-    let i = 0,
-      j = 0;
-    const maxLines = 15;
-    while (
-      (i < oldLines.length || j < newLines.length) &&
-      lines.length < maxLines
-    ) {
-      if (i >= oldLines.length) {
-        lines.push(`+ ${this.truncateContent(newLines[j])}`);
-        j++;
-      } else if (j >= newLines.length) {
-        lines.push(`- ${this.truncateContent(oldLines[i])}`);
-        i++;
-      } else if (oldLines[i] === newLines[j]) {
-        lines.push(`  ${this.truncateContent(oldLines[i])}`);
-        i++;
-        j++;
-      } else {
-        lines.push(`- ${this.truncateContent(oldLines[i])}`);
-        lines.push(`+ ${this.truncateContent(newLines[j])}`);
-        i++;
-        j++;
-      }
-    }
+    oldLines.forEach((line) => diff.push(`- ${this.truncateContent(line)}`));
+    newLines.forEach((line) => diff.push(`+ ${this.truncateContent(line)}`));
 
-    if (i < oldLines.length || j < newLines.length) {
-      lines.push("  ... (content truncated)");
-    }
-
-    const diff = lines.join("\n");
-    return diff.length > 1000 ? diff.slice(0, 997) + "..." : diff;
+    return diff.join("\n");
   }
 
   formatChannelLog(embed, data) {
@@ -1013,5 +1047,4 @@ class LogHandler {
     return embed;
   }
 }
-
-export { LogHandler, LOG_TYPES };
+export { LOG_TYPES };

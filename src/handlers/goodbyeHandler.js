@@ -1,22 +1,25 @@
 import { EmbedBuilder, ChannelType } from "discord.js";
 import { db } from "../utils/database.js";
+import { logger } from "../utils/logger.js";
 
 export async function handleGoodbye(member) {
   try {
     const { guild } = member;
+    logger.info(`Processing goodbye for ${member.user.tag} in ${guild.name}`);
 
     const goodbyeChannelId = await db.getChannelId(guild.id, "goodbye");
 
     if (!goodbyeChannelId) {
-      console.warn(`Goodbye channel ID not found for guild ${guild.id}`);
+      logger.warn(`No goodbye channel configured for guild ${guild.name}`);
       return;
     }
 
     const goodbyeChannel = await guild.channels
       .fetch(goodbyeChannelId)
       .catch((error) => {
-        console.warn(
-          `Could not fetch goodbye channel with ID ${goodbyeChannelId}: ${error}`,
+        logger.error(
+          `Failed to fetch goodbye channel ${goodbyeChannelId} in ${guild.name}:`,
+          error,
         );
         return null;
       });
@@ -27,8 +30,8 @@ export async function handleGoodbye(member) {
         goodbyeChannel.type,
       )
     ) {
-      console.warn(
-        `Goodbye channel not found or not a text channel: ${goodbyeChannelId}`,
+      logger.warn(
+        `Invalid goodbye channel ${goodbyeChannelId} in ${guild.name}: ${goodbyeChannel ? "Wrong channel type" : "Channel not found"}`,
       );
       return;
     }
@@ -38,6 +41,10 @@ export async function handleGoodbye(member) {
     const leaveDate = new Date();
     const membershipDuration = Math.floor(
       (leaveDate - joinDate) / (1000 * 60 * 60 * 24),
+    );
+
+    logger.debug(
+      `Member ${member.user.tag} was in ${guild.name} for ${membershipDuration} days`,
     );
 
     let durationText;
@@ -83,10 +90,16 @@ export async function handleGoodbye(member) {
 
     try {
       await goodbyeChannel.send({ embeds: [goodbyeEmbed] });
+      logger.info(
+        `Sent goodbye message for ${member.user.tag} in ${guild.name}`,
+      );
     } catch (sendError) {
-      console.error("Failed to send goodbye message:", sendError);
+      logger.error(
+        `Failed to send goodbye message for ${member.user.tag} in ${guild.name}:`,
+        sendError,
+      );
     }
   } catch (error) {
-    console.error("Error in goodbye handler:", error);
+    logger.error(`Error processing goodbye for ${member?.user?.tag}:`, error);
   }
 }

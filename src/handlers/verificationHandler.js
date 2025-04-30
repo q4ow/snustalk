@@ -5,6 +5,7 @@ import {
   ButtonStyle,
 } from "discord.js";
 import { db } from "../utils/database.js";
+import { logger } from "../utils/logger.js";
 
 export async function handleVerification(reaction, user) {
   try {
@@ -17,6 +18,10 @@ export async function handleVerification(reaction, user) {
     if (reaction.message.channelId !== verificationChannelId) return;
     if (reaction.emoji.name !== "✅") return;
 
+    logger.info(
+      `Processing verification for ${user.tag} in ${reaction.message.guild.name}`,
+    );
+
     const guild = reaction.message.guild;
     const member = await guild.members.fetch(user.id);
 
@@ -27,7 +32,7 @@ export async function handleVerification(reaction, user) {
       [];
 
     if (!verifiedRoleId || !unverifiedRoleId) {
-      console.error("Required roles not found:", {
+      logger.error(`Required roles not found in guild ${guild.name}:`, {
         verifiedRole: verifiedRoleId ? "Found" : "Missing",
         unverifiedRole: unverifiedRoleId ? "Found" : "Missing",
       });
@@ -38,23 +43,27 @@ export async function handleVerification(reaction, user) {
     const unverifiedRole = await guild.roles.fetch(unverifiedRoleId);
 
     if (!verifiedRole || !unverifiedRole) {
-      console.error("Required roles do not exist in the server");
+      logger.error(`Required roles do not exist in guild ${guild.name}`);
       return;
     }
 
     try {
       await member.roles.add(verifiedRole);
+      logger.debug(`Added verified role to ${user.tag}`);
 
       if (additionalRoleIds.length > 0) {
+        logger.debug(
+          `Adding ${additionalRoleIds.length} additional roles to ${user.tag}`,
+        );
         for (const roleId of additionalRoleIds) {
           const role = await guild.roles.fetch(roleId).catch((error) => {
-            console.error(`Failed to fetch additional role ${roleId}:`, error);
+            logger.error(`Failed to fetch additional role ${roleId}:`, error);
             return null;
           });
 
           if (role) {
             await member.roles.add(role).catch((error) => {
-              console.error(
+              logger.error(
                 `Failed to add role ${roleId} to member ${member.id}:`,
                 error,
               );
@@ -62,17 +71,22 @@ export async function handleVerification(reaction, user) {
           }
         }
       }
+
       await member.roles.remove(unverifiedRole);
+      logger.debug(`Removed unverified role from ${user.tag}`);
     } catch (error) {
       if (error.code === 50013) {
-        console.log(
+        logger.debug(
           `Skipping role modification for staff member: ${member.user.tag}`,
         );
         return;
       } else if (error.code === 10011) {
-        console.error(`Role no longer exists in the guild: ${error.message}`);
+        logger.error(
+          `Role no longer exists in guild ${guild.name}: ${error.message}`,
+        );
         return;
       } else {
+        logger.error(`Error modifying roles for ${user.tag}:`, error);
         throw error;
       }
     }
@@ -103,6 +117,7 @@ export async function handleVerification(reaction, user) {
         "restorecord",
       );
       if (restoreRecordLink) {
+        logger.debug(`Adding RestoreCore backup option for ${user.tag}`);
         const backupEmbed = new EmbedBuilder()
           .setTitle("🛡️ Optional Security Measure")
           .setDescription(
@@ -138,8 +153,9 @@ export async function handleVerification(reaction, user) {
           embeds: embeds,
           components: components,
         });
+        logger.debug(`Sent verification DM to ${user.tag}`);
       } catch (error) {
-        console.error("Could not send DM to user:", error);
+        logger.warn(`Could not send DM to ${user.tag}:`, error);
         const sentMessage = await reaction.message.channel.send({
           content: `<@${user.id}>`,
           embeds: embeds,
@@ -150,14 +166,19 @@ export async function handleVerification(reaction, user) {
           sentMessage
             .delete()
             .catch((error) =>
-              console.error("Could not delete verification message:", error),
+              logger.error(
+                `Could not delete verification message for ${user.tag}:`,
+                error,
+              ),
             );
         }, 30000);
       }
     } catch (error) {
-      console.error("Could not send embeds:", error);
+      logger.error(`Could not send verification embeds to ${user.tag}:`, error);
     }
+
+    logger.info(`Successfully verified ${user.tag} in ${guild.name}`);
   } catch (error) {
-    console.error("Error in verification handler:", error);
+    logger.error(`Error in verification handler for ${user?.tag}:`, error);
   }
 }

@@ -1,6 +1,7 @@
 import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { db } from "../../utils/database.js";
 import { warnUser, timeoutUser } from "../moderationHandler.js";
+import { logger } from "../../utils/logger.js";
 
 const DEFAULT_SETTINGS = {
   enabled: false,
@@ -53,30 +54,42 @@ const DEFAULT_SETTINGS = {
 const spamCache = new Map();
 
 export async function setupAutomod(guild, settings = {}) {
-  const automodSettings = {
-    ...DEFAULT_SETTINGS,
-    ...settings,
-  };
-  await db.saveAutomodSettings(guild.id, automodSettings);
-  return automodSettings;
+  try {
+    const automodSettings = {
+      ...DEFAULT_SETTINGS,
+      ...settings,
+    };
+    await db.saveAutomodSettings(guild.id, automodSettings);
+    logger.info(`Automod settings initialized for guild ${guild.name}`);
+    return automodSettings;
+  } catch (error) {
+    logger.error(`Error setting up automod for guild ${guild.name}:`, error);
+    throw error;
+  }
 }
 
 async function migrateWhitelistRoles(settings) {
-  const filters = ["spam", "invites", "mentions", "caps", "links", "words"];
+  try {
+    const filters = ["spam", "invites", "mentions", "caps", "links", "words"];
 
-  filters.forEach((filter) => {
-    if (!settings.filters[filter].whitelistRoles) {
-      settings.filters[filter].whitelistRoles = [];
-    }
-  });
+    filters.forEach((filter) => {
+      if (!settings.filters[filter].whitelistRoles) {
+        settings.filters[filter].whitelistRoles = [];
+      }
+    });
 
-  return settings;
+    return settings;
+  } catch (error) {
+    logger.error("Error migrating whitelist roles:", error);
+    throw error;
+  }
 }
 
 export async function getAutomodSettings(guildId) {
   try {
     const settings = await db.getAutomodSettings(guildId);
     if (!settings || !settings.filters) {
+      logger.debug(`Using default automod settings for guild ${guildId}`);
       return DEFAULT_SETTINGS;
     }
 
@@ -98,102 +111,135 @@ export async function getAutomodSettings(guildId) {
 
     return await migrateWhitelistRoles(mergedSettings);
   } catch (error) {
-    console.error("Error getting automod settings:", error);
+    logger.error(`Error getting automod settings for guild ${guildId}:`, error);
     return DEFAULT_SETTINGS;
   }
 }
 
 export async function updateAutomodSettings(guildId, settings) {
-  const currentSettings = await getAutomodSettings(guildId);
-  const updatedSettings = {
-    ...currentSettings,
-    ...settings,
-  };
-  await db.saveAutomodSettings(guildId, updatedSettings);
-  return updatedSettings;
+  try {
+    const currentSettings = await getAutomodSettings(guildId);
+    const updatedSettings = {
+      ...currentSettings,
+      ...settings,
+    };
+    await db.saveAutomodSettings(guildId, updatedSettings);
+    logger.info(`Updated automod settings for guild ${guildId}`);
+    return updatedSettings;
+  } catch (error) {
+    logger.error(
+      `Error updating automod settings for guild ${guildId}:`,
+      error,
+    );
+    throw error;
+  }
 }
 
 async function isExempt(message, filterType = null) {
-  const settings = await getAutomodSettings(message.guild.id);
+  try {
+    const settings = await getAutomodSettings(message.guild.id);
 
-  if (
-    settings.exemptRoles.some((roleId) =>
-      message.member.roles.cache.has(roleId),
-    )
-  ) {
-    return true;
-  }
-
-  if (settings.exemptChannels.includes(message.channel.id)) {
-    return true;
-  }
-
-  if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-    return true;
-  }
-
-  if (filterType && settings.filters[filterType]) {
-    const filterSettings = settings.filters[filterType];
     if (
-      filterSettings.whitelistRoles &&
-      filterSettings.whitelistRoles.some((roleId) =>
+      settings.exemptRoles.some((roleId) =>
         message.member.roles.cache.has(roleId),
       )
     ) {
       return true;
     }
-  }
 
-  return false;
+    if (settings.exemptChannels.includes(message.channel.id)) {
+      return true;
+    }
+
+    if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return true;
+    }
+
+    if (filterType && settings.filters[filterType]) {
+      const filterSettings = settings.filters[filterType];
+      if (
+        filterSettings.whitelistRoles &&
+        filterSettings.whitelistRoles.some((roleId) =>
+          message.member.roles.cache.has(roleId),
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    logger.error(`Error checking exemption for message ${message.id}:`, error);
+    return false;
+  }
 }
 
 async function handleViolation(message, type, action, duration = null) {
-  const settings = await getAutomodSettings(message.guild.id);
+  try {
+    const settings = await getAutomodSettings(message.guild.id);
 
-  const logEmbed = new EmbedBuilder()
-    .setTitle("🛡️ AutoMod Action")
-    .setColor("#FF0000")
-    .setDescription(`Auto-moderation action taken in ${message.channel}`)
-    .addFields(
-      {
-        name: "User",
-        value: `${message.author} (${message.author.id})`,
-        inline: true,
-      },
-      { name: "Violation", value: type, inline: true },
-      { name: "Action", value: action, inline: true },
-      { name: "Content", value: message.content || "[No content]" },
-    )
-    .setTimestamp();
+    const logEmbed = new EmbedBuilder()
+      .setTitle("🛡️ AutoMod Action")
+      .setColor("#FF0000")
+      .setDescription(`Auto-moderation action taken in ${message.channel}`)
+      .addFields(
+        {
+          name: "User",
+          value: `${message.author} (${message.author.id})`,
+          inline: true,
+        },
+        { name: "Violation", value: type, inline: true },
+        { name: "Action", value: action, inline: true },
+        { name: "Content", value: message.content || "[No content]" },
+      )
+      .setTimestamp();
 
-  switch (action) {
-    case "delete":
-      await message.delete().catch(console.error);
-      break;
-    case "warn":
-      await warnUser(
-        message.guild,
-        message.client.user,
-        message.member,
-        `[AutoMod] ${type} violation`,
-      );
-      break;
-    case "timeout":
-      await timeoutUser(
-        message.guild,
-        message.client.user,
-        message.member,
-        duration || 300000,
-        `[AutoMod] ${type} violation`,
-      );
-      break;
-  }
-
-  if (settings.logChannel) {
-    const logChannel = await message.guild.channels.fetch(settings.logChannel);
-    if (logChannel) {
-      await logChannel.send({ embeds: [logEmbed] });
+    switch (action) {
+      case "delete":
+        try {
+          await message.delete();
+          logger.info(`Deleted message ${message.id} for ${type} violation`);
+        } catch (error) {
+          logger.error(`Failed to delete message ${message.id}:`, error);
+        }
+        break;
+      case "warn":
+        await warnUser(
+          message.guild,
+          message.client.user,
+          message.member,
+          `[AutoMod] ${type} violation`,
+        );
+        logger.info(`Warned user ${message.author.tag} for ${type} violation`);
+        break;
+      case "timeout":
+        await timeoutUser(
+          message.guild,
+          message.client.user,
+          message.member,
+          duration || 300000,
+          `[AutoMod] ${type} violation`,
+        );
+        logger.info(
+          `Timed out user ${message.author.tag} for ${type} violation`,
+        );
+        break;
     }
+
+    if (settings.logChannel) {
+      try {
+        const logChannel = await message.guild.channels.fetch(
+          settings.logChannel,
+        );
+        if (logChannel) {
+          await logChannel.send({ embeds: [logEmbed] });
+        }
+      } catch (error) {
+        logger.error(`Failed to log violation to channel:`, error);
+      }
+    }
+  } catch (error) {
+    logger.error(`Error handling violation for message ${message.id}:`, error);
   }
 }
 
@@ -345,123 +391,164 @@ async function checkWords(message) {
 }
 
 export async function handleMessage(message) {
-  if (!message.guild || message.author.bot) return;
+  try {
+    if (!message.guild || message.author.bot) return;
 
-  const settings = await getAutomodSettings(message.guild.id);
-  if (!settings.enabled) return;
+    const settings = await getAutomodSettings(message.guild.id);
+    if (!settings.enabled) return;
 
-  if (await isExempt(message)) return;
+    if (await isExempt(message)) return;
 
-  const checks = [
-    checkSpam,
-    checkMentions,
-    checkCaps,
-    checkLinks,
-    checkInvites,
-    checkWords,
-  ];
+    const checks = [
+      checkSpam,
+      checkMentions,
+      checkCaps,
+      checkLinks,
+      checkInvites,
+      checkWords,
+    ];
 
-  for (const check of checks) {
-    if (await check(message)) break;
+    for (const check of checks) {
+      if (await check(message)) break;
+    }
+  } catch (error) {
+    logger.error(`Error handling message ${message.id}:`, error);
   }
 }
 
 export async function handleAutomodWhitelistRole(interaction) {
-  const filter = interaction.options.getString("filter");
-  const role = interaction.options.getRole("role");
-  const settings = await getAutomodSettings(interaction.guild.id);
+  try {
+    const filter = interaction.options.getString("filter");
+    const role = interaction.options.getRole("role");
+    const settings = await getAutomodSettings(interaction.guild.id);
 
-  if (!settings.filters[filter]) {
-    return interaction.reply({ content: "Invalid filter type.", flags: 64 });
-  }
-
-  if (!settings.filters[filter].whitelistRoles) {
-    settings.filters[filter].whitelistRoles = [];
-  }
-
-  if (settings.filters[filter].whitelistRoles.includes(role.id)) {
-    return interaction.reply({
-      content: `Role ${role.name} is already whitelisted for the ${filter} filter.`,
-      flags: 64,
-    });
-  }
-
-  settings.filters[filter].whitelistRoles.push(role.id);
-  await updateAutomodSettings(interaction.guild.id, settings);
-
-  return interaction.reply({
-    content: `Added ${role.name} to the ${filter} filter whitelist.`,
-    flags: 64,
-  });
-}
-
-export async function handleAutomodUnwhitelistRole(interaction) {
-  const filter = interaction.options.getString("filter");
-  const role = interaction.options.getRole("role");
-  const settings = await getAutomodSettings(interaction.guild.id);
-
-  if (!settings.filters[filter]) {
-    return interaction.reply({ content: "Invalid filter type.", flags: 64 });
-  }
-
-  if (!settings.filters[filter].whitelistRoles) {
-    return interaction.reply({
-      content: `No whitelisted roles found for the ${filter} filter.`,
-      flags: 64,
-    });
-  }
-
-  const index = settings.filters[filter].whitelistRoles.indexOf(role.id);
-  if (index === -1) {
-    return interaction.reply({
-      content: `Role ${role.name} is not whitelisted for the ${filter} filter.`,
-      flags: 64,
-    });
-  }
-
-  settings.filters[filter].whitelistRoles.splice(index, 1);
-  await updateAutomodSettings(interaction.guild.id, settings);
-
-  return interaction.reply({
-    content: `Removed ${role.name} from the ${filter} filter whitelist.`,
-    flags: 64,
-  });
-}
-
-export async function handleAutomodListWhitelists(interaction) {
-  const filter = interaction.options.getString("filter");
-  const settings = await getAutomodSettings(interaction.guild.id);
-
-  if (filter) {
     if (!settings.filters[filter]) {
       return interaction.reply({ content: "Invalid filter type.", flags: 64 });
     }
 
-    const whitelistedRoles = settings.filters[filter].whitelistRoles || [];
-    const roleNames = whitelistedRoles.map((roleId) => {
-      const role = interaction.guild.roles.cache.get(roleId);
-      return role ? role.name : "Unknown Role";
-    });
+    if (!settings.filters[filter].whitelistRoles) {
+      settings.filters[filter].whitelistRoles = [];
+    }
+
+    if (settings.filters[filter].whitelistRoles.includes(role.id)) {
+      return interaction.reply({
+        content: `Role ${role.name} is already whitelisted for the ${filter} filter.`,
+        flags: 64,
+      });
+    }
+
+    settings.filters[filter].whitelistRoles.push(role.id);
+    await updateAutomodSettings(interaction.guild.id, settings);
+    logger.info(
+      `Added role ${role.name} to ${filter} filter whitelist in ${interaction.guild.name}`,
+    );
 
     return interaction.reply({
-      content: `Whitelisted roles for ${filter} filter:\n${roleNames.length ? roleNames.join("\n") : "No roles whitelisted"}`,
+      content: `Added ${role.name} to the ${filter} filter whitelist.`,
+      flags: 64,
+    });
+  } catch (error) {
+    logger.error(`Error handling whitelist role command:`, error);
+    return interaction.reply({
+      content: "An error occurred while processing the command.",
       flags: 64,
     });
   }
+}
 
-  const allWhitelists = Object.entries(settings.filters)
-    .map(([filterName, filterSettings]) => {
-      const whitelistedRoles = filterSettings.whitelistRoles || [];
+export async function handleAutomodUnwhitelistRole(interaction) {
+  try {
+    const filter = interaction.options.getString("filter");
+    const role = interaction.options.getRole("role");
+    const settings = await getAutomodSettings(interaction.guild.id);
+
+    if (!settings.filters[filter]) {
+      return interaction.reply({ content: "Invalid filter type.", flags: 64 });
+    }
+
+    if (!settings.filters[filter].whitelistRoles) {
+      return interaction.reply({
+        content: `No whitelisted roles found for the ${filter} filter.`,
+        flags: 64,
+      });
+    }
+
+    const index = settings.filters[filter].whitelistRoles.indexOf(role.id);
+    if (index === -1) {
+      return interaction.reply({
+        content: `Role ${role.name} is not whitelisted for the ${filter} filter.`,
+        flags: 64,
+      });
+    }
+
+    settings.filters[filter].whitelistRoles.splice(index, 1);
+    await updateAutomodSettings(interaction.guild.id, settings);
+    logger.info(
+      `Removed role ${role.name} from ${filter} filter whitelist in ${interaction.guild.name}`,
+    );
+
+    return interaction.reply({
+      content: `Removed ${role.name} from the ${filter} filter whitelist.`,
+      flags: 64,
+    });
+  } catch (error) {
+    logger.error(`Error handling unwhitelist role command:`, error);
+    return interaction.reply({
+      content: "An error occurred while processing the command.",
+      flags: 64,
+    });
+  }
+}
+
+export async function handleAutomodListWhitelists(interaction) {
+  try {
+    const filter = interaction.options.getString("filter");
+    const settings = await getAutomodSettings(interaction.guild.id);
+
+    if (filter) {
+      if (!settings.filters[filter]) {
+        return interaction.reply({
+          content: "Invalid filter type.",
+          flags: 64,
+        });
+      }
+
+      const whitelistedRoles = settings.filters[filter].whitelistRoles || [];
       const roleNames = whitelistedRoles.map((roleId) => {
         const role = interaction.guild.roles.cache.get(roleId);
         return role ? role.name : "Unknown Role";
       });
-      return `${filterName}: ${roleNames.length ? roleNames.join(", ") : "None"}`;
-    })
-    .join("\n");
 
-  return interaction.reply({
-    content: `Current whitelist settings:\n${allWhitelists}`,
-    flags: 64,
-  });
+      logger.info(
+        `Listed whitelist for ${filter} filter in ${interaction.guild.name}`,
+      );
+      return interaction.reply({
+        content: `Whitelisted roles for ${filter} filter:\n${roleNames.length ? roleNames.join("\n") : "No roles whitelisted"}`,
+        flags: 64,
+      });
+    }
+
+    const allWhitelists = Object.entries(settings.filters)
+      .map(([filterName, filterSettings]) => {
+        const whitelistedRoles = filterSettings.whitelistRoles || [];
+        const roleNames = whitelistedRoles.map((roleId) => {
+          const role = interaction.guild.roles.cache.get(roleId);
+          return role ? role.name : "Unknown Role";
+        });
+        return `${filterName}: ${roleNames.length ? roleNames.join(", ") : "None"}`;
+      })
+      .join("\n");
+
+    logger.info(`Listed all whitelists in ${interaction.guild.name}`);
+    return interaction.reply({
+      content: `Current whitelist settings:\n${allWhitelists}`,
+      flags: 64,
+    });
+  } catch (error) {
+    logger.error(`Error handling list whitelists command:`, error);
+    return interaction.reply({
+      content: "An error occurred while processing the command.",
+      flags: 64,
+    });
+  }
 }
