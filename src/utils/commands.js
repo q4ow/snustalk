@@ -458,6 +458,10 @@ const slashCommandHandlers = {
   "automod-whitelist-role": handleAutomodWhitelistRole,
   "automod-unwhitelist-role": handleAutomodUnwhitelistRole,
   "automod-list-whitelists": handleAutomodListWhitelists,
+  "automod-exempt-media-channel": async (interaction) => {
+    const { handleMediaChannelExemption } = await import("../handlers/automod/handlers.js");
+    await handleMediaChannelExemption(interaction);
+  },
 
   logs: async (interaction) => {
     const logsSubcommand = interaction.options.getSubcommand();

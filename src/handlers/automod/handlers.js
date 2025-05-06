@@ -39,6 +39,12 @@ const DEFAULT_SETTINGS = {
       whitelist: [],
       whitelistRoles: [],
     },
+    media: {
+      enabled: true,
+      action: "delete",
+      whitelistRoles: [],
+      exemptChannels: [],
+    },
     words: {
       enabled: true,
       action: "delete",
@@ -70,7 +76,7 @@ export async function setupAutomod(guild, settings = {}) {
 
 async function migrateWhitelistRoles(settings) {
   try {
-    const filters = ["spam", "invites", "mentions", "caps", "links", "words"];
+    const filters = ["spam", "invites", "mentions", "caps", "links", "media", "words"];
 
     filters.forEach((filter) => {
       if (!settings.filters[filter].whitelistRoles) {
@@ -390,6 +396,41 @@ async function checkWords(message) {
   return false;
 }
 
+async function checkMedia(message) {
+  const settings = await getAutomodSettings(message.guild.id);
+  if (!settings.filters.media.enabled) return false;
+  if (await isExempt(message, "media")) return false;
+  
+  if (settings.filters.media.exemptChannels && 
+      settings.filters.media.exemptChannels.includes(message.channel.id)) {
+    return false;
+  }
+
+  const hasMediaAttachment = message.attachments.some(attachment => {
+    if (attachment.contentType) {
+      if (attachment.contentType.startsWith('video/')) return true;
+      if (attachment.contentType === 'image/gif') return true;
+    }
+    
+    const fileExtension = attachment.name?.split('.').pop()?.toLowerCase();
+    return ['gif', 'mp4', 'webm', 'mov', 'avi', 'wmv', 'flv', 'mkv'].includes(fileExtension);
+  });
+
+  const mediaRegex = /https?:\/\/\S+\.(gif|mp4|webm|mov)\b|\.(gif|mp4|webm|mov)\?\S+|tenor\.com\/\S+|giphy\.com\/\S+/gi;
+  const hasMediaLink = message.content.match(mediaRegex) !== null;
+
+  if (hasMediaAttachment || hasMediaLink) {
+    await handleViolation(
+      message,
+      "Unauthorized Media (GIF/Video)",
+      settings.filters.media.action
+    );
+    return true;
+  }
+
+  return false;
+}
+
 export async function handleMessage(message) {
   try {
     if (!message.guild || message.author.bot) return;
@@ -406,6 +447,7 @@ export async function handleMessage(message) {
       checkLinks,
       checkInvites,
       checkWords,
+      checkMedia,
     ];
 
     for (const check of checks) {
@@ -546,6 +588,61 @@ export async function handleAutomodListWhitelists(interaction) {
     });
   } catch (error) {
     logger.error(`Error handling list whitelists command:`, error);
+    return interaction.reply({
+      content: "An error occurred while processing the command.",
+      flags: 64,
+    });
+  }
+}
+
+export async function handleMediaChannelExemption(interaction) {
+  try {
+    const action = interaction.options.getString("action");
+    const channel = interaction.options.getChannel("channel");
+    const settings = await getAutomodSettings(interaction.guild.id);
+    
+    if (!settings.filters.media.exemptChannels) {
+      settings.filters.media.exemptChannels = [];
+    }
+    
+    if (action === "add") {
+      if (settings.filters.media.exemptChannels.includes(channel.id)) {
+        return interaction.reply({
+          content: `Channel ${channel.name} is already exempted from media filtering.`,
+          flags: 64,
+        });
+      }
+      
+      settings.filters.media.exemptChannels.push(channel.id);
+      await updateAutomodSettings(interaction.guild.id, settings);
+      logger.info(`Added channel ${channel.name} to media filter exemption in ${interaction.guild.name}`);
+      
+      return interaction.reply({
+        content: `✅ Added ${channel.name} to media filter exemption. GIFs and videos are now allowed in this channel.`,
+        flags: 64,
+      });
+    } 
+    else if (action === "remove") {
+      const index = settings.filters.media.exemptChannels.indexOf(channel.id);
+      
+      if (index === -1) {
+        return interaction.reply({
+          content: `Channel ${channel.name} is not exempted from media filtering.`,
+          flags: 64,
+        });
+      }
+      
+      settings.filters.media.exemptChannels.splice(index, 1);
+      await updateAutomodSettings(interaction.guild.id, settings);
+      logger.info(`Removed channel ${channel.name} from media filter exemption in ${interaction.guild.name}`);
+      
+      return interaction.reply({
+        content: `✅ Removed ${channel.name} from media filter exemption. GIFs and videos are now blocked in this channel for users without permission.`,
+        flags: 64,
+      });
+    }
+  } catch (error) {
+    logger.error(`Error handling media channel exemption command:`, error);
     return interaction.reply({
       content: "An error occurred while processing the command.",
       flags: 64,
