@@ -29,13 +29,15 @@ class Logger {
   constructor(options = {}) {
     const env = process.env.NODE_ENV || "development";
     if (!config.logging[env]) {
-      console.warn(`No logging configuration found for environment ${env}, falling back to development config`);
+      console.warn(
+        `No logging configuration found for environment ${env}, falling back to development config`,
+      );
     }
     const defaultConfig = config.logging[env] || config.logging.development;
 
     this.options = {
       ...defaultConfig,
-      ...options
+      ...options,
     };
 
     this.currentLogFile = null;
@@ -145,9 +147,9 @@ class Logger {
       code: error.code,
       ...(error.response
         ? {
-          status: error.response.status,
-          statusText: error.response.statusText,
-        }
+            status: error.response.status,
+            statusText: error.response.statusText,
+          }
         : {}),
     };
   }
