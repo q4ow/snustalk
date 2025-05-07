@@ -11,15 +11,15 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "discord.js": "^14.19.2",
+    "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "fuzzball": "^2.2.2",
     "pg": "^8.15.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
-    "eslint": "^9.25.1",
+    "@eslint/js": "^9.26.0",
+    "eslint": "^9.26.0",
     "globals": "^16.0.0",
     "prettier": "^3.5.3"
   },
