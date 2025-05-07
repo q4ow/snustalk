@@ -228,12 +228,11 @@ export const db = {
   async saveAutomodSettings(guildId, settings) {
     try {
       await dbPool.query(
-        `INSERT INTO automod_settings (guild_id, settings, updated_at)
-         VALUES ($1, $2, CURRENT_TIMESTAMP)
+        `INSERT INTO automod_settings (guild_id, settings)
+         VALUES ($1, $2)
          ON CONFLICT (guild_id) 
          DO UPDATE SET 
-           settings = $2,
-           updated_at = CURRENT_TIMESTAMP`,
+           settings = $2`,
         [guildId, settings],
       );
       logger.info(`Updated automod settings for guild ${guildId}`);
